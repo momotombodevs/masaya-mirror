@@ -1,4 +1,5 @@
 import type { AndroidDevice } from '../../../../shared/device/types';
+import { selectConnectedDevices } from './connected-devices';
 import { DEVICE_STATUS_LABELS } from './device.ui';
 import styles from './DeviceList.module.css';
 
@@ -22,8 +23,8 @@ export function DeviceList({
   onRefresh,
   onStartMirror,
   activeMirrorIds,
-}: DeviceListProps) {
-  const connected = devices.filter((d) => d.status === 'device');
+}: DeviceListProps): JSX.Element {
+  const connected = selectConnectedDevices(devices);
 
   return (
     <section className={styles.section}>

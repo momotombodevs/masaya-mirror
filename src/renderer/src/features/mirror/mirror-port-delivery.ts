@@ -1,18 +1,12 @@
-import { isMirrorPortWindowMessage } from '../../../../shared/mirror/port-message';
+import {
+  isMirrorPortWindowMessage,
+  isValidMessagePort,
+} from '../../../../shared/mirror/port-message';
 
 type PortHandler = (port: MessagePort) => void;
 
 const handlersByDevice = new Map<string, Set<PortHandler>>();
 const pendingPortsByDevice = new Map<string, MessagePort>();
-
-function isValidPort(port: unknown): port is MessagePort {
-  return (
-    port !== null &&
-    typeof port === 'object' &&
-    typeof (port as MessagePort).addEventListener === 'function' &&
-    typeof (port as MessagePort).start === 'function'
-  );
-}
 
 function deliverPort(deviceId: string, port: MessagePort): void {
   const handlers = handlersByDevice.get(deviceId);
@@ -36,7 +30,7 @@ function onWindowMessage(event: MessageEvent): void {
   }
 
   const port = event.ports[0];
-  if (!isValidPort(port)) {
+  if (!isValidMessagePort(port)) {
     return;
   }
 

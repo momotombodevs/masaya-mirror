@@ -1,20 +1,18 @@
 import { useCallback, useEffect, useState } from 'react';
 import { DeviceList } from './features/device/DeviceList';
+import { selectConnectedDevices } from './features/device/connected-devices';
 import { useDevices } from './features/device/useDevices';
-import { useMirror } from './features/mirror/useMirror';
+import { useMirrorStatus } from './features/mirror/useMirrorStatus';
+import { getManoloApi } from './shared/manolo-api';
 import styles from './App.module.css';
 
-function getManoloApi(): Window['manolo'] | undefined {
-  return typeof window !== 'undefined' ? window.manolo : undefined;
-}
-
-export default function App() {
+export default function App(): JSX.Element {
   const { devices, loading, error, refresh } = useDevices();
   const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
   const [windowError, setWindowError] = useState<string | null>(null);
-  const mirror = useMirror(null);
+  const { activeDeviceIds, refreshStatus } = useMirrorStatus();
 
-  const connectedDevices = devices.filter((device) => device.status === 'device');
+  const connectedDevices = selectConnectedDevices(devices);
 
   useEffect(() => {
     if (connectedDevices.length === 0) {
@@ -44,9 +42,9 @@ export default function App() {
       if (!result.ok) {
         setWindowError(result.error);
       }
-      await mirror.refreshStatus();
+      await refreshStatus();
     },
-    [connectedDevices, mirror],
+    [connectedDevices, refreshStatus],
   );
 
   const displayError = windowError ?? error;
@@ -72,7 +70,7 @@ export default function App() {
           onSelectDevice={setSelectedDeviceId}
           onRefresh={() => void refresh()}
           onStartMirror={(id) => void handleStartMirror(id)}
-          activeMirrorIds={mirror.activeDeviceIds}
+          activeMirrorIds={activeDeviceIds}
         />
       </main>
     </div>

@@ -14,3 +14,18 @@ export function isMirrorPortWindowMessage(data: unknown): data is MirrorPortWind
     typeof (data as MirrorPortWindowMessage).deviceId === 'string'
   );
 }
+
+type MessagePortLike = {
+  readonly addEventListener: unknown;
+  readonly start: unknown;
+};
+
+/** Structural check that a value is usable as a MessagePort (renderer or preload). */
+export function isValidMessagePort(port: unknown): port is MessagePort {
+  return (
+    port !== null &&
+    typeof port === 'object' &&
+    typeof (port as MessagePortLike).addEventListener === 'function' &&
+    typeof (port as MessagePortLike).start === 'function'
+  );
+}
