@@ -7,9 +7,6 @@ import {
 } from '../shared/ipc/qa.contract';
 
 export const qaApi = {
-  takeScreenshot: (deviceId: string): Promise<QaActionResponse> =>
-    ipcRenderer.invoke(QA_CHANNELS.screenshot, { deviceId }),
-
   copyCapture: (data: ArrayBuffer): Promise<QaActionResponse> =>
     ipcRenderer.invoke(QA_CHANNELS.copyCapture, { data } satisfies CaptureImageRequest),
 

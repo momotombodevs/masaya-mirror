@@ -2,6 +2,30 @@ import { app, Menu, type MenuItemConstructorOptions } from 'electron';
 
 const APP_NAME = 'Manolo Mirror';
 
+/**
+ * Reload and DevTools roles are only exposed in development builds; packaged
+ * builds should not let users open DevTools or force a reload.
+ */
+function buildViewSubmenu(): MenuItemConstructorOptions[] {
+  const devItems: MenuItemConstructorOptions[] = app.isPackaged
+    ? []
+    : [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { role: 'toggleDevTools' },
+        { type: 'separator' },
+      ];
+
+  return [
+    ...devItems,
+    { role: 'resetZoom' },
+    { role: 'zoomIn' },
+    { role: 'zoomOut' },
+    { type: 'separator' },
+    { role: 'togglefullscreen' },
+  ];
+}
+
 function buildDarwinMenu(): MenuItemConstructorOptions[] {
   return [
     {
@@ -32,17 +56,7 @@ function buildDarwinMenu(): MenuItemConstructorOptions[] {
     },
     {
       label: 'View',
-      submenu: [
-        { role: 'reload' },
-        { role: 'forceReload' },
-        { role: 'toggleDevTools' },
-        { type: 'separator' },
-        { role: 'resetZoom' },
-        { role: 'zoomIn' },
-        { role: 'zoomOut' },
-        { type: 'separator' },
-        { role: 'togglefullscreen' },
-      ],
+      submenu: buildViewSubmenu(),
     },
     {
       label: 'Window',
@@ -59,17 +73,7 @@ function buildDefaultMenu(): MenuItemConstructorOptions[] {
     },
     {
       label: 'View',
-      submenu: [
-        { role: 'reload' },
-        { role: 'forceReload' },
-        { role: 'toggleDevTools' },
-        { type: 'separator' },
-        { role: 'resetZoom' },
-        { role: 'zoomIn' },
-        { role: 'zoomOut' },
-        { type: 'separator' },
-        { role: 'togglefullscreen' },
-      ],
+      submenu: buildViewSubmenu(),
     },
   ];
 }

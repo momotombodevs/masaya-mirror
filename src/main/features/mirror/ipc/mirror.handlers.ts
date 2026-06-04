@@ -29,7 +29,7 @@ function parseMirrorOptions(value: unknown): Result<MirrorOptions> {
   const videoBitRate =
     typeof raw.videoBitRate === 'number' ? raw.videoBitRate : DEFAULT_MIRROR_OPTIONS.videoBitRate;
   const videoCodec =
-    raw.videoCodec === 'h265' || raw.videoCodec === 'av1' || raw.videoCodec === 'h264'
+    raw.videoCodec === 'h265' || raw.videoCodec === 'h264'
       ? raw.videoCodec
       : DEFAULT_MIRROR_OPTIONS.videoCodec;
   const audioEnabled =
@@ -68,18 +68,11 @@ export function registerMirrorIpcHandlers(
   ipcMain.handle(
     MIRROR_CHANNELS.setVideoLayout,
     async (_, request: unknown) => {
-      if (typeof request !== 'object' || request === null) {
-        return err('Solicitud inválida.');
-      }
-      const body = request as {
-        deviceId?: unknown;
-        videoWidth?: unknown;
-        videoHeight?: unknown;
-      };
-      const parsed = parseDeviceId({ deviceId: body.deviceId });
+      const parsed = parseDeviceId(request);
       if (!parsed.ok) {
         return parsed;
       }
+      const body = request as { videoWidth?: unknown; videoHeight?: unknown };
       const videoWidth = typeof body.videoWidth === 'number' ? body.videoWidth : 0;
       const videoHeight = typeof body.videoHeight === 'number' ? body.videoHeight : 0;
       return mirrorWindowService.setVideoLayout(parsed.value, videoWidth, videoHeight);
@@ -137,14 +130,11 @@ export function registerMirrorIpcHandlers(
   ipcMain.handle(
     MIRROR_CHANNELS.control,
     async (_, request: unknown): Promise<MirrorControlResponse> => {
-      if (typeof request !== 'object' || request === null) {
-        return err('Solicitud de control inválida.');
-      }
-      const body = request as { deviceId?: unknown; message?: unknown };
-      const deviceParsed = parseDeviceId({ deviceId: body.deviceId });
+      const deviceParsed = parseDeviceId(request);
       if (!deviceParsed.ok) {
         return deviceParsed;
       }
+      const body = request as { message?: unknown };
       const messageParsed = parseControlMessage(body.message);
       if (!messageParsed.ok) {
         return messageParsed;
@@ -156,14 +146,11 @@ export function registerMirrorIpcHandlers(
   ipcMain.handle(
     MIRROR_CHANNELS.setOptions,
     async (event: IpcMainInvokeEvent, request: unknown): Promise<SetMirrorOptionsResponse> => {
-      if (typeof request !== 'object' || request === null) {
-        return err('Solicitud inválida.');
-      }
-      const body = request as { deviceId?: unknown; options?: unknown };
-      const deviceParsed = parseDeviceId({ deviceId: body.deviceId });
+      const deviceParsed = parseDeviceId(request);
       if (!deviceParsed.ok) {
         return deviceParsed;
       }
+      const body = request as { options?: unknown };
       const optionsParsed = parseMirrorOptions(body.options);
       if (!optionsParsed.ok) {
         return optionsParsed;

@@ -1,10 +1,8 @@
 import type { AndroidDevice, DeviceStatus } from '../../../shared/device/types';
 import { err, ok, type Result } from '../../../shared/ipc/result';
-import { CommandError, runCommand } from '../../utils/runCommand';
+import { runCommand } from '../../utils/runCommand';
+import { ADB_NOT_FOUND_MESSAGE, mapCommandError } from './adb-error';
 import { resolveAdbPath } from './adb-path.resolver';
-
-const ADB_NOT_FOUND_MESSAGE =
-  'ADB no encontrado. Instala Android platform-tools (Android Studio → SDK Manager) o define ANDROID_HOME / ADB_PATH. En macOS suele estar en ~/Library/Android/sdk/platform-tools/adb.';
 
 const DEVICE_LIST_HEADER = 'List of devices attached';
 
@@ -97,19 +95,7 @@ export class AdbService {
       const { stdout } = await runCommand(adbPath, ['devices', '-l']);
       return ok(parseAdbDevicesOutput(stdout));
     } catch (error: unknown) {
-      if (error instanceof CommandError) {
-        if (error.code === 'ENOENT') {
-          return err(ADB_NOT_FOUND_MESSAGE);
-        }
-        if (error.timedOut) {
-          return err('ADB no respondió a tiempo. Comprueba que el servidor adb esté en ejecución.');
-        }
-        return err(error.message);
-      }
-      if (error instanceof Error) {
-        return err(error.message);
-      }
-      return err('Error desconocido al ejecutar adb.');
+      return err(mapCommandError(error));
     }
   }
 }

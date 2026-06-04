@@ -12,6 +12,7 @@ import {
   resolveScrcpyServerPath,
 } from './scrcpy-server-path.resolver';
 import { MirrorStreamSession } from './mirror-stream.session';
+import { ADB_NOT_FOUND_MESSAGE } from '../device/adb-error';
 import type { AdbServerClient } from '@yume-chan/adb';
 import type { AdbService } from '../device/adb.service';
 
@@ -23,20 +24,25 @@ const SCRCPY_SERVER_NOT_FOUND =
 type ScrcpyClientHandle = {
   readonly close: () => Promise<void>;
   readonly exited: Promise<void>;
-  readonly controller: MirrorSession['controller'];
+};
+
+type MirrorController = {
+  injectTouch(
+    message: Omit<import('@yume-chan/scrcpy').ScrcpyInjectTouchControlMessage, 'type'>,
+  ): Promise<void>;
+  injectScroll(
+    message: Omit<import('@yume-chan/scrcpy').ScrcpyInjectScrollControlMessage, 'type'>,
+  ): Promise<void>;
+  injectKeyCode(
+    message: Omit<import('@yume-chan/scrcpy').ScrcpyInjectKeyCodeControlMessage, 'type'>,
+  ): Promise<void>;
 };
 
 type MirrorSession = {
   readonly deviceId: string;
   readonly stream: MirrorStreamSession;
   readonly client: ScrcpyClientHandle;
-  readonly controller: {
-    injectTouch(message: Omit<import('@yume-chan/scrcpy').ScrcpyInjectTouchControlMessage, 'type'>): Promise<void>;
-    injectScroll(message: Omit<import('@yume-chan/scrcpy').ScrcpyInjectScrollControlMessage, 'type'>): Promise<void>;
-    injectKeyCode(message: Omit<import('@yume-chan/scrcpy').ScrcpyInjectKeyCodeControlMessage, 'type'>): Promise<void>;
-    injectText(text: string): Promise<void>;
-    backOrScreenOn(action: import('@yume-chan/scrcpy').AndroidKeyEventAction): Promise<void>;
-  } | undefined;
+  readonly controller: MirrorController | undefined;
   readonly options: MirrorOptions;
   readonly audioEnabled: boolean;
 };
@@ -62,7 +68,7 @@ export class ScrcpyService {
 
     const adbPath = await this.adbService.getExecutablePath();
     if (!adbPath) {
-      throw new Error('ADB no encontrado.');
+      throw new Error(ADB_NOT_FOUND_MESSAGE);
     }
 
     await runCommand(adbPath, ['start-server']);
@@ -86,6 +92,8 @@ export class ScrcpyService {
       return err(`${SCRCPY_SERVER_NOT_FOUND} Ruta esperada: ${getExpectedScrcpyServerPath()}`);
     }
 
+    let startedClient: { close: () => Promise<void> } | null = null;
+    let stored = false;
     try {
       const tango = await this.getTango();
       const adbServer = await this.getAdbServerClient();
@@ -94,6 +102,7 @@ export class ScrcpyService {
 
       const started = await tango.startScrcpyClient(adb, options);
       const { client, metadata, audioCodec, audioWebCodecId, videoStream, audioStream } = started;
+      startedClient = client;
 
       const { port1, port2 } = new MessageChannelMain();
       const abort = new AbortController();
@@ -118,13 +127,13 @@ export class ScrcpyService {
         client: {
           close: () => client.close(),
           exited: client.exited,
-          controller: client.controller,
         },
         controller: client.controller,
         options,
         audioEnabled: options.audioEnabled && audioWebCodecId !== null,
       };
       this.sessions.set(deviceId, session);
+      stored = true;
 
       void client.exited.then(() => {
         void this.closeMirror(deviceId);
@@ -139,6 +148,10 @@ export class ScrcpyService {
         return err(error.message);
       }
       return err('No se pudo iniciar el espejo.');
+    } finally {
+      if (!stored && startedClient) {
+        await startedClient.close().catch(() => undefined);
+      }
     }
   }
 
@@ -197,14 +210,6 @@ export class ScrcpyService {
             metaState: message.metaState as import('@yume-chan/scrcpy').AndroidKeyEventMeta,
           });
           break;
-        case 'text':
-          await controller.injectText(message.text);
-          break;
-        case 'back':
-          await controller.backOrScreenOn(
-            message.action as import('@yume-chan/scrcpy').AndroidKeyEventAction,
-          );
-          break;
         default: {
           const _exhaustive: never = message;
           return err(`Control desconocido: ${String(_exhaustive)}`);
@@ -246,9 +251,7 @@ export class ScrcpyService {
     return ok(undefined);
   }
 
-  closeAll(): void {
-    for (const deviceId of [...this.sessions.keys()]) {
-      void this.closeMirror(deviceId);
-    }
+  async closeAll(): Promise<void> {
+    await Promise.all([...this.sessions.keys()].map((deviceId) => this.closeMirror(deviceId)));
   }
 }
