@@ -1,0 +1,67 @@
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
+import { access } from 'node:fs/promises';
+import { augmentProcessPath, resolveAdbPath } from '../adb-path.resolver';
+
+vi.mock('node:fs/promises', () => ({
+  access: vi.fn(),
+}));
+
+const mockedAccess = vi.mocked(access);
+
+describe('augmentProcessPath', () => {
+  const originalPath = process.env.PATH;
+
+  afterEach(() => {
+    process.env.PATH = originalPath;
+  });
+
+  it('prepends Android SDK platform-tools to PATH', () => {
+    process.env.PATH = '/usr/bin';
+    process.env.ANDROID_HOME = '/Users/test/Android/sdk';
+
+    augmentProcessPath();
+
+    expect(process.env.PATH?.split(':')).toContain('/Users/test/Android/sdk/platform-tools');
+    expect(process.env.PATH?.startsWith('/Users/test/Android/sdk/platform-tools')).toBe(true);
+  });
+});
+
+describe('resolveAdbPath', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    delete process.env.ADB_PATH;
+    delete process.env.ANDROID_HOME;
+    delete process.env.ANDROID_SDK_ROOT;
+  });
+
+  it('returns ADB_PATH when executable', async () => {
+    process.env.ADB_PATH = '/custom/adb';
+    mockedAccess.mockResolvedValue(undefined);
+
+    const resolved = await resolveAdbPath();
+
+    expect(resolved).toBe('/custom/adb');
+  });
+
+  it('returns null when no candidate is executable', async () => {
+    mockedAccess.mockRejectedValue(new Error('ENOENT'));
+
+    const resolved = await resolveAdbPath();
+
+    expect(resolved).toBeNull();
+  });
+
+  it('resolves from ANDROID_HOME platform-tools', async () => {
+    process.env.ANDROID_HOME = '/Users/test/Android/sdk';
+    mockedAccess.mockImplementation(async (filePath) => {
+      if (String(filePath).endsWith('/Users/test/Android/sdk/platform-tools/adb')) {
+        return;
+      }
+      throw new Error('ENOENT');
+    });
+
+    const resolved = await resolveAdbPath();
+
+    expect(resolved).toBe('/Users/test/Android/sdk/platform-tools/adb');
+  });
+});
