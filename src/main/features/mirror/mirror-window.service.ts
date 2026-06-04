@@ -1,0 +1,137 @@
+import { BrowserWindow } from 'electron';
+import path from 'node:path';
+import { ok, err, type Result } from '../../../shared/ipc/result';
+import { MAIN_DIST, RENDERER_DIST, VITE_DEV_SERVER_URL } from '../../app';
+import type { ScrcpyService } from './scrcpy.service';
+
+export type MirrorWindowServiceDeps = {
+  readonly scrcpyService: ScrcpyService;
+};
+
+function buildMirrorLoadOptions(
+  deviceId: string,
+  deviceLabel: string,
+): { url: string } | { file: string; query: Record<string, string> } {
+  const query = { deviceId, label: deviceLabel };
+
+  if (VITE_DEV_SERVER_URL) {
+    const url = new URL(VITE_DEV_SERVER_URL);
+    url.searchParams.set('deviceId', deviceId);
+    url.searchParams.set('label', deviceLabel);
+    return { url: url.toString() };
+  }
+
+  return {
+    file: path.join(RENDERER_DIST, 'index.html'),
+    query,
+  };
+}
+
+const MIN_CONTENT_WIDTH = 280;
+const MIN_CONTENT_HEIGHT = 480;
+const TOOLBAR_CONTENT_HEIGHT = 52;
+const DEFAULT_STAGE_HEIGHT = 780;
+
+export class MirrorWindowService {
+  private readonly windows = new Map<string, BrowserWindow>();
+  private readonly layoutApplied = new Set<string>();
+
+  constructor(private readonly deps: MirrorWindowServiceDeps) {}
+
+  hasWindow(deviceId: string): boolean {
+    const win = this.windows.get(deviceId);
+    return win !== undefined && !win.isDestroyed();
+  }
+
+  async open(deviceId: string, deviceLabel: string): Promise<Result<void>> {
+    const existing = this.windows.get(deviceId);
+    if (existing && !existing.isDestroyed()) {
+      existing.removeAllListeners('closed');
+      existing.close();
+      this.windows.delete(deviceId);
+    }
+
+    await this.deps.scrcpyService.closeMirror(deviceId);
+
+    const win = new BrowserWindow({
+      width: 400,
+      height: 860,
+      minWidth: MIN_CONTENT_WIDTH,
+      minHeight: MIN_CONTENT_HEIGHT,
+      title: deviceLabel,
+      autoHideMenuBar: true,
+      backgroundColor: '#09090b',
+      webPreferences: {
+        preload: path.join(MAIN_DIST, 'preload.cjs'),
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: true,
+        webSecurity: true,
+      },
+    });
+
+    this.windows.set(deviceId, win);
+
+    win.on('closed', () => {
+      this.windows.delete(deviceId);
+      this.layoutApplied.delete(deviceId);
+      void this.deps.scrcpyService.closeMirror(deviceId);
+    });
+
+    const loadTarget = buildMirrorLoadOptions(deviceId, deviceLabel);
+    if ('url' in loadTarget) {
+      await win.loadURL(loadTarget.url);
+    } else {
+      await win.loadFile(loadTarget.file, { query: loadTarget.query });
+    }
+
+    return ok(undefined);
+  }
+
+  setVideoLayout(deviceId: string, videoWidth: number, videoHeight: number): Result<void> {
+    const win = this.windows.get(deviceId);
+    if (!win || win.isDestroyed()) {
+      return err('No hay ventana de espejo para este dispositivo.');
+    }
+
+    if (videoWidth <= 0 || videoHeight <= 0) {
+      return err('Dimensiones de video inválidas.');
+    }
+
+    win.setAspectRatio(0);
+
+    if (!this.layoutApplied.has(deviceId)) {
+      this.layoutApplied.add(deviceId);
+      const aspectRatio = videoWidth / videoHeight;
+      const stageHeight = Math.min(DEFAULT_STAGE_HEIGHT, videoHeight);
+      const stageWidth = Math.round(stageHeight * aspectRatio);
+      const contentWidth = Math.max(MIN_CONTENT_WIDTH, stageWidth);
+      const contentHeight = Math.max(
+        MIN_CONTENT_HEIGHT,
+        stageHeight + TOOLBAR_CONTENT_HEIGHT,
+      );
+      win.setContentSize(contentWidth, contentHeight);
+    }
+
+    return ok(undefined);
+  }
+
+  close(deviceId: string): Result<void> {
+    const win = this.windows.get(deviceId);
+    if (!win || win.isDestroyed()) {
+      return err('No hay ventana de espejo para este dispositivo.');
+    }
+    win.close();
+    return ok(undefined);
+  }
+
+  closeAll(): void {
+    for (const deviceId of [...this.windows.keys()]) {
+      const win = this.windows.get(deviceId);
+      if (win && !win.isDestroyed()) {
+        win.close();
+      }
+    }
+    this.windows.clear();
+  }
+}

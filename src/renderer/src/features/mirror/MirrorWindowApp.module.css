@@ -1,0 +1,41 @@
+.window {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: var(--color-mirror-bg);
+  overflow: hidden;
+}
+
+.stage {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+  background: var(--color-mirror-bg);
+}
+
+.status {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.875rem;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.error {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(225, 29, 72, 0.92);
+  color: #fff;
+  font-size: 0.85rem;
+  z-index: 2;
+}

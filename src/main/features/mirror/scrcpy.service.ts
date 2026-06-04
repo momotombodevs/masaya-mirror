@@ -1,0 +1,254 @@
+import { MessageChannelMain, type WebContents } from 'electron';
+import { err, ok, type Result } from '../../../shared/ipc/result';
+import { runCommand } from '../../utils/runCommand';
+import {
+  DEFAULT_MIRROR_OPTIONS,
+  type MirrorControlMessage,
+  type MirrorOptions,
+} from '../../../shared/mirror/types';
+import { MIRROR_CHANNELS, type OpenMirrorSuccess } from '../../../shared/ipc/mirror.contract';
+import {
+  getExpectedScrcpyServerPath,
+  resolveScrcpyServerPath,
+} from './scrcpy-server-path.resolver';
+import { MirrorStreamSession } from './mirror-stream.session';
+import type { AdbServerClient } from '@yume-chan/adb';
+import type { AdbService } from '../device/adb.service';
+
+const MIRROR_PORT_CHANNEL = MIRROR_CHANNELS.port;
+
+const SCRCPY_SERVER_NOT_FOUND =
+  'scrcpy-server no está disponible. Ejecuta `pnpm setup:tools` para descargarlo.';
+
+type ScrcpyClientHandle = {
+  readonly close: () => Promise<void>;
+  readonly exited: Promise<void>;
+  readonly controller: MirrorSession['controller'];
+};
+
+type MirrorSession = {
+  readonly deviceId: string;
+  readonly stream: MirrorStreamSession;
+  readonly client: ScrcpyClientHandle;
+  readonly controller: {
+    injectTouch(message: Omit<import('@yume-chan/scrcpy').ScrcpyInjectTouchControlMessage, 'type'>): Promise<void>;
+    injectScroll(message: Omit<import('@yume-chan/scrcpy').ScrcpyInjectScrollControlMessage, 'type'>): Promise<void>;
+    injectKeyCode(message: Omit<import('@yume-chan/scrcpy').ScrcpyInjectKeyCodeControlMessage, 'type'>): Promise<void>;
+    injectText(text: string): Promise<void>;
+    backOrScreenOn(action: import('@yume-chan/scrcpy').AndroidKeyEventAction): Promise<void>;
+  } | undefined;
+  readonly options: MirrorOptions;
+  readonly audioEnabled: boolean;
+};
+
+export class ScrcpyService {
+  private readonly sessions = new Map<string, MirrorSession>();
+  private adbServerClient: AdbServerClient | null = null;
+
+  constructor(private readonly adbService: AdbService) {}
+
+  getActiveMirrors(): readonly string[] {
+    return [...this.sessions.keys()];
+  }
+
+  private async getTango() {
+    return import('./mirror-tango.js');
+  }
+
+  private async getAdbServerClient() {
+    if (this.adbServerClient) {
+      return this.adbServerClient;
+    }
+
+    const adbPath = await this.adbService.getExecutablePath();
+    if (!adbPath) {
+      throw new Error('ADB no encontrado.');
+    }
+
+    await runCommand(adbPath, ['start-server']);
+
+    const tango = await this.getTango();
+    this.adbServerClient = await tango.createAdbServerClient();
+    return this.adbServerClient;
+  }
+
+  async openMirror(
+    deviceId: string,
+    webContents: WebContents,
+    options: MirrorOptions = DEFAULT_MIRROR_OPTIONS,
+  ): Promise<Result<OpenMirrorSuccess>> {
+    if (this.sessions.has(deviceId)) {
+      await this.closeMirror(deviceId);
+    }
+
+    const serverPath = await resolveScrcpyServerPath();
+    if (!serverPath) {
+      return err(`${SCRCPY_SERVER_NOT_FOUND} Ruta esperada: ${getExpectedScrcpyServerPath()}`);
+    }
+
+    try {
+      const tango = await this.getTango();
+      const adbServer = await this.getAdbServerClient();
+      const adb = await tango.createDeviceAdb(adbServer, deviceId);
+      await tango.pushScrcpyServer(adb, serverPath);
+
+      const started = await tango.startScrcpyClient(adb, options);
+      const { client, metadata, audioCodec, audioWebCodecId, videoStream, audioStream } = started;
+
+      const { port1, port2 } = new MessageChannelMain();
+      const abort = new AbortController();
+
+      port1.start();
+      webContents.postMessage(MIRROR_PORT_CHANNEL, { deviceId }, [port2]);
+
+      const streamSession = new MirrorStreamSession({
+        deviceId,
+        port: port1,
+        abort,
+        metadata,
+        audioCodec,
+        audioWebCodecId,
+        videoStream,
+        audioStream,
+      });
+
+      const session: MirrorSession = {
+        deviceId,
+        stream: streamSession,
+        client: {
+          close: () => client.close(),
+          exited: client.exited,
+          controller: client.controller,
+        },
+        controller: client.controller,
+        options,
+        audioEnabled: options.audioEnabled && audioWebCodecId !== null,
+      };
+      this.sessions.set(deviceId, session);
+
+      void client.exited.then(() => {
+        void this.closeMirror(deviceId);
+      });
+
+      return ok({
+        metadata,
+        audioEnabled: session.audioEnabled,
+      });
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        return err(error.message);
+      }
+      return err('No se pudo iniciar el espejo.');
+    }
+  }
+
+  notifyStreamReady(deviceId: string): Result<void> {
+    const session = this.sessions.get(deviceId);
+    if (!session) {
+      return err('No hay sesión de espejo para este dispositivo.');
+    }
+
+    session.stream.onRendererReady();
+    return ok(undefined);
+  }
+
+  async sendControl(deviceId: string, message: MirrorControlMessage): Promise<Result<void>> {
+    const session = this.sessions.get(deviceId);
+    if (!session) {
+      return err('No hay un espejo activo para este dispositivo.');
+    }
+
+    const controller = session.controller;
+    if (!controller) {
+      return err('Control no disponible para esta sesión.');
+    }
+
+    try {
+      switch (message.type) {
+        case 'touch':
+          await controller.injectTouch({
+            action: message.action as import('@yume-chan/scrcpy').AndroidMotionEventAction,
+            pointerId: BigInt(message.pointerId),
+            pointerX: message.pointerX,
+            pointerY: message.pointerY,
+            videoWidth: message.videoWidth,
+            videoHeight: message.videoHeight,
+            pressure: message.pressure,
+            buttons: message.buttons,
+            actionButton: message.actionButton,
+          });
+          break;
+        case 'scroll':
+          await controller.injectScroll({
+            pointerX: message.pointerX,
+            pointerY: message.pointerY,
+            videoWidth: message.videoWidth,
+            videoHeight: message.videoHeight,
+            scrollX: message.scrollX,
+            scrollY: message.scrollY,
+            buttons: message.buttons,
+          });
+          break;
+        case 'key':
+          await controller.injectKeyCode({
+            action: message.action as import('@yume-chan/scrcpy').AndroidKeyEventAction,
+            keyCode: message.keyCode as import('@yume-chan/scrcpy').AndroidKeyCode,
+            repeat: message.repeat,
+            metaState: message.metaState as import('@yume-chan/scrcpy').AndroidKeyEventMeta,
+          });
+          break;
+        case 'text':
+          await controller.injectText(message.text);
+          break;
+        case 'back':
+          await controller.backOrScreenOn(
+            message.action as import('@yume-chan/scrcpy').AndroidKeyEventAction,
+          );
+          break;
+        default: {
+          const _exhaustive: never = message;
+          return err(`Control desconocido: ${String(_exhaustive)}`);
+        }
+      }
+      return ok(undefined);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        return err(error.message);
+      }
+      return err('No se pudo enviar el evento de control.');
+    }
+  }
+
+  async setOptions(
+    deviceId: string,
+    webContents: WebContents,
+    options: MirrorOptions,
+  ): Promise<Result<OpenMirrorSuccess>> {
+    await this.closeMirror(deviceId);
+    return this.openMirror(deviceId, webContents, options);
+  }
+
+  async closeMirror(deviceId: string): Promise<Result<void>> {
+    const session = this.sessions.get(deviceId);
+    if (!session) {
+      return ok(undefined);
+    }
+
+    session.stream.close();
+
+    try {
+      await session.client.close();
+    } catch {
+      // Session may already be closed.
+    }
+
+    this.sessions.delete(deviceId);
+    return ok(undefined);
+  }
+
+  closeAll(): void {
+    for (const deviceId of [...this.sessions.keys()]) {
+      void this.closeMirror(deviceId);
+    }
+  }
+}
