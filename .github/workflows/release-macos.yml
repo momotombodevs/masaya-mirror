@@ -9,6 +9,8 @@ jobs:
   build-macos:
     name: Build macOS DMG (unsigned)
     runs-on: macos-14
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -51,3 +53,18 @@ jobs:
           name: manolo-mirror-macos-dmg
           path: release/**/*.dmg
           if-no-files-found: error
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/**/*.dmg
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          body: |
+            ## macOS installer (unsigned)
+
+            Download the DMG asset below.
+
+            **First launch:** if macOS blocks the app, right-click the app and choose **Open**, or allow it under **System Settings → Privacy & Security**.
+
+            **Requirements:** [ADB](https://developer.android.com/tools/releases/platform-tools) (Android platform-tools) must be installed on your Mac. The app does not bundle ADB.
