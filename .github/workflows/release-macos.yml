@@ -1,0 +1,53 @@
+name: Release macOS
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-macos:
+    name: Build macOS DMG (unsigned)
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download scrcpy-server bundle
+        run: pnpm setup:tools
+
+      - name: Typecheck
+        run: pnpm exec tsc --noEmit
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build renderer and Electron bundles
+        run: pnpm exec vite build
+
+      - name: Package DMG (unsigned)
+        run: pnpm exec electron-builder --mac --publish never
+        env:
+          # Build is intentionally unsigned: skip auto-discovery of signing identities.
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: Upload DMG artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: manolo-mirror-macos-dmg
+          path: release/**/*.dmg
+          if-no-files-found: error

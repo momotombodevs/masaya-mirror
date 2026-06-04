@@ -1,13 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { MirrorOptions } from '../../../../shared/mirror/types';
 import { CapturePreviewDialog } from './CapturePreviewDialog';
-import { captureCanvasPng } from './capture-canvas';
+import { useCapture } from './useCapture';
+import { useRecording } from './useRecording';
+import { useToolbarStatus } from './useToolbarStatus';
 import styles from './MirrorToolbar.module.css';
-
-type CapturePreviewState = {
-  readonly url: string;
-  readonly buffer: ArrayBuffer;
-};
 
 type MirrorToolbarProps = {
   readonly deviceLabel: string;
@@ -27,134 +24,20 @@ export function MirrorToolbar({
   onFullscreen,
   onStop,
   disabled = false,
-}: MirrorToolbarProps) {
-  const [recording, setRecording] = useState(false);
+}: MirrorToolbarProps): JSX.Element {
   const [showSettings, setShowSettings] = useState(false);
   const [localOptions, setLocalOptions] = useState<MirrorOptions>(options);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [capturePreview, setCapturePreview] = useState<CapturePreviewState | null>(null);
-  const [captureBusy, setCaptureBusy] = useState(false);
-  const recorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-
-  const showStatus = useCallback((message: string): void => {
-    setStatusMessage(message);
-    window.setTimeout(() => setStatusMessage(null), 2500);
-  }, []);
-
-  const closeCapturePreview = useCallback((): void => {
-    setCapturePreview((current) => {
-      if (current) {
-        URL.revokeObjectURL(current.url);
-      }
-      return null;
-    });
-  }, []);
+  const { statusMessage, showStatus } = useToolbarStatus();
+  const capture = useCapture(canvas, showStatus);
+  const recorder = useRecording(canvas, showStatus);
 
   useEffect(() => {
-    return () => {
-      if (capturePreview) {
-        URL.revokeObjectURL(capturePreview.url);
-      }
-    };
-  }, [capturePreview]);
-
-  const handleOpenCapture = useCallback(async (): Promise<void> => {
-    if (!canvas) {
-      showStatus('Espejo no listo');
-      return;
-    }
-
-    const buffer = await captureCanvasPng(canvas);
-    if (!buffer) {
-      showStatus('No se pudo capturar');
-      return;
-    }
-
-    const url = URL.createObjectURL(new Blob([buffer], { type: 'image/png' }));
-    setCapturePreview((current) => {
-      if (current) {
-        URL.revokeObjectURL(current.url);
-      }
-      return { url, buffer };
-    });
-  }, [canvas, showStatus]);
-
-  const handleCopyCapture = useCallback(async (): Promise<void> => {
-    if (!capturePreview) {
-      return;
-    }
-    setCaptureBusy(true);
-    const result = await window.manolo.copyCapture(capturePreview.buffer);
-    setCaptureBusy(false);
-    if (result.ok && result.value.copied) {
-      showStatus('Copiado al portapapeles');
-      closeCapturePreview();
-    } else if (!result.ok) {
-      showStatus(result.error);
-    }
-  }, [capturePreview, closeCapturePreview, showStatus]);
-
-  const handleSaveCapture = useCallback(async (): Promise<void> => {
-    if (!capturePreview) {
-      return;
-    }
-    setCaptureBusy(true);
-    const result = await window.manolo.saveCapture(capturePreview.buffer);
-    setCaptureBusy(false);
-    if (result.ok && result.value.saved) {
-      showStatus('Captura guardada');
-      closeCapturePreview();
-    } else if (result.ok && !result.value.saved) {
-      showStatus('Guardado cancelado');
-    } else if (!result.ok) {
-      showStatus(result.error);
-    }
-  }, [capturePreview, closeCapturePreview, showStatus]);
-
-  const handleRecordToggle = useCallback(async (): Promise<void> => {
-    if (!canvas) {
-      showStatus('Espejo no listo');
-      return;
-    }
-
-    if (recording && recorderRef.current) {
-      recorderRef.current.stop();
-      return;
-    }
-
-    const stream = canvas.captureStream(30);
-    const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9')
-      ? 'video/webm;codecs=vp9'
-      : 'video/webm';
-    const recorder = new MediaRecorder(stream, { mimeType });
-    chunksRef.current = [];
-    recorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        chunksRef.current.push(event.data);
-      }
-    };
-    recorder.onstop = async () => {
-      setRecording(false);
-      recorderRef.current = null;
-      const blob = new Blob(chunksRef.current, { type: mimeType });
-      const buffer = await blob.arrayBuffer();
-      const result = await window.manolo.saveRecording(buffer, mimeType);
-      if (result.ok && result.value.saved) {
-        showStatus('Video guardado');
-      } else if (!result.ok) {
-        showStatus(result.error);
-      }
-    };
-    recorder.start(1000);
-    recorderRef.current = recorder;
-    setRecording(true);
-    showStatus('Grabando');
-  }, [canvas, recording, showStatus]);
+    setLocalOptions(options);
+  }, [options]);
 
   const handleApplySettings = useCallback(async (): Promise<void> => {
-    const ok = await onApplyOptions(localOptions);
-    if (ok) {
+    const applied = await onApplyOptions(localOptions);
+    if (applied) {
       setShowSettings(false);
       showStatus('Listo');
     }
@@ -174,17 +57,17 @@ export function MirrorToolbar({
           className={styles.iconButton}
           title="Captura (vista previa)"
           disabled={disabled || !canvas}
-          onClick={() => void handleOpenCapture()}
+          onClick={() => void capture.open()}
           aria-label="Captura"
         >
           <CameraIcon />
         </button>
         <button
           type="button"
-          className={`${styles.iconButton} ${recording ? styles.active : ''}`}
-          title={recording ? 'Detener' : 'Grabar'}
+          className={`${styles.iconButton} ${recorder.recording ? styles.active : ''}`}
+          title={recorder.recording ? 'Detener' : 'Grabar'}
           disabled={disabled}
-          onClick={() => void handleRecordToggle()}
+          onClick={() => void recorder.toggle()}
           aria-label="Grabar"
         >
           <RecordIcon />
@@ -271,13 +154,13 @@ export function MirrorToolbar({
       )}
     </header>
 
-    {capturePreview && (
+    {capture.preview && (
       <CapturePreviewDialog
-        imageUrl={capturePreview.url}
-        onCopy={() => void handleCopyCapture()}
-        onSave={() => void handleSaveCapture()}
-        onClose={closeCapturePreview}
-        busy={captureBusy}
+        imageUrl={capture.preview.url}
+        onCopy={() => void capture.copy()}
+        onSave={() => void capture.save()}
+        onClose={capture.close}
+        busy={capture.busy}
       />
     )}
     </>

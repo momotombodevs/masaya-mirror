@@ -9,10 +9,10 @@ import type {
   SetMirrorVideoLayoutResponse,
 } from '../../../shared/ipc/mirror.contract';
 import type { QaActionResponse } from '../../../shared/ipc/qa.contract';
-import type { DeviceListResponse } from '../../../shared/ipc/device.contract';
+import type { ListDevicesResponse } from '../../../shared/ipc/device.contract';
 import type { MirrorControlMessage, MirrorOptions } from '../../../shared/mirror/types';
 export interface ManoloMirrorApi {
-  listDevices(): Promise<DeviceListResponse>;
+  listDevices(): Promise<ListDevicesResponse>;
   openMirrorWindow(deviceId: string, deviceLabel?: string): Promise<OpenMirrorWindowResponse>;
   openMirror(deviceId: string, options?: MirrorOptions): Promise<OpenMirrorResponse>;
   closeMirror(deviceId: string): Promise<CloseMirrorResponse>;
@@ -25,7 +25,6 @@ export interface ManoloMirrorApi {
     videoWidth: number,
     videoHeight: number,
   ): Promise<SetMirrorVideoLayoutResponse>;
-  takeScreenshot(deviceId: string): Promise<QaActionResponse>;
   copyCapture(data: ArrayBuffer): Promise<QaActionResponse>;
   saveCapture(data: ArrayBuffer): Promise<QaActionResponse>;
   saveRecording(data: ArrayBuffer, mimeType: string): Promise<QaActionResponse>;

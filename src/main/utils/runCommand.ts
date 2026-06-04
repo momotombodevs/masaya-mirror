@@ -22,6 +22,23 @@ export class CommandError extends Error {
   }
 }
 
+function toCommandError(error: unknown): CommandError | unknown {
+  if (error && typeof error === 'object') {
+    const errObj = error as {
+      code?: string;
+      message?: string;
+      stderr?: string;
+      killed?: boolean;
+      signal?: string;
+    };
+    const timedOut = errObj.killed === true && errObj.signal === 'SIGTERM';
+    const stderr = typeof errObj.stderr === 'string' ? errObj.stderr.trim() : '';
+    const message = stderr || errObj.message || 'Command failed';
+    return new CommandError(message, { code: errObj.code, stderr, timedOut });
+  }
+  return error;
+}
+
 export async function runCommand(
   executable: string,
   args: readonly string[],
@@ -38,49 +55,6 @@ export async function runCommand(
       stderr: typeof stderr === 'string' ? stderr : String(stderr),
     };
   } catch (error: unknown) {
-    if (error && typeof error === 'object') {
-      const errObj = error as {
-        code?: string;
-        message?: string;
-        stderr?: string;
-        killed?: boolean;
-        signal?: string;
-      };
-      const timedOut = errObj.killed === true && errObj.signal === 'SIGTERM';
-      const stderr = typeof errObj.stderr === 'string' ? errObj.stderr.trim() : '';
-      const message = stderr || errObj.message || 'Command failed';
-      throw new CommandError(message, { code: errObj.code, stderr, timedOut });
-    }
-    throw error;
-  }
-}
-
-export async function runCommandBuffer(
-  executable: string,
-  args: readonly string[],
-  timeoutMs = 30_000,
-): Promise<Buffer> {
-  try {
-    const { stdout } = await execFileAsync(executable, [...args], {
-      timeout: timeoutMs,
-      encoding: 'buffer',
-      maxBuffer: 50 * 1024 * 1024,
-    });
-    return Buffer.isBuffer(stdout) ? stdout : Buffer.from(stdout);
-  } catch (error: unknown) {
-    if (error && typeof error === 'object') {
-      const errObj = error as {
-        code?: string;
-        message?: string;
-        stderr?: string;
-        killed?: boolean;
-        signal?: string;
-      };
-      const timedOut = errObj.killed === true && errObj.signal === 'SIGTERM';
-      const stderr = typeof errObj.stderr === 'string' ? errObj.stderr.trim() : '';
-      const message = stderr || errObj.message || 'Command failed';
-      throw new CommandError(message, { code: errObj.code, stderr, timedOut });
-    }
-    throw error;
+    throw toCommandError(error);
   }
 }

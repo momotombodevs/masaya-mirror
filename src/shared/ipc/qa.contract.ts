@@ -1,7 +1,6 @@
 import type { Result } from './result';
 
 export const QA_CHANNELS = {
-  screenshot: 'qa:screenshot',
   copyCapture: 'qa:copy-capture',
   saveCapture: 'qa:save-capture',
   saveRecording: 'qa:save-recording',
@@ -10,8 +9,6 @@ export const QA_CHANNELS = {
 export type CaptureImageRequest = {
   readonly data: ArrayBuffer;
 };
-
-export type QaDeviceRequest = { readonly deviceId: string };
 
 export type SaveRecordingRequest = {
   readonly data: ArrayBuffer;

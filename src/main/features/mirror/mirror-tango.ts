@@ -9,33 +9,17 @@ import {
 } from '@yume-chan/adb-scrcpy';
 import {
   DefaultServerPath,
-  ScrcpyVideoCodecId,
   type ScrcpyMediaStreamPacket,
 } from '@yume-chan/scrcpy';
 import type { ReadableStream } from '@yume-chan/stream-extra';
 import type { MirrorOptions, MirrorVideoMetadata } from '../../../shared/mirror/types';
 import type { Adb } from '@yume-chan/adb';
 
-function mapVideoCodec(codec: MirrorOptions['videoCodec']): 'h264' | 'h265' | 'av1' {
-  return codec;
-}
-
-export function mapScrcpyVideoCodecId(codec: MirrorOptions['videoCodec']): ScrcpyVideoCodecId {
-  switch (codec) {
-    case 'h265':
-      return ScrcpyVideoCodecId.H265;
-    case 'av1':
-      return ScrcpyVideoCodecId.AV1;
-    default:
-      return ScrcpyVideoCodecId.H264;
-  }
-}
-
-export function buildScrcpyOptions(options: MirrorOptions): AdbScrcpyOptionsLatest<true> {
+function buildScrcpyOptions(options: MirrorOptions): AdbScrcpyOptionsLatest<true> {
   return new AdbScrcpyOptionsLatest({
     maxSize: options.maxSize,
     videoBitRate: options.videoBitRate,
-    videoCodec: mapVideoCodec(options.videoCodec),
+    videoCodec: options.videoCodec,
     audio: options.audioEnabled,
     control: true,
     sendFrameMeta: true,
@@ -105,5 +89,3 @@ export async function startScrcpyClient(
     audioStream: audioPacketStream,
   };
 }
-
-export type { AdbScrcpyClientType };

@@ -1,66 +1,61 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import {
   DEFAULT_MIRROR_OPTIONS,
   type MirrorOptions,
 } from '../../../../shared/mirror/types';
-import type { MirrorVideoMetadata } from '../../../../shared/mirror/types';
+import { getManoloApi } from '../../shared/manolo-api';
+import { useMirrorStatus } from './useMirrorStatus';
 import { disposeMirrorStreamClient } from './mirror-stream.client';
 
-function getManoloApi(): Window['manolo'] | undefined {
-  return typeof window !== 'undefined' ? window.manolo : undefined;
-}
+export type UseMirrorResult = {
+  readonly activeDeviceIds: readonly string[];
+  readonly isMirrorActive: boolean;
+  readonly loading: boolean;
+  readonly error: string | null;
+  readonly options: MirrorOptions;
+  readonly openMirror: (targetDeviceId?: string) => Promise<boolean>;
+  readonly closeMirror: () => Promise<boolean>;
+  readonly applyOptions: (nextOptions: MirrorOptions) => Promise<boolean>;
+  readonly refreshStatus: () => Promise<void>;
+};
 
-export function useMirror(deviceId: string | null) {
-  const [activeDeviceIds, setActiveDeviceIds] = useState<readonly string[]>([]);
+export function useMirror(deviceId: string | null): UseMirrorResult {
+  const { activeDeviceIds, refreshStatus } = useMirrorStatus();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [metadata, setMetadata] = useState<MirrorVideoMetadata | null>(null);
   const [options, setOptions] = useState<MirrorOptions>(DEFAULT_MIRROR_OPTIONS);
-
-  const refreshStatus = useCallback(async (): Promise<void> => {
-    const api = getManoloApi();
-    if (!api) {
-      return;
-    }
-    const result = await api.getMirrorStatus();
-    if (result.ok) {
-      setActiveDeviceIds(result.value.activeDeviceIds);
-    }
-  }, []);
-
-  useEffect(() => {
-    void refreshStatus();
-  }, [refreshStatus]);
 
   const isMirrorActive = deviceId !== null && activeDeviceIds.includes(deviceId);
 
-  const openMirror = useCallback(async (targetDeviceId?: string): Promise<boolean> => {
-    const api = getManoloApi();
-    if (!api) {
-      setError('API de Manolo Mirror no disponible.');
+  const openMirror = useCallback(
+    async (targetDeviceId?: string): Promise<boolean> => {
+      const api = getManoloApi();
+      if (!api) {
+        setError('API de Manolo Mirror no disponible.');
+        return false;
+      }
+
+      const id = targetDeviceId ?? deviceId;
+      if (!id) {
+        return false;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      const result = await api.openMirror(id, options);
+      setLoading(false);
+
+      if (result.ok) {
+        await refreshStatus();
+        return true;
+      }
+
+      setError(result.error);
       return false;
-    }
-
-    const id = targetDeviceId ?? deviceId;
-    if (!id) {
-      return false;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    const result = await api.openMirror(id, options);
-    setLoading(false);
-
-    if (result.ok) {
-      setMetadata(result.value.metadata);
-      await refreshStatus();
-      return true;
-    }
-
-    setError(result.error);
-    return false;
-  }, [deviceId, options, refreshStatus]);
+    },
+    [deviceId, options, refreshStatus],
+  );
 
   const closeMirror = useCallback(async (): Promise<boolean> => {
     const api = getManoloApi();
@@ -76,7 +71,6 @@ export function useMirror(deviceId: string | null) {
 
     if (result.ok) {
       disposeMirrorStreamClient(deviceId);
-      setMetadata(null);
       await refreshStatus();
       return true;
     }
@@ -99,7 +93,6 @@ export function useMirror(deviceId: string | null) {
       setLoading(false);
 
       if (result.ok) {
-        setMetadata(result.value.metadata);
         await refreshStatus();
         return true;
       }
@@ -115,9 +108,7 @@ export function useMirror(deviceId: string | null) {
     isMirrorActive,
     loading,
     error,
-    metadata,
     options,
-    setOptions,
     openMirror,
     closeMirror,
     applyOptions,

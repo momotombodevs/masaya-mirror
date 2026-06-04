@@ -10,7 +10,6 @@
   color: #f8fafc;
   flex-wrap: wrap;
   position: relative;
-  flex-shrink: 0;
 }
 
 .lead {

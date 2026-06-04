@@ -3,7 +3,7 @@ import type { ScrcpyVideoCodecId } from '@yume-chan/scrcpy';
 export type MirrorOptions = {
   readonly maxSize: number;
   readonly videoBitRate: number;
-  readonly videoCodec: 'h264' | 'h265' | 'av1';
+  readonly videoCodec: 'h264' | 'h265';
   readonly audioEnabled: boolean;
 };
 
@@ -81,16 +81,6 @@ export type MirrorKeyControl = {
   readonly metaState: number;
 };
 
-export type MirrorTextControl = {
-  readonly type: 'text';
-  readonly text: string;
-};
-
-export type MirrorBackControl = {
-  readonly type: 'back';
-  readonly action: number;
-};
-
 /** Matches Android MotionEvent actions used by scrcpy. */
 export const ANDROID_MOTION_EVENT_ACTION = {
   down: 0,
@@ -106,6 +96,4 @@ export const ANDROID_KEY_EVENT_ACTION = {
 export type MirrorControlMessage =
   | MirrorTouchControl
   | MirrorScrollControl
-  | MirrorKeyControl
-  | MirrorTextControl
-  | MirrorBackControl;
+  | MirrorKeyControl;

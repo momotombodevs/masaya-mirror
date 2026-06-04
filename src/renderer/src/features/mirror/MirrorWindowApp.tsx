@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { MirrorView, getMirrorCanvas } from './MirrorView';
+import { MirrorView } from './MirrorView';
 import { MirrorToolbar } from './MirrorToolbar';
+import { getMirrorCanvas } from './mirror-canvas';
 import { useMirror } from './useMirror';
 import styles from './MirrorWindowApp.module.css';
 
@@ -9,7 +10,7 @@ type MirrorWindowAppProps = {
   readonly deviceLabel: string;
 };
 
-export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps) {
+export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps): JSX.Element {
   const mirrorStageRef = useRef<HTMLDivElement>(null);
   const [mirrorCanvas, setMirrorCanvas] = useState<HTMLCanvasElement | null>(null);
   const mirror = useMirror(deviceId);
@@ -73,14 +74,4 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
       </div>
     </div>
   );
-}
-
-export function parseMirrorWindowParams(): { deviceId: string; deviceLabel: string } | null {
-  const params = new URLSearchParams(window.location.search);
-  const deviceId = params.get('deviceId');
-  if (!deviceId) {
-    return null;
-  }
-  const label = params.get('label')?.trim();
-  return { deviceId, deviceLabel: label && label.length > 0 ? label : deviceId };
 }

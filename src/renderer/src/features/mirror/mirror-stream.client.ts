@@ -1,6 +1,8 @@
 import { useSyncExternalStore } from 'react';
 import type { ScrcpyMediaStreamPacket } from '@yume-chan/scrcpy';
 import { clearPendingMirrorPort, registerMirrorPortHandler } from './mirror-port-delivery';
+import { isValidMessagePort } from '../../../../shared/mirror/port-message';
+import { getManoloApi } from '../../shared/manolo-api';
 import type {
   MirrorStreamCloseMessage,
   MirrorStreamInitMessage,
@@ -8,14 +10,14 @@ import type {
   MirrorStreamPacketMessage,
 } from '../../../../shared/mirror/types';
 
-export type MirrorStreamHandlers = {
+type MirrorStreamHandlers = {
   onInit: (message: MirrorStreamInitMessage) => void;
   onVideoPacket: (packet: ScrcpyMediaStreamPacket) => void;
   onAudioPacket: (packet: ScrcpyMediaStreamPacket) => void;
   onClose: (message: MirrorStreamCloseMessage) => void;
 };
 
-export type MirrorStreamSubscriber = MirrorStreamHandlers;
+type MirrorStreamSubscriber = MirrorStreamHandlers;
 
 export type MirrorStreamClientState = {
   readonly portStatus: 'waiting' | 'connected' | 'closed';
@@ -24,10 +26,6 @@ export type MirrorStreamClientState = {
 };
 
 type StateListener = (state: MirrorStreamClientState) => void;
-
-function getManoloApi(): Window['manolo'] | undefined {
-  return typeof window !== 'undefined' ? window.manolo : undefined;
-}
 
 function toUint8Array(raw: Uint8Array | ArrayBuffer | readonly number[]): Uint8Array {
   if (raw instanceof Uint8Array) {
@@ -58,7 +56,7 @@ function normalizePacketData(packet: MirrorStreamPacketMessage['packet']): Scrcp
 }
 
 function listenOnPort(port: MessagePort, handlers: MirrorStreamHandlers): () => void {
-  if (typeof port.addEventListener !== 'function' || typeof port.start !== 'function') {
+  if (!isValidMessagePort(port)) {
     throw new Error('Invalid MessagePort: cannot attach mirror stream.');
   }
 

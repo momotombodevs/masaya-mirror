@@ -38,11 +38,6 @@ export class MirrorWindowService {
 
   constructor(private readonly deps: MirrorWindowServiceDeps) {}
 
-  hasWindow(deviceId: string): boolean {
-    const win = this.windows.get(deviceId);
-    return win !== undefined && !win.isDestroyed();
-  }
-
   async open(deviceId: string, deviceLabel: string): Promise<Result<void>> {
     const existing = this.windows.get(deviceId);
     if (existing && !existing.isDestroyed()) {
@@ -71,6 +66,8 @@ export class MirrorWindowService {
     });
 
     this.windows.set(deviceId, win);
+
+    win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
 
     win.on('closed', () => {
       this.windows.delete(deviceId);
@@ -113,15 +110,6 @@ export class MirrorWindowService {
       win.setContentSize(contentWidth, contentHeight);
     }
 
-    return ok(undefined);
-  }
-
-  close(deviceId: string): Result<void> {
-    const win = this.windows.get(deviceId);
-    if (!win || win.isDestroyed()) {
-      return err('No hay ventana de espejo para este dispositivo.');
-    }
-    win.close();
     return ok(undefined);
   }
 

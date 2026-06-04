@@ -23,8 +23,7 @@ describe('registerMirrorIpcHandlers', () => {
 
   const mirrorWindowService = {
     open: vi.fn(),
-    close: vi.fn(),
-    hasWindow: vi.fn(),
+    setVideoLayout: vi.fn(),
     closeAll: vi.fn(),
   } as unknown as MirrorWindowService;
 

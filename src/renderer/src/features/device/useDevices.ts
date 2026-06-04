@@ -1,10 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { AndroidDevice } from '../../../../shared/device/types';
+import { getManoloApi } from '../../shared/manolo-api';
 
 type DevicesState = {
   readonly devices: readonly AndroidDevice[];
   readonly loading: boolean;
   readonly error: string | null;
+};
+
+export type UseDevicesResult = DevicesState & {
+  readonly refresh: () => Promise<void>;
 };
 
 const initialState: DevicesState = {
@@ -13,14 +18,15 @@ const initialState: DevicesState = {
   error: null,
 };
 
-export function useDevices() {
+export function useDevices(): UseDevicesResult {
   const [state, setState] = useState<DevicesState>(initialState);
 
   const refresh = useCallback(async (): Promise<void> => {
     setState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
-      if (!window.manolo?.listDevices) {
+      const api = getManoloApi();
+      if (!api) {
         setState({
           devices: [],
           loading: false,
@@ -30,7 +36,7 @@ export function useDevices() {
         return;
       }
 
-      const result = await window.manolo.listDevices();
+      const result = await api.listDevices();
 
       if (result.ok) {
         setState({ devices: result.value, loading: false, error: null });

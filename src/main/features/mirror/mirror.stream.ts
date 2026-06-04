@@ -31,7 +31,7 @@ function toPacketMessage(
   };
 }
 
-export function postMirrorMessage(port: MessagePortMain, message: MirrorStreamMessage): void {
+function postMirrorMessage(port: MessagePortMain, message: MirrorStreamMessage): void {
   port.postMessage(message);
 }
 
