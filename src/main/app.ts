@@ -1,6 +1,6 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, session, type BrowserWindowConstructorOptions } from 'electron';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -16,8 +16,101 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
 
 export let mainWindow: BrowserWindow | null = null;
 
+function getAllowedRendererOrigins(): readonly string[] {
+  if (!VITE_DEV_SERVER_URL) {
+    return [];
+  }
+
+  return [new URL(VITE_DEV_SERVER_URL).origin];
+}
+
+function isAllowedNavigation(url: string): boolean {
+  if (url.startsWith('file://')) {
+    const appIndexUrl = pathToFileURL(path.join(RENDERER_DIST, 'index.html')).toString();
+    return url === appIndexUrl || url.startsWith(`${appIndexUrl}?`) || url.startsWith(`${appIndexUrl}#`);
+  }
+
+  return getAllowedRendererOrigins().some((origin) => url === origin || url.startsWith(`${origin}/`));
+}
+
+function getContentSecurityPolicy(): string {
+  if (VITE_DEV_SERVER_URL) {
+    const devUrl = new URL(VITE_DEV_SERVER_URL);
+    const websocketOrigin = `${devUrl.protocol === 'https:' ? 'wss:' : 'ws:'}//${devUrl.host}`;
+
+    return [
+      "default-src 'self'",
+      `script-src 'self' ${devUrl.origin}`,
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob:",
+      "font-src 'self' data:",
+      `connect-src 'self' ${devUrl.origin} ${websocketOrigin}`,
+      "media-src 'self' blob:",
+      "worker-src 'self' blob:",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "frame-ancestors 'none'",
+    ].join('; ');
+  }
+
+  return [
+    "default-src 'self'",
+    "script-src 'self'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob:",
+    "font-src 'self' data:",
+    "connect-src 'self'",
+    "media-src 'self' blob:",
+    "worker-src 'self' blob:",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "frame-ancestors 'none'",
+  ].join('; ');
+}
+
+function registerSecurityHeaders(): void {
+  if (!VITE_DEV_SERVER_URL) {
+    return;
+  }
+
+  const contentSecurityPolicy = getContentSecurityPolicy();
+  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
+    if (!isAllowedNavigation(details.url)) {
+      callback({ responseHeaders: details.responseHeaders });
+      return;
+    }
+
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [contentSecurityPolicy],
+      },
+    });
+  });
+}
+
+function attachWindowSecurity(window: BrowserWindow): void {
+  window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  window.webContents.on('will-navigate', (event, url) => {
+    if (!isAllowedNavigation(url)) {
+      event.preventDefault();
+    }
+  });
+  window.webContents.on('will-redirect', (event, url) => {
+    if (!isAllowedNavigation(url)) {
+      event.preventDefault();
+    }
+  });
+}
+
+export function createSecureWindow(options: BrowserWindowConstructorOptions): BrowserWindow {
+  const window = new BrowserWindow(options);
+  attachWindowSecurity(window);
+  return window;
+}
+
 export function createWindow(): BrowserWindow {
-  mainWindow = new BrowserWindow({
+  mainWindow = createSecureWindow({
     width: 960,
     height: 640,
     title: 'Manolo Mirror',
@@ -30,8 +123,6 @@ export function createWindow(): BrowserWindow {
       webSecurity: true,
     },
   });
-
-  mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
 
   if (VITE_DEV_SERVER_URL) {
     void mainWindow.loadURL(VITE_DEV_SERVER_URL);
@@ -48,6 +139,8 @@ export function createWindow(): BrowserWindow {
 }
 
 export function registerAppLifecycle(): void {
+  registerSecurityHeaders();
+
   app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
       app.quit();

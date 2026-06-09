@@ -25,6 +25,12 @@ function deliverPort(deviceId: string, port: MessagePort): void {
 }
 
 function onWindowMessage(event: MessageEvent): void {
+  if (event.source !== window) {
+    return;
+  }
+  if (window.location.origin !== 'null' && event.origin !== window.location.origin) {
+    return;
+  }
   if (!isMirrorPortWindowMessage(event.data)) {
     return;
   }

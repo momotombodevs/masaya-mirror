@@ -7,6 +7,7 @@ import {
   type SaveRecordingRequest,
 } from '../../../../shared/ipc/qa.contract';
 import { err, ok } from '../../../../shared/ipc/result';
+import type { MirrorWindowService } from '../../mirror/mirror-window.service';
 
 /** Upper bound for renderer-provided buffers to avoid main-process memory exhaustion. */
 const MAX_CAPTURE_BYTES = 256 * 1024 * 1024;
@@ -66,10 +67,13 @@ async function saveBufferWithDialog(
   }
 }
 
-export function registerQaIpcHandlers(): void {
+export function registerQaIpcHandlers(mirrorWindowService: MirrorWindowService): void {
   ipcMain.handle(
     QA_CHANNELS.copyCapture,
-    async (_, request: unknown): Promise<QaActionResponse> => {
+    async (event, request: unknown): Promise<QaActionResponse> => {
+      if (!mirrorWindowService.isMirrorWindowSender(event.sender.id)) {
+        return err('La ventana solicitante no puede ejecutar acciones de QA.');
+      }
       const body = parseCaptureImageRequest(request);
       if (!body) {
         return err('Imagen de captura inválida.');
@@ -90,7 +94,10 @@ export function registerQaIpcHandlers(): void {
 
   ipcMain.handle(
     QA_CHANNELS.saveCapture,
-    async (_, request: unknown): Promise<QaActionResponse> => {
+    async (event, request: unknown): Promise<QaActionResponse> => {
+      if (!mirrorWindowService.isMirrorWindowSender(event.sender.id)) {
+        return err('La ventana solicitante no puede ejecutar acciones de QA.');
+      }
       const body = parseCaptureImageRequest(request);
       if (!body) {
         return err('Imagen de captura inválida.');
@@ -113,7 +120,10 @@ export function registerQaIpcHandlers(): void {
 
   ipcMain.handle(
     QA_CHANNELS.saveRecording,
-    async (_, request: unknown): Promise<QaActionResponse> => {
+    async (event, request: unknown): Promise<QaActionResponse> => {
+      if (!mirrorWindowService.isMirrorWindowSender(event.sender.id)) {
+        return err('La ventana solicitante no puede ejecutar acciones de QA.');
+      }
       const body = parseSaveRecordingRequest(request);
       if (!body) {
         return err('Datos de grabación inválidos.');

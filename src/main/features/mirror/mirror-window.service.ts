@@ -1,7 +1,7 @@
 import { BrowserWindow } from 'electron';
 import path from 'node:path';
 import { ok, err, type Result } from '../../../shared/ipc/result';
-import { MAIN_DIST, RENDERER_DIST, VITE_DEV_SERVER_URL } from '../../app';
+import { MAIN_DIST, RENDERER_DIST, VITE_DEV_SERVER_URL, createSecureWindow } from '../../app';
 import type { ScrcpyService } from './scrcpy.service';
 
 export type MirrorWindowServiceDeps = {
@@ -48,7 +48,7 @@ export class MirrorWindowService {
 
     await this.deps.scrcpyService.closeMirror(deviceId);
 
-    const win = new BrowserWindow({
+    const win = createSecureWindow({
       width: 400,
       height: 860,
       minWidth: MIN_CONTENT_WIDTH,
@@ -67,8 +67,6 @@ export class MirrorWindowService {
 
     this.windows.set(deviceId, win);
 
-    win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
-
     win.on('closed', () => {
       this.windows.delete(deviceId);
       this.layoutApplied.delete(deviceId);
@@ -83,6 +81,25 @@ export class MirrorWindowService {
     }
 
     return ok(undefined);
+  }
+
+  getOpenDeviceIds(): readonly string[] {
+    return [...this.windows.keys()];
+  }
+
+  isSenderForDevice(deviceId: string, senderId: number): boolean {
+    const win = this.windows.get(deviceId);
+    return Boolean(win && !win.isDestroyed() && win.webContents.id === senderId);
+  }
+
+  isMirrorWindowSender(senderId: number): boolean {
+    for (const win of this.windows.values()) {
+      if (!win.isDestroyed() && win.webContents.id === senderId) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   setVideoLayout(deviceId: string, videoWidth: number, videoHeight: number): Result<void> {

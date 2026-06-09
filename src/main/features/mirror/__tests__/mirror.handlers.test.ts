@@ -25,6 +25,8 @@ describe('registerMirrorIpcHandlers', () => {
     open: vi.fn(),
     setVideoLayout: vi.fn(),
     closeAll: vi.fn(),
+    isSenderForDevice: vi.fn().mockReturnValue(true),
+    getOpenDeviceIds: vi.fn().mockReturnValue([]),
   } as unknown as MirrorWindowService;
 
   beforeEach(() => {
@@ -50,5 +52,25 @@ describe('registerMirrorIpcHandlers', () => {
     expect(handler).toBeDefined();
     const result = await handler?.({} as never, { deviceId: '' });
     expect(result?.ok).toBe(false);
+  });
+
+  it('rejects mirror control from a non-owning renderer', async () => {
+    vi.mocked(mirrorWindowService.isSenderForDevice).mockReturnValue(false);
+    const handler = vi
+      .mocked(ipcMain.handle)
+      .mock.calls.find(([channel]) => channel === MIRROR_CHANNELS.control)?.[1];
+
+    const result = await handler?.(
+      { sender: { id: 10 } } as never,
+      {
+        deviceId: 'emulator-5554',
+        message: { type: 'key', action: 0, keyCode: 3, repeat: 0, metaState: 0 },
+      },
+    );
+
+    expect(result).toEqual({
+      ok: false,
+      error: 'La ventana solicitante no tiene permiso para este dispositivo.',
+    });
   });
 });
