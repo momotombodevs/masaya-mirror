@@ -13,6 +13,8 @@ export default function App(): JSX.Element {
   const { activeDeviceIds, refreshStatus } = useMirrorStatus();
 
   const connectedDevices = selectConnectedDevices(devices);
+  const pendingDevices = devices.filter((device) => device.status !== 'device');
+  const selectedDevice = connectedDevices.find((device) => device.id === selectedDeviceId) ?? null;
 
   useEffect(() => {
     if (connectedDevices.length === 0) {
@@ -29,7 +31,7 @@ export default function App(): JSX.Element {
     async (deviceId: string): Promise<void> => {
       const api = getManoloApi();
       if (!api) {
-        setWindowError('No se pudo iniciar Manolo Mirror.');
+        setWindowError('Unable to start Manolo Mirror.');
         return;
       }
 
@@ -52,26 +54,49 @@ export default function App(): JSX.Element {
   return (
     <div className={styles.app}>
       <header className={styles.header}>
-        <div className={styles.brand}>
-          <img src="/manolo-logo.svg" alt="" className={styles.logo} width={32} height={32} />
-          <div>
+        <div className={styles.headerInner}>
+          <div className={styles.brand}>
+            <img src="/manolo-logo.svg" alt="" className={styles.logo} width={28} height={28} />
             <h1 className={styles.title}>Manolo Mirror</h1>
-            <p className={styles.tagline}>Tu Android en el escritorio.</p>
           </div>
         </div>
       </header>
 
       <main className={styles.main}>
-        <DeviceList
-          devices={devices}
-          loading={loading}
-          error={displayError}
-          selectedDeviceId={selectedDeviceId}
-          onSelectDevice={setSelectedDeviceId}
-          onRefresh={() => void refresh()}
-          onStartMirror={(id) => void handleStartMirror(id)}
-          activeMirrorIds={activeDeviceIds}
-        />
+        <div className={styles.panel}>
+          <div className={styles.panelHeader}>
+            {selectedDevice ? (
+              <div className={styles.selectionBlock}>
+                <span className={styles.selectionLabel}>Selected</span>
+                <strong className={styles.selectionTitle}>
+                  {selectedDevice.model ?? selectedDevice.id}
+                </strong>
+              </div>
+            ) : (
+              <div className={styles.selectionBlock}>
+                <span className={styles.selectionLabel}>Selected</span>
+                <span className={styles.selectionEmpty}>Choose a device to start a mirror session</span>
+              </div>
+            )}
+            {selectedDevice && (
+              <span className={styles.selectionMeta}>{selectedDevice.product ?? selectedDevice.id}</span>
+            )}
+          </div>
+
+          <DeviceList
+            devices={devices}
+            loading={loading}
+            error={displayError}
+            readyCount={connectedDevices.length}
+            liveCount={activeDeviceIds.length}
+            issueCount={pendingDevices.length}
+            selectedDeviceId={selectedDeviceId}
+            onSelectDevice={setSelectedDeviceId}
+            onRefresh={() => void refresh()}
+            onStartMirror={(id) => void handleStartMirror(id)}
+            activeMirrorIds={activeDeviceIds}
+          />
+        </div>
       </main>
     </div>
   );

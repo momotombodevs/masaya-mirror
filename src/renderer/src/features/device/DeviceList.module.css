@@ -1,62 +1,146 @@
 .section {
   width: 100%;
-  max-width: 480px;
+  min-width: 0;
 }
 
-.card {
-  background: var(--color-surface);
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.headerLead {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.1;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.inlineStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 0.74rem;
+  color: var(--color-text-muted);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+}
+
+.refreshBtn,
+.recoveryButton {
+  min-width: 30px;
+  height: 30px;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: 20px;
-  box-shadow: var(--shadow-md);
+  border-radius: 4px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
 }
 
-.cardHeader {
+.recoveryButton {
+  min-width: 82px;
+  padding: 0 12px;
+  font-weight: 600;
+}
+
+.refreshBtn:hover:not(:disabled),
+.recoveryButton:hover:not(:disabled) {
+  border-color: var(--color-border-strong);
+  background: var(--color-hover);
+}
+
+.recovery {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  gap: 16px;
+  margin: 16px;
+  padding: 14px 16px;
+  border: 1px solid color-mix(in srgb, var(--color-danger) 22%, var(--color-border));
+  border-radius: 4px;
+  background: var(--color-danger-soft);
 }
 
-.cardTitle {
+.recoveryBody {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.recoveryTitle {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.recoveryText,
+.recoveryHint {
   margin: 0;
   font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--color-text-muted);
-}
-
-.refreshBtn {
-  width: 32px;
-  height: 32px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
-  color: var(--color-text-muted);
-  font-size: 1rem;
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
-}
-
-.refreshBtn:hover:not(:disabled) {
-  background: var(--color-bg);
-  color: var(--color-text);
-}
-
-.error {
-  margin: 0 0 12px;
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
-  background: var(--color-danger-soft);
   color: var(--color-danger);
-  font-size: 0.85rem;
 }
 
-.empty {
-  margin: 0;
-  font-size: 0.9rem;
+.recoveryHint {
   color: var(--color-text-muted);
+}
+
+.emptyState {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-surface-muted);
+}
+
+.emptyTitle {
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.emptyText {
+  margin: 0;
+  flex: 1;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1.2fr) 88px 84px;
+  gap: 12px;
+  padding: 10px 16px 8px;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface-muted);
+  color: var(--color-text-soft);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.columnAction {
+  text-align: right;
 }
 
 .deviceList {
@@ -65,97 +149,136 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
 }
 
 .deviceRow {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 84px;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.deviceRowSelected {
+  background: var(--color-selected);
 }
 
 .deviceSelect {
-  flex: 1;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1.2fr) 88px;
   align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
+  gap: 12px;
+  min-width: 0;
+  padding: 12px 0;
+  border: none;
+  background: transparent;
   color: var(--color-text);
   cursor: pointer;
   text-align: left;
-  transition: border-color 0.15s ease, background 0.15s ease;
 }
 
 .deviceSelect:hover {
-  border-color: #cbd5e1;
-  background: var(--color-bg);
+  background: var(--color-hover);
 }
 
-.deviceSelected {
-  border-color: var(--color-accent);
-  background: var(--color-accent-soft);
+.deviceCell {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .deviceName {
+  font-size: 0.86rem;
   font-weight: 600;
-  font-size: 0.95rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.liveBadge {
-  margin-left: auto;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--color-accent-soft);
-  color: var(--color-accent);
-  font-size: 0.7rem;
+.deviceId {
+  font-size: 0.74rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.productCell,
+.statusCell {
+  min-width: 0;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.productCell {
+  color: var(--color-text-muted);
+}
+
+.statusCell {
   font-weight: 600;
+}
+
+.statusReady {
+  color: var(--color-text);
+}
+
+.statusLive {
+  color: var(--color-success);
+}
+
+.statusIssue {
+  color: var(--color-warning);
 }
 
 .mirrorBtn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 44px;
-  height: 44px;
-  flex-shrink: 0;
-  border: none;
-  border-radius: var(--radius-sm);
-  background: var(--color-accent);
-  color: #fff;
+  gap: 4px;
+  width: 84px;
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  background: var(--color-surface);
+  color: var(--color-text);
   cursor: pointer;
-  transition: background 0.15s ease, transform 0.1s ease;
+  font-size: 0.76rem;
+  font-weight: 600;
+  transition: background 0.18s ease, border-color 0.18s ease, color 0.18s ease;
 }
 
 .mirrorBtn:hover {
-  background: var(--color-accent-hover);
-}
-
-.mirrorBtn:active {
-  transform: scale(0.96);
+  border-color: var(--color-border-strong);
+  background: var(--color-hover-strong);
 }
 
 .mirrorActive {
-  background: var(--color-text);
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-surface);
 }
 
-.otherDevices {
-  margin-top: 16px;
-  padding: 14px 16px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
+.mirrorActive:hover {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
 }
 
-.otherTitle {
-  margin: 0 0 8px;
-  font-size: 0.75rem;
+.pendingSection {
+  border-top: 1px solid var(--color-border);
+}
+
+.pendingHeader {
+  padding: 10px 16px 8px;
+  color: var(--color-text-soft);
+  font-size: 0.68rem;
   font-weight: 600;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--color-text-muted);
 }
 
 .otherList {
@@ -165,16 +288,61 @@
 }
 
 .otherItem {
-  display: flex;
-  justify-content: space-between;
-  padding: 6px 0;
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(0, 1.2fr) 88px 84px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--color-border);
+  background: #fafafa;
 }
 
-.badge {
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: var(--color-bg);
-  font-size: 0.7rem;
+.otherItem:hover {
+  background: var(--color-hover);
+}
+
+.otherAction {
+  color: var(--color-text-soft);
+  text-align: right;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 720px) {
+  .header,
+  .recovery,
+  .emptyState {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .columns {
+    display: none;
+  }
+
+  .deviceRow,
+  .otherItem {
+    grid-template-columns: 1fr;
+    gap: 8px;
+    padding: 12px 16px;
+  }
+
+  .deviceSelect {
+    grid-template-columns: 1fr;
+    gap: 6px;
+    padding: 0;
+  }
+
+  .productCell,
+  .statusCell {
+    font-size: 0.76rem;
+  }
+
+  .mirrorBtn,
+  .recoveryButton {
+    width: 100%;
+  }
+
+  .otherAction {
+    display: none;
+  }
 }
