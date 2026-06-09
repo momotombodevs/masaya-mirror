@@ -105,11 +105,11 @@ export class MirrorWindowService {
   setVideoLayout(deviceId: string, videoWidth: number, videoHeight: number): Result<void> {
     const win = this.windows.get(deviceId);
     if (!win || win.isDestroyed()) {
-      return err('No hay ventana de espejo para este dispositivo.');
+      return err('No mirror window exists for this device.');
     }
 
     if (videoWidth <= 0 || videoHeight <= 0) {
-      return err('Dimensiones de video inválidas.');
+      return err('Invalid video dimensions.');
     }
 
     win.setAspectRatio(0);

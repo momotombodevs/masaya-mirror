@@ -14,7 +14,13 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
   ? path.join(process.env.APP_ROOT, 'public')
   : RENDERER_DIST;
 
+app.setName('Manolo Mirror');
+if (process.platform === 'win32') {
+  app.setAppUserModelId('com.manolo.mirror');
+}
+
 export let mainWindow: BrowserWindow | null = null;
+let securityHeadersRegistered = false;
 
 function getAllowedRendererOrigins(): readonly string[] {
   if (!VITE_DEV_SERVER_URL) {
@@ -40,7 +46,7 @@ function getContentSecurityPolicy(): string {
 
     return [
       "default-src 'self'",
-      `script-src 'self' ${devUrl.origin}`,
+      `script-src 'self' 'unsafe-inline' ${devUrl.origin}`,
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob:",
       "font-src 'self' data:",
@@ -69,10 +75,11 @@ function getContentSecurityPolicy(): string {
 }
 
 function registerSecurityHeaders(): void {
-  if (!VITE_DEV_SERVER_URL) {
+  if (!VITE_DEV_SERVER_URL || securityHeadersRegistered) {
     return;
   }
 
+  securityHeadersRegistered = true;
   const contentSecurityPolicy = getContentSecurityPolicy();
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
     if (!isAllowedNavigation(details.url)) {
@@ -139,7 +146,9 @@ export function createWindow(): BrowserWindow {
 }
 
 export function registerAppLifecycle(): void {
-  registerSecurityHeaders();
+  void app.whenReady().then(() => {
+    registerSecurityHeaders();
+  });
 
   app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {

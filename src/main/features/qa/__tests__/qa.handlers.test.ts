@@ -61,7 +61,7 @@ describe('registerQaIpcHandlers', () => {
     const result = await handler?.({ sender: { id: 7 } } as never, { data: oversized });
     expect(result).toEqual({
       ok: false,
-      error: 'La captura excede el tamaño máximo permitido.',
+      error: 'Capture exceeds the maximum allowed size.',
     });
   });
 
@@ -79,7 +79,7 @@ describe('registerQaIpcHandlers', () => {
 
     expect(result).toEqual({
       ok: false,
-      error: 'La ventana solicitante no puede ejecutar acciones de QA.',
+      error: 'The requesting window cannot run QA actions.',
     });
   });
 });

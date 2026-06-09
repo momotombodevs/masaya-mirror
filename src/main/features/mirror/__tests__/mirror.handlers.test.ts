@@ -70,7 +70,7 @@ describe('registerMirrorIpcHandlers', () => {
 
     expect(result).toEqual({
       ok: false,
-      error: 'La ventana solicitante no tiene permiso para este dispositivo.',
+      error: 'The requesting window is not allowed to control this device.',
     });
   });
 });

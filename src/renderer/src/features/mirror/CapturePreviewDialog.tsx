@@ -36,26 +36,26 @@ export function CapturePreviewDialog({
       >
         <header className={styles.header}>
           <h2 id="capture-preview-title" className={styles.title}>
-            Captura
+            Capture
           </h2>
-          <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Cerrar">
+          <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close">
             ×
           </button>
         </header>
 
         <div className={styles.preview}>
-          <img src={imageUrl} alt="Vista previa de la captura" className={styles.image} />
+          <img src={imageUrl} alt="Capture preview" className={styles.image} />
         </div>
 
         <footer className={styles.footer}>
           <button type="button" className={styles.secondaryBtn} onClick={onClose} disabled={busy}>
-            Cancelar
+            Cancel
           </button>
           <button type="button" className={styles.secondaryBtn} onClick={onCopy} disabled={busy}>
-            Copiar
+            Copy
           </button>
           <button type="button" className={styles.primaryBtn} onClick={onSave} disabled={busy}>
-            Guardar…
+            Save…
           </button>
         </footer>
       </div>

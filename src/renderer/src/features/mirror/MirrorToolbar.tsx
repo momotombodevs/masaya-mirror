@@ -39,7 +39,7 @@ export function MirrorToolbar({
     const applied = await onApplyOptions(localOptions);
     if (applied) {
       setShowSettings(false);
-      showStatus('Listo');
+      showStatus('Ready');
     }
   }, [localOptions, onApplyOptions, showStatus]);
 
@@ -55,52 +55,52 @@ export function MirrorToolbar({
         <button
           type="button"
           className={styles.iconButton}
-          title="Captura (vista previa)"
+          title="Capture preview"
           disabled={disabled || !canvas}
           onClick={() => void capture.open()}
-          aria-label="Captura"
+          aria-label="Capture"
         >
           <CameraIcon />
         </button>
         <button
           type="button"
           className={`${styles.iconButton} ${recorder.recording ? styles.active : ''}`}
-          title={recorder.recording ? 'Detener' : 'Grabar'}
+          title={recorder.recording ? 'Stop recording' : 'Start recording'}
           disabled={disabled}
           onClick={() => void recorder.toggle()}
-          aria-label="Grabar"
+          aria-label="Record"
         >
           <RecordIcon />
         </button>
         <button
           type="button"
           className={styles.iconButton}
-          title="Pantalla completa"
+          title="Fullscreen"
           disabled={disabled}
           onClick={onFullscreen}
-          aria-label="Pantalla completa"
+          aria-label="Fullscreen"
         >
           <FullscreenIcon />
         </button>
         <button
           type="button"
           className={`${styles.iconButton} ${showSettings ? styles.active : ''}`}
-          title="Ajustes"
+          title="Settings"
           disabled={disabled}
           onClick={() => setShowSettings((value) => !value)}
-          aria-label="Ajustes"
+          aria-label="Settings"
         >
           <SettingsIcon />
         </button>
         <button type="button" className={styles.stopButton} disabled={disabled} onClick={onStop}>
-          Cerrar
+          Close
         </button>
       </div>
 
       {showSettings && (
         <div className={styles.settingsPanel}>
           <label className={styles.field}>
-            Resolución
+            Resolution
             <select
               value={localOptions.maxSize}
               onChange={(e) =>
@@ -110,7 +110,7 @@ export function MirrorToolbar({
                 }))
               }
             >
-              <option value={0}>Nativa</option>
+              <option value={0}>Native</option>
               <option value={1080}>1080p</option>
               <option value={1920}>Full HD (1920)</option>
             </select>
@@ -129,11 +129,11 @@ export function MirrorToolbar({
               <option value={2_000_000}>2 Mbps</option>
               <option value={4_000_000}>4 Mbps</option>
               <option value={8_000_000}>8 Mbps</option>
-              <option value={16_000_000}>16 Mbps (recomendado)</option>
+              <option value={16_000_000}>16 Mbps (recommended)</option>
             </select>
           </label>
           <label className={styles.field}>
-            Códec
+            Codec
             <select
               value={localOptions.videoCodec}
               onChange={(e) =>
@@ -148,7 +148,7 @@ export function MirrorToolbar({
             </select>
           </label>
           <button type="button" className={styles.applyButton} onClick={() => void handleApplySettings()}>
-            Aplicar
+            Apply
           </button>
         </div>
       )}

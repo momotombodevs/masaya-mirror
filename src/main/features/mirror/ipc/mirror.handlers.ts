@@ -36,13 +36,13 @@ function parseFiniteNumber(
 ): Result<number> {
   if (value === undefined) {
     if (defaultValue === undefined) {
-      return err('Valor numérico faltante.');
+      return err('Missing numeric value.');
     }
     return ok(defaultValue);
   }
 
   if (typeof value !== 'number' || !Number.isFinite(value) || value < min || value > max) {
-    return err('Valor numérico inválido.');
+    return err('Invalid numeric value.');
   }
 
   return ok(value);
@@ -54,7 +54,7 @@ function ensureDeviceSender(
   deviceId: string,
 ): Result<void> {
   if (!mirrorWindowService.isSenderForDevice(deviceId, senderId)) {
-    return err('La ventana solicitante no tiene permiso para este dispositivo.');
+    return err('The requesting window is not allowed to control this device.');
   }
 
   return ok(undefined);
@@ -65,7 +65,7 @@ function parseMirrorOptions(value: unknown): Result<MirrorOptions> {
     return ok(DEFAULT_MIRROR_OPTIONS);
   }
   if (typeof value !== 'object') {
-    return err('Opciones de mirror inválidas.');
+    return err('Invalid mirror options.');
   }
   const raw = value as Record<string, unknown>;
   const maxSizeResult = parseFiniteNumber(
@@ -75,7 +75,7 @@ function parseMirrorOptions(value: unknown): Result<MirrorOptions> {
     MAX_MAX_SIZE,
   );
   if (!maxSizeResult.ok) {
-    return err('maxSize inválido.');
+    return err('Invalid maxSize.');
   }
 
   const videoBitRateResult = parseFiniteNumber(
@@ -85,7 +85,7 @@ function parseMirrorOptions(value: unknown): Result<MirrorOptions> {
     MAX_VIDEO_BIT_RATE,
   );
   if (!videoBitRateResult.ok) {
-    return err('videoBitRate inválido.');
+    return err('Invalid videoBitRate.');
   }
 
   const videoCodec =
@@ -106,7 +106,7 @@ function parseMirrorOptions(value: unknown): Result<MirrorOptions> {
 function parseVideoDimension(value: unknown, fieldName: string): Result<number> {
   const dimension = parseFiniteNumber(value, 0, 1, MAX_VIDEO_DIMENSION);
   if (!dimension.ok) {
-    return err(`${fieldName} inválido.`);
+    return err(`Invalid ${fieldName}.`);
   }
 
   return ok(Math.round(dimension.value));
@@ -114,7 +114,7 @@ function parseVideoDimension(value: unknown, fieldName: string): Result<number> 
 
 function parseControlMessage(value: unknown): Result<MirrorControlMessage> {
   if (typeof value !== 'object' || value === null || !('type' in value)) {
-    return err('Mensaje de control inválido.');
+    return err('Invalid control message.');
   }
 
   const raw = value as Record<string, unknown>;
@@ -131,10 +131,10 @@ function parseControlMessage(value: unknown): Result<MirrorControlMessage> {
       const actionButton = parseFiniteNumber(raw.actionButton, 0, 0, MAX_ANDROID_BUTTON_MASK);
 
       if (!action.ok || !pointerId.ok || !pointerX.ok || !pointerY.ok) {
-        return err('Mensaje táctil inválido.');
+        return err('Invalid touch message.');
       }
       if (!videoWidth.ok || !videoHeight.ok || !pressure.ok || !buttons.ok || !actionButton.ok) {
-        return err('Mensaje táctil inválido.');
+        return err('Invalid touch message.');
       }
 
       return ok({
@@ -161,10 +161,10 @@ function parseControlMessage(value: unknown): Result<MirrorControlMessage> {
       const buttons = parseFiniteNumber(raw.buttons, 0, 0, MAX_ANDROID_BUTTON_MASK);
 
       if (!pointerX.ok || !pointerY.ok || !videoWidth.ok || !videoHeight.ok) {
-        return err('Mensaje de scroll inválido.');
+        return err('Invalid scroll message.');
       }
       if (!scrollX.ok || !scrollY.ok || !buttons.ok) {
-        return err('Mensaje de scroll inválido.');
+        return err('Invalid scroll message.');
       }
 
       return ok({
@@ -186,7 +186,7 @@ function parseControlMessage(value: unknown): Result<MirrorControlMessage> {
       const metaState = parseFiniteNumber(raw.metaState, 0, 0, MAX_META_STATE);
 
       if (!action.ok || !keyCode.ok || !repeat.ok || !metaState.ok) {
-        return err('Mensaje de teclado inválido.');
+        return err('Invalid key message.');
       }
 
       return ok({
@@ -199,7 +199,7 @@ function parseControlMessage(value: unknown): Result<MirrorControlMessage> {
     }
 
     default:
-      return err('Mensaje de control inválido.');
+      return err('Invalid control message.');
   }
 }
 

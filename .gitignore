@@ -11,6 +11,9 @@ node_modules
 .pnpm-store
 dist
 dist-electron
+
+.playwright-mcp
+.impeccable
 dist-ssr
 *.local
 
