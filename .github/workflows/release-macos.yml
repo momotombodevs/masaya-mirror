@@ -1,4 +1,4 @@
-name: Release macOS
+name: Release Desktop
 
 on:
   push:
@@ -6,11 +6,30 @@ on:
       - 'v*'
 
 jobs:
-  build-macos:
-    name: Build macOS DMG (unsigned)
-    runs-on: macos-14
+  build-native:
+    name: Build ${{ matrix.platform.name }}
+    runs-on: ${{ matrix.platform.runner }}
     permissions:
-      contents: write
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - name: macOS DMG
+            runner: macos-14
+            build_command: pnpm build:mac
+            artifact_name: manolo-mirror-macos
+            artifact_path: release/**/*.dmg
+          - name: Windows NSIS
+            runner: windows-latest
+            build_command: pnpm build:win
+            artifact_name: manolo-mirror-windows
+            artifact_path: release/**/*.exe
+          - name: Linux AppImage
+            runner: ubuntu-latest
+            build_command: pnpm build:linux
+            artifact_name: manolo-mirror-linux
+            artifact_path: release/**/*.AppImage
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -38,33 +57,54 @@ jobs:
       - name: Test
         run: pnpm test
 
-      - name: Build renderer and Electron bundles
-        run: pnpm exec vite build
-
-      - name: Package DMG (unsigned)
-        run: pnpm exec electron-builder --mac --publish never
+      - name: Package desktop app
+        run: ${{ matrix.platform.build_command }}
         env:
-          # Build is intentionally unsigned: skip auto-discovery of signing identities.
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
 
-      - name: Upload DMG artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: manolo-mirror-macos-dmg
-          path: release/**/*.dmg
+          name: ${{ matrix.platform.artifact_name }}
+          path: ${{ matrix.platform.artifact_path }}
           if-no-files-found: error
+
+  publish-release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    needs: build-native
+    permissions:
+      contents: write
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
 
       - name: Publish GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: release/**/*.dmg
+          files: |
+            release-artifacts/**/*.dmg
+            release-artifacts/**/*.exe
+            release-artifacts/**/*.AppImage
           generate_release_notes: true
           fail_on_unmatched_files: true
           body: |
-            ## macOS installer (unsigned)
+            ## Desktop installers
+
+            ### macOS
 
             Download the DMG asset below.
 
             **First launch:** if macOS blocks the app, right-click the app and choose **Open**, or allow it under **System Settings → Privacy & Security**.
 
-            **Requirements:** [ADB](https://developer.android.com/tools/releases/platform-tools) (Android platform-tools) must be installed on your Mac. The app does not bundle ADB.
+            ### Windows
+
+            Download the NSIS installer `.exe` below.
+
+            ### Linux
+
+            Download the `AppImage` below and mark it executable before running it.
+
+            **Requirements:** `adb` (Android platform-tools) must be installed on the target machine. The app does not bundle ADB.
