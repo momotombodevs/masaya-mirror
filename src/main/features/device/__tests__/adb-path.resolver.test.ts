@@ -24,6 +24,15 @@ describe('augmentProcessPath', () => {
     expect(process.env.PATH?.split(':')).toContain('/Users/test/Android/sdk/platform-tools');
     expect(process.env.PATH?.startsWith('/Users/test/Android/sdk/platform-tools')).toBe(true);
   });
+
+  it('adds Windows SDK directories when LOCALAPPDATA is available', () => {
+    process.env.PATH = '/usr/bin';
+    process.env.LOCALAPPDATA = 'C:\\Users\\test\\AppData\\Local';
+
+    augmentProcessPath();
+
+    expect(process.env.PATH).toContain('C:\\Users\\test\\AppData\\Local/Android/Sdk/platform-tools');
+  });
 });
 
 describe('resolveAdbPath', () => {

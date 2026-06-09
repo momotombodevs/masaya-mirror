@@ -1,7 +1,7 @@
 import { CommandError } from '../../utils/runCommand';
 
 export const ADB_NOT_FOUND_MESSAGE =
-  'ADB no encontrado. Instala Android platform-tools (Android Studio → SDK Manager) o define ANDROID_HOME / ADB_PATH. En macOS suele estar en ~/Library/Android/sdk/platform-tools/adb.';
+  'ADB no encontrado. Instala Android platform-tools (Android Studio → SDK Manager) o define ANDROID_HOME / ADB_PATH. Rutas comunes: macOS ~/Library/Android/sdk/platform-tools/adb, Windows %LOCALAPPDATA%\\Android\\Sdk\\platform-tools\\adb.exe, Linux ~/Android/Sdk/platform-tools/adb.';
 
 const ADB_TIMEOUT_MESSAGE =
   'ADB no respondió a tiempo. Comprueba que el servidor adb esté en ejecución.';

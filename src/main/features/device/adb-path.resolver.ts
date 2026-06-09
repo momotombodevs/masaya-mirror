@@ -47,15 +47,15 @@ function buildCandidatePaths(): readonly string[] {
   const fixedPaths =
     process.platform === 'darwin'
       ? [
-          '/opt/homebrew/bin/adb',
-          '/usr/local/bin/adb',
-          path.join(home, 'Library', 'Android', 'sdk', 'platform-tools', ADB_EXECUTABLE),
-        ]
+        '/opt/homebrew/bin/adb',
+        '/usr/local/bin/adb',
+        path.join(home, 'Library', 'Android', 'sdk', 'platform-tools', ADB_EXECUTABLE),
+      ]
       : process.platform === 'win32'
         ? [
-            'C:\\platform-tools\\adb.exe',
-            path.join(process.env.ProgramFiles ?? '', 'Android', 'android-sdk', 'platform-tools', ADB_EXECUTABLE),
-          ]
+          'C:\\platform-tools\\adb.exe',
+          path.join(process.env.ProgramFiles ?? '', 'Android', 'android-sdk', 'platform-tools', ADB_EXECUTABLE),
+        ]
         : ['/usr/local/bin/adb', '/usr/bin/adb', path.join(home, 'Android', 'Sdk', 'platform-tools', ADB_EXECUTABLE)];
 
   return [...new Set([...fromSdkRoots, ...fromPath, ...fixedPaths])];
@@ -81,13 +81,23 @@ export async function resolveAdbPath(): Promise<string | null> {
 
 /** Electron apps often miss shell PATH entries; prepend common SDK/tool locations. */
 export function augmentProcessPath(): void {
+  const home = homedir();
   const extraDirs = [
     process.env.ANDROID_HOME ? sdkPlatformToolsDir(process.env.ANDROID_HOME) : undefined,
     process.env.ANDROID_SDK_ROOT ? sdkPlatformToolsDir(process.env.ANDROID_SDK_ROOT) : undefined,
-    path.join(homedir(), 'Library', 'Android', 'sdk', 'platform-tools'),
-    path.join(homedir(), 'Android', 'Sdk', 'platform-tools'),
+    path.join(home, 'Library', 'Android', 'sdk', 'platform-tools'),
+    path.join(home, 'Android', 'Sdk', 'platform-tools'),
+    path.join(home, 'Android', 'Sdk', 'platform-tools'),
+    path.join(home, 'Android', 'sdk', 'platform-tools'),
+    process.env.LOCALAPPDATA ? path.join(process.env.LOCALAPPDATA, 'Android', 'Sdk', 'platform-tools') : undefined,
+    process.env.USERPROFILE
+      ? path.join(process.env.USERPROFILE, 'AppData', 'Local', 'Android', 'Sdk', 'platform-tools')
+      : undefined,
+    process.env.HOME ? path.join(process.env.HOME, 'Android', 'Sdk', 'platform-tools') : undefined,
+    process.env.HOME ? path.join(process.env.HOME, 'Android', 'sdk', 'platform-tools') : undefined,
     '/opt/homebrew/bin',
     '/usr/local/bin',
+    '/usr/bin',
   ].filter((value): value is string => Boolean(value));
 
   const current = process.env.PATH ?? '';
