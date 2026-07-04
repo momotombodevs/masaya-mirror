@@ -30,8 +30,7 @@ export function useDevices(): UseDevicesResult {
         setState({
           devices: [],
           loading: false,
-          error:
-            'No se pudo conectar con el proceso principal. Reinicia la aplicación.',
+          error: 'Unable to connect to the main process. Restart the app.',
         });
         return;
       }
@@ -48,7 +47,7 @@ export function useDevices(): UseDevicesResult {
       setState({
         devices: [],
         loading: false,
-        error: 'Error inesperado al buscar dispositivos.',
+        error: 'Unexpected error while loading devices.',
       });
     }
   }, []);

@@ -7,6 +7,7 @@ import {
   type SaveRecordingRequest,
 } from '../../../../shared/ipc/qa.contract';
 import { err, ok } from '../../../../shared/ipc/result';
+import type { MirrorWindowService } from '../../mirror/mirror-window.service';
 
 /** Upper bound for renderer-provided buffers to avoid main-process memory exhaustion. */
 const MAX_CAPTURE_BYTES = 256 * 1024 * 1024;
@@ -66,21 +67,24 @@ async function saveBufferWithDialog(
   }
 }
 
-export function registerQaIpcHandlers(): void {
+export function registerQaIpcHandlers(mirrorWindowService: MirrorWindowService): void {
   ipcMain.handle(
     QA_CHANNELS.copyCapture,
-    async (_, request: unknown): Promise<QaActionResponse> => {
+    async (event, request: unknown): Promise<QaActionResponse> => {
+      if (!mirrorWindowService.isMirrorWindowSender(event.sender.id)) {
+        return err('The requesting window cannot run QA actions.');
+      }
       const body = parseCaptureImageRequest(request);
       if (!body) {
-        return err('Imagen de captura inválida.');
+        return err('Invalid capture image.');
       }
       if (exceedsSizeLimit(body.data)) {
-        return err('La captura excede el tamaño máximo permitido.');
+        return err('Capture exceeds the maximum allowed size.');
       }
 
       const image = nativeImage.createFromBuffer(Buffer.from(body.data));
       if (image.isEmpty()) {
-        return err('No se pudo leer la captura.');
+        return err('Unable to read capture image.');
       }
 
       clipboard.writeImage(image);
@@ -90,47 +94,53 @@ export function registerQaIpcHandlers(): void {
 
   ipcMain.handle(
     QA_CHANNELS.saveCapture,
-    async (_, request: unknown): Promise<QaActionResponse> => {
+    async (event, request: unknown): Promise<QaActionResponse> => {
+      if (!mirrorWindowService.isMirrorWindowSender(event.sender.id)) {
+        return err('The requesting window cannot run QA actions.');
+      }
       const body = parseCaptureImageRequest(request);
       if (!body) {
-        return err('Imagen de captura inválida.');
+        return err('Invalid capture image.');
       }
       if (exceedsSizeLimit(body.data)) {
-        return err('La captura excede el tamaño máximo permitido.');
+        return err('Capture exceeds the maximum allowed size.');
       }
 
       return saveBufferWithDialog(
         {
-          title: 'Guardar captura',
+          title: 'Save capture',
           defaultPath: `manolo-mirror-${Date.now()}.png`,
           filters: [{ name: 'PNG', extensions: ['png'] }],
         },
         body.data,
-        'No se pudo guardar la captura.',
+        'Unable to save capture.',
       );
     },
   );
 
   ipcMain.handle(
     QA_CHANNELS.saveRecording,
-    async (_, request: unknown): Promise<QaActionResponse> => {
+    async (event, request: unknown): Promise<QaActionResponse> => {
+      if (!mirrorWindowService.isMirrorWindowSender(event.sender.id)) {
+        return err('The requesting window cannot run QA actions.');
+      }
       const body = parseSaveRecordingRequest(request);
       if (!body) {
-        return err('Datos de grabación inválidos.');
+        return err('Invalid recording data.');
       }
       if (exceedsSizeLimit(body.data)) {
-        return err('La grabación excede el tamaño máximo permitido.');
+        return err('Recording exceeds the maximum allowed size.');
       }
 
       const extension = body.mimeType.includes('webm') ? 'webm' : 'mp4';
       return saveBufferWithDialog(
         {
-          title: 'Guardar grabación',
+          title: 'Save recording',
           defaultPath: `recording-${Date.now()}.${extension}`,
           filters: [{ name: 'Video', extensions: [extension] }],
         },
         body.data,
-        'No se pudo guardar la grabación.',
+        'Unable to save recording.',
       );
     },
   );

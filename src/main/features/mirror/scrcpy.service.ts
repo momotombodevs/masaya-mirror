@@ -19,7 +19,7 @@ import type { AdbService } from '../device/adb.service';
 const MIRROR_PORT_CHANNEL = MIRROR_CHANNELS.port;
 
 const SCRCPY_SERVER_NOT_FOUND =
-  'scrcpy-server no está disponible. Ejecuta `pnpm setup:tools` para descargarlo.';
+  'scrcpy-server is not available. Run `pnpm setup:tools` to download it.';
 
 type ScrcpyClientHandle = {
   readonly close: () => Promise<void>;
@@ -147,7 +147,7 @@ export class ScrcpyService {
       if (error instanceof Error) {
         return err(error.message);
       }
-      return err('No se pudo iniciar el espejo.');
+      return err('Unable to start the mirror.');
     } finally {
       if (!stored && startedClient) {
         await startedClient.close().catch(() => undefined);
@@ -158,7 +158,7 @@ export class ScrcpyService {
   notifyStreamReady(deviceId: string): Result<void> {
     const session = this.sessions.get(deviceId);
     if (!session) {
-      return err('No hay sesión de espejo para este dispositivo.');
+      return err('No mirror session exists for this device.');
     }
 
     session.stream.onRendererReady();
@@ -168,12 +168,12 @@ export class ScrcpyService {
   async sendControl(deviceId: string, message: MirrorControlMessage): Promise<Result<void>> {
     const session = this.sessions.get(deviceId);
     if (!session) {
-      return err('No hay un espejo activo para este dispositivo.');
+      return err('No active mirror exists for this device.');
     }
 
     const controller = session.controller;
     if (!controller) {
-      return err('Control no disponible para esta sesión.');
+      return err('Control is not available for this session.');
     }
 
     try {
@@ -212,7 +212,7 @@ export class ScrcpyService {
           break;
         default: {
           const _exhaustive: never = message;
-          return err(`Control desconocido: ${String(_exhaustive)}`);
+          return err(`Unknown control: ${String(_exhaustive)}`);
         }
       }
       return ok(undefined);
@@ -220,7 +220,7 @@ export class ScrcpyService {
       if (error instanceof Error) {
         return err(error.message);
       }
-      return err('No se pudo enviar el evento de control.');
+      return err('Unable to send the control event.');
     }
   }
 

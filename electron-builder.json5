@@ -19,12 +19,15 @@
     }
   ],
   "mac": {
+    "category": "public.app-category.developer-tools",
     "target": [
       "dmg"
     ],
     "artifactName": "${productName}-Mac-${version}-Installer.${ext}"
   },
   "win": {
+    "executableName": "Manolo Mirror",
+    "artifactName": "${productName}-Windows-${version}-${arch}.${ext}",
     "target": [
       {
         "target": "nsis",
@@ -32,19 +35,28 @@
           "x64"
         ]
       }
-    ],
-    "artifactName": "${productName}-Windows-${version}-Setup.${ext}"
+    ]
   },
   "nsis": {
     "oneClick": false,
     "perMachine": false,
     "allowToChangeInstallationDirectory": true,
-    "deleteAppDataOnUninstall": false
+    "deleteAppDataOnUninstall": false,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "Manolo Mirror",
+    "runAfterFinish": true
   },
   "linux": {
+    "category": "Development",
+    "desktop": {
+      "Name": "Manolo Mirror",
+      "Comment": "Android device management, mirroring and QA automation",
+      "Categories": "Development;"
+    },
+    "artifactName": "${productName}-Linux-${version}-${arch}.${ext}",
     "target": [
       "AppImage"
-    ],
-    "artifactName": "${productName}-Linux-${version}.${ext}"
+    ]
   }
 }

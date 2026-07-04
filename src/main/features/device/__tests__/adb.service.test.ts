@@ -97,7 +97,7 @@ describe('AdbService', () => {
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.error).toContain('ADB no encontrado');
+      expect(result.error).toContain('ADB not found');
     }
     expect(mockedRunCommand).not.toHaveBeenCalled();
   });

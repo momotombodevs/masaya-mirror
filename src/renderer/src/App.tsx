@@ -13,6 +13,8 @@ export default function App(): JSX.Element {
   const { activeDeviceIds, refreshStatus } = useMirrorStatus();
 
   const connectedDevices = selectConnectedDevices(devices);
+  const pendingDevices = devices.filter((device) => device.status !== 'device');
+  const selectedDevice = connectedDevices.find((device) => device.id === selectedDeviceId) ?? null;
 
   useEffect(() => {
     if (connectedDevices.length === 0) {
@@ -29,7 +31,7 @@ export default function App(): JSX.Element {
     async (deviceId: string): Promise<void> => {
       const api = getManoloApi();
       if (!api) {
-        setWindowError('No se pudo iniciar Manolo Mirror.');
+        setWindowError('Unable to start Manolo Mirror.');
         return;
       }
 
@@ -48,30 +50,59 @@ export default function App(): JSX.Element {
   );
 
   const displayError = windowError ?? error;
+  const summaryLabel = selectedDevice ? selectedDevice.model ?? selectedDevice.id : 'No device selected';
+  const summaryMeta = selectedDevice ? selectedDevice.product ?? selectedDevice.id : 'Connect a device to start mirroring';
+  const summaryStats = [
+    { label: 'Ready', value: connectedDevices.length },
+    { label: 'Live', value: activeDeviceIds.length },
+    { label: 'Issues', value: pendingDevices.length },
+  ];
 
   return (
     <div className={styles.app}>
       <header className={styles.header}>
-        <div className={styles.brand}>
-          <img src="/manolo-logo.svg" alt="" className={styles.logo} width={32} height={32} />
-          <div>
-            <h1 className={styles.title}>Manolo Mirror</h1>
-            <p className={styles.tagline}>Tu Android en el escritorio.</p>
+        <div className={styles.headerInner}>
+          <div className={styles.brand}>
+            <img src="/manolo-logo.svg" alt="" className={styles.logo} width={28} height={28} />
+            <div className={styles.brandCopy}>
+              <h1 className={styles.title}>Manolo Mirror</h1>
+              <p className={styles.subtitle}>Android QA workspace</p>
+            </div>
+          </div>
+
+          <div className={styles.summary}>
+            <div className={styles.summaryBlock}>
+              <span className={styles.summaryLabel}>Selected</span>
+              <strong className={styles.summaryTitle}>{summaryLabel}</strong>
+              <span className={styles.summaryMeta}>{summaryMeta}</span>
+            </div>
+            <div className={styles.summaryStats} aria-label="Device summary">
+              {summaryStats.map((stat) => (
+                <span key={stat.label} className={styles.summaryPill}>
+                  <strong>{stat.value}</strong> {stat.label}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       </header>
 
       <main className={styles.main}>
-        <DeviceList
-          devices={devices}
-          loading={loading}
-          error={displayError}
-          selectedDeviceId={selectedDeviceId}
-          onSelectDevice={setSelectedDeviceId}
-          onRefresh={() => void refresh()}
-          onStartMirror={(id) => void handleStartMirror(id)}
-          activeMirrorIds={activeDeviceIds}
-        />
+        <div className={styles.panel}>
+          <DeviceList
+            devices={devices}
+            loading={loading}
+            error={displayError}
+            readyCount={connectedDevices.length}
+            liveCount={activeDeviceIds.length}
+            issueCount={pendingDevices.length}
+            selectedDeviceId={selectedDeviceId}
+            onSelectDevice={setSelectedDeviceId}
+            onRefresh={() => void refresh()}
+            onStartMirror={(id) => void handleStartMirror(id)}
+            activeMirrorIds={activeDeviceIds}
+          />
+        </div>
       </main>
     </div>
   );

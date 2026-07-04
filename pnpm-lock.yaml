@@ -52,7 +52,7 @@ importers:
         specifier: ^1.0.0
         version: 1.0.0
       electron:
-        specifier: ^30.0.1
+        specifier: ^30.5.1
         version: 30.5.1
       electron-builder:
         specifier: ^24.13.3

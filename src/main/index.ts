@@ -27,6 +27,6 @@ app.whenReady().then(() => {
   installApplicationMenu();
   registerDeviceIpcHandlers(deviceService);
   registerMirrorIpcHandlers(scrcpyService, mirrorWindowService);
-  registerQaIpcHandlers();
+  registerQaIpcHandlers(mirrorWindowService);
   createWindow();
 });

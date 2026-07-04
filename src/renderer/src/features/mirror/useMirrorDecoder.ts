@@ -107,7 +107,7 @@ export function useMirrorDecoder(
 
     const setupDecoder = (metadata: MirrorVideoMetadata): void => {
       if (!WebCodecsVideoDecoder.isSupported) {
-        setStreamError('WebCodecs no está disponible en esta ventana.');
+        setStreamError('WebCodecs is not available in this window.');
         return;
       }
 
@@ -143,7 +143,7 @@ export function useMirrorDecoder(
           return;
         }
         const message =
-          error instanceof Error ? error.message : 'Error en el decodificador de video.';
+          error instanceof Error ? error.message : 'Video decoder error.';
         setStreamError(message);
         requestClose();
       });
@@ -171,7 +171,7 @@ export function useMirrorDecoder(
 
     const initTimeout = window.setTimeout(() => {
       if (!disposed && !streamControllerRef.current) {
-        setStreamError('Sin señal de video. Cierra y vuelve a abrir.');
+        setStreamError('No video signal. Close and reopen the mirror.');
       }
     }, INIT_TIMEOUT_MS);
 
