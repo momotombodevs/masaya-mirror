@@ -1,6 +1,7 @@
 import type { AndroidDevice } from '../../../../shared/device/types';
 import { selectConnectedDevices } from './connected-devices';
 import { DEVICE_STATUS_LABELS } from './device.ui';
+import ui from '../../components/ui/primitives.module.css';
 import styles from './DeviceList.module.css';
 
 type DeviceListProps = {
@@ -47,7 +48,7 @@ export function DeviceList({
         <div className={styles.actions}>
           <button
             type="button"
-            className={styles.refreshBtn}
+            className={`${ui.button} ${ui.buttonSecondary} ${ui.iconButton} ${styles.refreshBtn}`}
             onClick={onRefresh}
             disabled={loading}
             aria-label="Refresh devices"
@@ -58,13 +59,18 @@ export function DeviceList({
       </div>
 
       {error && (
-        <div role="alert" className={styles.recovery}>
+        <div role="alert" className={`${ui.callout} ${ui.calloutDanger} ${styles.recovery}`}>
           <div className={styles.recoveryBody}>
             <strong className={styles.recoveryTitle}>Connection problem</strong>
             <p className={styles.recoveryText}>{error}</p>
             <p className={styles.recoveryHint}>Check adb, reconnect the device, then retry.</p>
           </div>
-          <button type="button" className={styles.recoveryButton} onClick={onRefresh} disabled={loading}>
+          <button
+            type="button"
+            className={`${ui.button} ${ui.buttonDanger} ${styles.recoveryButton}`}
+            onClick={onRefresh}
+            disabled={loading}
+          >
             Retry
           </button>
         </div>
@@ -74,18 +80,13 @@ export function DeviceList({
         <div className={styles.emptyState}>
           <strong className={styles.emptyTitle}>No connected devices</strong>
           <p className={styles.emptyText}>Connect a device over USB, allow debugging, then refresh.</p>
-          <button type="button" className={styles.recoveryButton} onClick={onRefresh}>
+          <button
+            type="button"
+            className={`${ui.button} ${ui.buttonSecondary} ${styles.recoveryButton}`}
+            onClick={onRefresh}
+          >
             Refresh
           </button>
-        </div>
-      )}
-
-      {(connected.length > 0 || pendingDevices.length > 0) && (
-        <div className={styles.columns} aria-hidden="true">
-          <span>Device</span>
-          <span>Product</span>
-          <span>Status</span>
-          <span className={styles.columnAction}>Action</span>
         </div>
       )}
 
@@ -103,23 +104,25 @@ export function DeviceList({
                 className={styles.deviceSelect}
                 onClick={() => onSelectDevice(device.id)}
               >
-                <span className={styles.deviceCell}>
+                <span className={styles.deviceIdentity}>
                   <span className={styles.deviceName}>{label}</span>
-                  <span className={styles.deviceId}>{device.id}</span>
+                  <span className={styles.deviceMeta}>{device.product ?? device.id}</span>
                 </span>
-                <span className={styles.productCell}>{device.product ?? '—'}</span>
-                <span className={`${styles.statusCell} ${isMirroring ? styles.statusLive : styles.statusReady}`}>
+                <span className={styles.deviceId}>{device.id}</span>
+                <span
+                  className={`${ui.chip} ${isMirroring ? ui.chipSuccess : ui.chipNeutral} ${styles.statusBadge}`}
+                >
                   {statusLabel}
                 </span>
               </button>
               <button
                 type="button"
-                className={`${styles.mirrorBtn} ${isMirroring ? styles.mirrorActive : ''}`}
+                className={`${ui.button} ${ui.buttonSecondary} ${styles.mirrorBtn}`}
                 title="Open mirror"
                 aria-label={`Open mirror for ${label}`}
                 onClick={() => onStartMirror(device.id)}
               >
-                <span>{isMirroring ? 'Open' : 'Open'}</span>
+                <span>Open</span>
                 <PlayIcon />
               </button>
             </li>
@@ -133,15 +136,14 @@ export function DeviceList({
           <ul className={styles.otherList}>
             {pendingDevices.map((device) => (
               <li key={device.id} className={styles.otherItem}>
-                <span className={styles.deviceCell}>
+                <span className={styles.deviceIdentity}>
                   <span className={styles.deviceName}>{device.model ?? device.id}</span>
-                  <span className={styles.deviceId}>{device.id}</span>
+                  <span className={styles.deviceMeta}>{device.product ?? device.id}</span>
                 </span>
-                <span className={styles.productCell}>{device.product ?? '—'}</span>
-                <span className={`${styles.statusCell} ${styles.statusIssue}`}>
+                <span className={styles.deviceId}>{device.id}</span>
+                <span className={`${ui.chip} ${ui.chipWarning} ${styles.statusBadge}`}>
                   {DEVICE_STATUS_LABELS[device.status]}
                 </span>
-                <span className={styles.otherAction}>—</span>
               </li>
             ))}
           </ul>

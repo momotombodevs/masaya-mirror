@@ -75,6 +75,16 @@ function getContentSecurityPolicy(): string {
 }
 
 function registerSecurityHeaders(): void {
+  if (process.platform === 'darwin') {
+    app.setAboutPanelOptions({
+      applicationName: 'Manolo Mirror',
+      applicationVersion: app.getVersion(),
+      version: app.getVersion(),
+      copyright: '© Manolo Mirror',
+      iconPath: path.join(process.env.VITE_PUBLIC ?? RENDERER_DIST, 'manolo-logo.svg'),
+    });
+  }
+
   if (!VITE_DEV_SERVER_URL || securityHeadersRegistered) {
     return;
   }
@@ -95,6 +105,7 @@ function registerSecurityHeaders(): void {
     });
   });
 }
+
 
 function attachWindowSecurity(window: BrowserWindow): void {
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));

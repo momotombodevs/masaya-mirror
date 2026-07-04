@@ -1,16 +1,14 @@
-import { useCallback, useEffect, useState } from 'react';
-import type { MirrorOptions } from '../../../../shared/mirror/types';
+import { type ReactNode } from 'react';
 import { CapturePreviewDialog } from './CapturePreviewDialog';
 import { useCapture } from './useCapture';
 import { useRecording } from './useRecording';
 import { useToolbarStatus } from './useToolbarStatus';
+import ui from '../../components/ui/primitives.module.css';
 import styles from './MirrorToolbar.module.css';
 
 type MirrorToolbarProps = {
   readonly deviceLabel: string;
   readonly canvas: HTMLCanvasElement | null;
-  readonly options: MirrorOptions;
-  readonly onApplyOptions: (options: MirrorOptions) => Promise<boolean>;
   readonly onFullscreen: () => void;
   readonly onStop: () => void;
   readonly disabled?: boolean;
@@ -19,151 +17,106 @@ type MirrorToolbarProps = {
 export function MirrorToolbar({
   deviceLabel,
   canvas,
-  options,
-  onApplyOptions,
   onFullscreen,
   onStop,
   disabled = false,
 }: MirrorToolbarProps): JSX.Element {
-  const [showSettings, setShowSettings] = useState(false);
-  const [localOptions, setLocalOptions] = useState<MirrorOptions>(options);
   const { statusMessage, showStatus } = useToolbarStatus();
   const capture = useCapture(canvas, showStatus);
   const recorder = useRecording(canvas, showStatus);
 
-  useEffect(() => {
-    setLocalOptions(options);
-  }, [options]);
-
-  const handleApplySettings = useCallback(async (): Promise<void> => {
-    const applied = await onApplyOptions(localOptions);
-    if (applied) {
-      setShowSettings(false);
-      showStatus('Ready');
-    }
-  }, [localOptions, onApplyOptions, showStatus]);
-
   return (
     <>
-    <header className={styles.toolbar}>
-      <div className={styles.lead}>
-        <span className={styles.deviceName}>{deviceLabel}</span>
-        {statusMessage && <span className={styles.status}>{statusMessage}</span>}
-      </div>
+      <header className={styles.toolbar}>
+        <div className={styles.lead}>
+          <span className={styles.deviceName}>{deviceLabel}</span>
+          {statusMessage && <span className={`${ui.chip} ${ui.chipMirror} ${styles.status}`}>{statusMessage}</span>}
+        </div>
 
-      <div className={styles.actions}>
-        <button
-          type="button"
-          className={styles.iconButton}
-          title="Capture preview"
-          disabled={disabled || !canvas}
-          onClick={() => void capture.open()}
-          aria-label="Capture"
-        >
-          <CameraIcon />
-        </button>
-        <button
-          type="button"
-          className={`${styles.iconButton} ${recorder.recording ? styles.active : ''}`}
-          title={recorder.recording ? 'Stop recording' : 'Start recording'}
-          disabled={disabled}
-          onClick={() => void recorder.toggle()}
-          aria-label="Record"
-        >
-          <RecordIcon />
-        </button>
-        <button
-          type="button"
-          className={styles.iconButton}
-          title="Fullscreen"
-          disabled={disabled}
-          onClick={onFullscreen}
-          aria-label="Fullscreen"
-        >
-          <FullscreenIcon />
-        </button>
-        <button
-          type="button"
-          className={`${styles.iconButton} ${showSettings ? styles.active : ''}`}
-          title="Settings"
-          disabled={disabled}
-          onClick={() => setShowSettings((value) => !value)}
-          aria-label="Settings"
-        >
-          <SettingsIcon />
-        </button>
-        <button type="button" className={styles.stopButton} disabled={disabled} onClick={onStop}>
-          Close
-        </button>
-      </div>
-
-      {showSettings && (
-        <div className={styles.settingsPanel}>
-          <label className={styles.field}>
-            Resolution
-            <select
-              value={localOptions.maxSize}
-              onChange={(e) =>
-                setLocalOptions((prev) => ({
-                  ...prev,
-                  maxSize: Number(e.target.value),
-                }))
-              }
-            >
-              <option value={0}>Native</option>
-              <option value={1080}>1080p</option>
-              <option value={1920}>Full HD (1920)</option>
-            </select>
-          </label>
-          <label className={styles.field}>
-            Bitrate
-            <select
-              value={localOptions.videoBitRate}
-              onChange={(e) =>
-                setLocalOptions((prev) => ({
-                  ...prev,
-                  videoBitRate: Number(e.target.value),
-                }))
-              }
-            >
-              <option value={2_000_000}>2 Mbps</option>
-              <option value={4_000_000}>4 Mbps</option>
-              <option value={8_000_000}>8 Mbps</option>
-              <option value={16_000_000}>16 Mbps (recommended)</option>
-            </select>
-          </label>
-          <label className={styles.field}>
-            Codec
-            <select
-              value={localOptions.videoCodec}
-              onChange={(e) =>
-                setLocalOptions((prev) => ({
-                  ...prev,
-                  videoCodec: e.target.value as MirrorOptions['videoCodec'],
-                }))
-              }
-            >
-              <option value="h264">H.264</option>
-              <option value="h265">H.265</option>
-            </select>
-          </label>
-          <button type="button" className={styles.applyButton} onClick={() => void handleApplySettings()}>
-            Apply
+        <div className={styles.actions}>
+          <ToolbarIconButton
+            title="Capture preview"
+            ariaLabel="Capture"
+            disabled={disabled || !canvas}
+            onClick={() => void capture.open()}
+          >
+            <CameraIcon />
+          </ToolbarIconButton>
+          <ToolbarIconButton
+            title={recorder.recording ? 'Stop recording' : 'Start recording'}
+            ariaLabel={recorder.recording ? 'Stop recording' : 'Start recording'}
+            disabled={disabled}
+            active={recorder.recording}
+            pressed={recorder.recording}
+            onClick={() => void recorder.toggle()}
+          >
+            <RecordIcon />
+          </ToolbarIconButton>
+          <ToolbarIconButton
+            title="Fullscreen"
+            ariaLabel="Fullscreen"
+            disabled={disabled}
+            onClick={onFullscreen}
+          >
+            <FullscreenIcon />
+          </ToolbarIconButton>
+          <button
+            type="button"
+            className={`${ui.button} ${ui.buttonMirror} ${styles.stopButton}`}
+            disabled={disabled}
+            onClick={onStop}
+          >
+            Close
           </button>
         </div>
-      )}
-    </header>
+      </header>
 
-    {capture.preview && (
-      <CapturePreviewDialog
-        imageUrl={capture.preview.url}
-        onCopy={() => void capture.copy()}
-        onSave={() => void capture.save()}
-        onClose={capture.close}
-        busy={capture.busy}
-      />
-    )}
+      {capture.preview && (
+        <CapturePreviewDialog
+          imageUrl={capture.preview.url}
+          onCopy={() => void capture.copy()}
+          onSave={() => void capture.save()}
+          onClose={capture.close}
+          busy={capture.busy}
+        />
+      )}
     </>
+  );
+}
+
+type ToolbarIconButtonProps = {
+  readonly title: string;
+  readonly ariaLabel: string;
+  readonly disabled?: boolean;
+  readonly active?: boolean;
+  readonly pressed?: boolean;
+  readonly onClick: () => void;
+  readonly children: ReactNode;
+};
+
+function ToolbarIconButton({
+  title,
+  ariaLabel,
+  disabled = false,
+  active,
+  pressed,
+  onClick,
+  children,
+}: ToolbarIconButtonProps): JSX.Element {
+  const isActive = active === true;
+
+  return (
+    <button
+      type="button"
+      className={`${ui.button} ${ui.iconButton} ${ui.iconButtonMirror} ${isActive ? ui.active : ''} ${styles.iconButton}`}
+      title={title}
+      disabled={disabled}
+      onClick={onClick}
+      aria-label={ariaLabel}
+      aria-pressed={pressed === undefined ? undefined : pressed}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -188,15 +141,6 @@ function FullscreenIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
       <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-    </svg>
-  );
-}
-
-function SettingsIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
     </svg>
   );
 }

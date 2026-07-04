@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { useMirrorDecoder } from './useMirrorDecoder';
 import { useMirrorInput } from './useMirrorInput';
+import ui from '../../components/ui/primitives.module.css';
 import styles from './MirrorView.module.css';
 
 type MirrorViewProps = {
@@ -37,7 +38,7 @@ export function MirrorView({ deviceId, onSizeChange, onClose }: MirrorViewProps)
       />
       {showLoading && <div className={styles.loading}>Conectando…</div>}
       {streamError && (
-        <p className={styles.error} role="alert">
+        <p className={`${ui.overlayError} ${styles.error}`} role="alert">
           {streamError}
         </p>
       )}

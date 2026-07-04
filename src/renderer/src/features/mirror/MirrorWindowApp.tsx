@@ -3,6 +3,7 @@ import { MirrorView } from './MirrorView';
 import { MirrorToolbar } from './MirrorToolbar';
 import { getMirrorCanvas } from './mirror-canvas';
 import { useMirror } from './useMirror';
+import ui from '../../components/ui/primitives.module.css';
 import styles from './MirrorWindowApp.module.css';
 
 type MirrorWindowAppProps = {
@@ -54,8 +55,6 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
       <MirrorToolbar
         deviceLabel={deviceLabel}
         canvas={mirrorCanvas}
-        options={mirror.options}
-        onApplyOptions={mirror.applyOptions}
         onFullscreen={handleFullscreen}
         onStop={() => void handleStopMirror()}
         disabled={mirror.loading}
@@ -64,7 +63,7 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
       <div ref={mirrorStageRef} className={styles.stage}>
         {mirror.loading && <p className={styles.status}>Conectando…</p>}
         {mirror.error && (
-          <p className={styles.error} role="alert">
+          <p className={`${ui.overlayError} ${styles.error}`} role="alert">
             {mirror.error}
           </p>
         )}

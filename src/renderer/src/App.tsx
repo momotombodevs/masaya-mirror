@@ -50,6 +50,13 @@ export default function App(): JSX.Element {
   );
 
   const displayError = windowError ?? error;
+  const summaryLabel = selectedDevice ? selectedDevice.model ?? selectedDevice.id : 'No device selected';
+  const summaryMeta = selectedDevice ? selectedDevice.product ?? selectedDevice.id : 'Connect a device to start mirroring';
+  const summaryStats = [
+    { label: 'Ready', value: connectedDevices.length },
+    { label: 'Live', value: activeDeviceIds.length },
+    { label: 'Issues', value: pendingDevices.length },
+  ];
 
   return (
     <div className={styles.app}>
@@ -57,32 +64,31 @@ export default function App(): JSX.Element {
         <div className={styles.headerInner}>
           <div className={styles.brand}>
             <img src="/manolo-logo.svg" alt="" className={styles.logo} width={28} height={28} />
-            <h1 className={styles.title}>Manolo Mirror</h1>
+            <div className={styles.brandCopy}>
+              <h1 className={styles.title}>Manolo Mirror</h1>
+              <p className={styles.subtitle}>Android QA workspace</p>
+            </div>
+          </div>
+
+          <div className={styles.summary}>
+            <div className={styles.summaryBlock}>
+              <span className={styles.summaryLabel}>Selected</span>
+              <strong className={styles.summaryTitle}>{summaryLabel}</strong>
+              <span className={styles.summaryMeta}>{summaryMeta}</span>
+            </div>
+            <div className={styles.summaryStats} aria-label="Device summary">
+              {summaryStats.map((stat) => (
+                <span key={stat.label} className={styles.summaryPill}>
+                  <strong>{stat.value}</strong> {stat.label}
+                </span>
+              ))}
+            </div>
           </div>
         </div>
       </header>
 
       <main className={styles.main}>
         <div className={styles.panel}>
-          <div className={styles.panelHeader}>
-            {selectedDevice ? (
-              <div className={styles.selectionBlock}>
-                <span className={styles.selectionLabel}>Selected</span>
-                <strong className={styles.selectionTitle}>
-                  {selectedDevice.model ?? selectedDevice.id}
-                </strong>
-              </div>
-            ) : (
-              <div className={styles.selectionBlock}>
-                <span className={styles.selectionLabel}>Selected</span>
-                <span className={styles.selectionEmpty}>Choose a device to start a mirror session</span>
-              </div>
-            )}
-            {selectedDevice && (
-              <span className={styles.selectionMeta}>{selectedDevice.product ?? selectedDevice.id}</span>
-            )}
-          </div>
-
           <DeviceList
             devices={devices}
             loading={loading}

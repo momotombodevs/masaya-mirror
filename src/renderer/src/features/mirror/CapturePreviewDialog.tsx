@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import ui from '../../components/ui/primitives.module.css';
 import styles from './CapturePreviewDialog.module.css';
 
 type CapturePreviewDialogProps = {
@@ -31,6 +32,7 @@ export function CapturePreviewDialog({
       <div
         className={styles.dialog}
         role="dialog"
+        aria-modal="true"
         aria-labelledby="capture-preview-title"
         onClick={(event) => event.stopPropagation()}
       >
@@ -38,8 +40,13 @@ export function CapturePreviewDialog({
           <h2 id="capture-preview-title" className={styles.title}>
             Capture
           </h2>
-          <button type="button" className={styles.closeBtn} onClick={onClose} aria-label="Close">
-            ×
+          <button
+            type="button"
+            className={`${ui.button} ${ui.buttonGhost} ${ui.iconButton} ${styles.closeBtn}`}
+            onClick={onClose}
+            aria-label="Close"
+          >
+            <CloseIcon />
           </button>
         </header>
 
@@ -48,17 +55,60 @@ export function CapturePreviewDialog({
         </div>
 
         <footer className={styles.footer}>
-          <button type="button" className={styles.secondaryBtn} onClick={onClose} disabled={busy}>
+          <button
+            type="button"
+            className={`${ui.button} ${ui.buttonSecondary} ${styles.dialogButton}`}
+            onClick={onClose}
+            disabled={busy}
+          >
             Cancel
           </button>
-          <button type="button" className={styles.secondaryBtn} onClick={onCopy} disabled={busy}>
-            Copy
+          <button
+            type="button"
+            className={`${ui.button} ${ui.buttonSecondary} ${styles.dialogButton}`}
+            onClick={onCopy}
+            disabled={busy}
+          >
+            <CopyIcon />
+            <span>Copy</span>
           </button>
-          <button type="button" className={styles.primaryBtn} onClick={onSave} disabled={busy}>
-            Save…
+          <button
+            type="button"
+            className={`${ui.button} ${ui.buttonPrimary} ${styles.dialogButton}`}
+            onClick={onSave}
+            disabled={busy}
+          >
+            <SaveIcon />
+            <span>Save…</span>
           </button>
         </footer>
       </div>
     </div>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg className={styles.closeIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <path d="M18 6 6 18M6 6l12 12" />
+    </svg>
+  );
+}
+
+function CopyIcon() {
+  return (
+    <svg className={styles.actionIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <rect x="9" y="9" width="11" height="11" rx="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  );
+}
+
+function SaveIcon() {
+  return (
+    <svg className={styles.actionIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+      <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z" />
+      <path d="M17 21v-8H7v8M7 3v5h8" />
+    </svg>
   );
 }
