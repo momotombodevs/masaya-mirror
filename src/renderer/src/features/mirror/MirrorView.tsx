@@ -33,7 +33,7 @@ export function MirrorView({ deviceId, onSizeChange, onClose }: MirrorViewProps)
         onPointerDown={input.onPointerDown}
         onPointerMove={input.onPointerMove}
         onPointerUp={input.onPointerUp}
-        onPointerLeave={input.onPointerUp}
+        onPointerCancel={input.onPointerUp}
         onWheel={input.onWheel}
         onContextMenu={input.onContextMenu}
       />

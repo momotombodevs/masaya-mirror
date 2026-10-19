@@ -51,10 +51,14 @@ export function useMirrorInput(
   // flush the pending move first, so the device always receives events in order.
   const moveCoalescer: ControlCoalescer<MirrorControlMessage> = useMemo(
     () =>
-      createControlCoalescer(sendControl, {
-        schedule: (callback) => window.requestAnimationFrame(callback),
-        cancel: (handle) => window.cancelAnimationFrame(handle as number),
-      }),
+      createControlCoalescer(
+        sendControl,
+        {
+          schedule: (callback) => window.requestAnimationFrame(callback),
+          cancel: (handle) => window.cancelAnimationFrame(handle as number),
+        },
+        (message) => (message.type === 'touch' ? message.pointerId : message.type),
+      ),
     [sendControl],
   );
 
@@ -164,6 +168,9 @@ export function useMirrorInput(
 
   const onPointerUp = useCallback(
     (event: PointerEvent<HTMLCanvasElement>): void => {
+      if (!event.currentTarget.hasPointerCapture(event.pointerId)) {
+        return;
+      }
       const message = buildTouch(
         ANDROID_MOTION_EVENT_ACTION.up,
         event.pointerId,
@@ -175,9 +182,7 @@ export function useMirrorInput(
         moveCoalescer.flush();
         sendControl(message);
       }
-      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-        event.currentTarget.releasePointerCapture(event.pointerId);
-      }
+      event.currentTarget.releasePointerCapture(event.pointerId);
     },
     [buildTouch, moveCoalescer, sendControl],
   );

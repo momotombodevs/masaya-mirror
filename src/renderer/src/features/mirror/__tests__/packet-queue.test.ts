@@ -35,20 +35,27 @@ describe('createPacketQueue', () => {
     queue.push(config());
     queue.push(frame(true, 1));
     queue.push(frame(false, 2));
-    queue.push(frame(false, 3));
     expect(queue.size).toBe(1);
 
-    queue.push(frame(false, 4));
+    queue.push(frame(false, 3));
+    expect(queue.size).toBe(1);
     queue.push(frame(true, 5));
     expect(queue.size).toBe(2);
 
     expect(idOf(await queue.next())).toBe(0);
     expect(idOf(await queue.next())).toBe(5);
+  });
 
-    const pending = queue.next();
-    queue.push(frame(false, 6));
-    queue.push(frame(true, 8));
-    expect(idOf(await pending)).toBe(6);
+  it('keeps the keyframe that overflows the queue', async () => {
+    const queue = createPacketQueue(2);
+    queue.push(config());
+    queue.push(frame(false, 1));
+    queue.push(frame(true, 2));
+
+    expect(idOf(await queue.next())).toBe(0);
+    expect(idOf(await queue.next())).toBe(2);
+    queue.push(frame(false, 3));
+    expect(idOf(await queue.next())).toBe(3);
   });
 
   it('resolves null for waiting consumers when closed', async () => {
