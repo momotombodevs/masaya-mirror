@@ -8,8 +8,16 @@
       name="description"
       content="Manolo Mirror espeja y controla dispositivos Android en macOS, Windows y Linux. Captura, graba y conecta por Wi-Fi con un QR. Sin cuentas ni anuncios."
     />
+    <meta name="theme-color" content="#0f3d3e" />
     <link rel="icon" type="image/svg+xml" href="manolo-logo.svg" />
-    <link rel="stylesheet" href="style.css?v=3" />
+    <link
+      rel="preload"
+      href="fonts/schibsted.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="stylesheet" href="style.css?v=4" />
   </head>
   <body>
     <!-- icon sprite -->
@@ -222,7 +230,7 @@
         <div>
           <h1>Espeja y controla tu Android desde el escritorio</h1>
           <p class="lead">
-            Mouse, teclado, captura y grabación. Por USB o Wi-Fi con un QR. Sin cuentas ni anuncios.
+            Mouse, teclado, captura y grabación. Por USB o <span style="white-space: nowrap">Wi-Fi</span> con un QR. Sin cuentas ni anuncios.
           </p>
           <div class="cta">
             <a
@@ -346,7 +354,7 @@
             <table>
               <thead>
                 <tr>
-                  <th></th>
+                  <th><span class="sr">Característica</span></th>
                   <th class="us">Manolo Mirror</th>
                   <th>Vysor gratis</th>
                 </tr>
@@ -375,10 +383,6 @@
               </tbody>
             </table>
           </div>
-          <p class="fine">
-            Según la información pública de Vysor en octubre de 2026. Confirma sus planes en
-            <a href="https://www.vysor.io/#pricing" rel="noopener">vysor.io</a>.
-          </p>
         </section>
 
         <section class="doc" id="capturas">
@@ -710,6 +714,6 @@
       </div>
     </footer>
 
-    <script src="site.js?v=3"></script>
+    <script src="site.js?v=4" defer></script>
   </body>
 </html>
