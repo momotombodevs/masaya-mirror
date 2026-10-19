@@ -1,12 +1,10 @@
 import { CommandError } from '../../utils/runCommand';
 
-export const ADB_NOT_FOUND_MESSAGE =
-  'ADB no encontrado. Instala las platform-tools de Android (Android Studio → SDK Manager) o define ANDROID_HOME / ADB_PATH. Rutas habituales: macOS ~/Library/Android/sdk/platform-tools/adb, Windows %LOCALAPPDATA%\\Android\\Sdk\\platform-tools\\adb.exe, Linux ~/Android/Sdk/platform-tools/adb.';
+export const ADB_NOT_FOUND_MESSAGE = 'ADB no encontrado. Instala platform-tools o define ADB_PATH.';
 
-const ADB_TIMEOUT_MESSAGE =
-  'ADB no respondió a tiempo. Comprueba que el servidor adb esté en marcha.';
+const ADB_TIMEOUT_MESSAGE = 'ADB no responde. Revisa el servidor adb.';
 
-const ADB_UNKNOWN_ERROR_MESSAGE = 'Error desconocido al ejecutar adb.';
+const ADB_UNKNOWN_ERROR_MESSAGE = 'Error al ejecutar adb.';
 
 /** Maps a thrown command error into a user-facing message. */
 export function mapCommandError(error: unknown): string {

@@ -34,7 +34,7 @@ export function useDevices(): UseDevicesResult {
         setState({
           devices: [],
           loading: false,
-          error: 'No se pudo conectar con el proceso principal. Reinicia la app.',
+          error: 'Sin conexión con la app. Reiníciala.',
         });
         return;
       }
@@ -51,7 +51,7 @@ export function useDevices(): UseDevicesResult {
       setState({
         devices: [],
         loading: false,
-        error: 'Error inesperado al cargar los dispositivos.',
+        error: 'No se pudo cargar la lista.',
       });
     }
   }, []);

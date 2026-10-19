@@ -23,8 +23,7 @@ import type {
 } from '@yume-chan/scrcpy';
 import type { AdbService } from '../device/adb.service';
 
-const SCRCPY_SERVER_NOT_FOUND =
-  'scrcpy-server no está disponible. Ejecuta `pnpm setup:tools` para descargarlo.';
+const SCRCPY_SERVER_NOT_FOUND = 'Falta scrcpy-server. Ejecuta `pnpm setup:tools`.';
 
 type ScrcpyClientHandle = {
   readonly close: () => Promise<void>;
@@ -84,7 +83,7 @@ export class ScrcpyService {
 
     const serverPath = await resolveScrcpyServerPath();
     if (!serverPath) {
-      return err(`${SCRCPY_SERVER_NOT_FOUND} Ruta esperada: ${getExpectedScrcpyServerPath()}`);
+      return err(`${SCRCPY_SERVER_NOT_FOUND} Ruta: ${getExpectedScrcpyServerPath()}`);
     }
 
     let startedClient: { close: () => Promise<void> } | null = null;

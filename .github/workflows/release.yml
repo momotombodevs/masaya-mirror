@@ -91,14 +91,6 @@ jobs:
           generate_release_notes: true
           fail_on_unmatched_files: true
           body: |
-            ## Instaladores
+            Instaladores para macOS (`.dmg`, Apple Silicon e Intel), Windows (`.exe`) y Linux (`.AppImage`).
 
-            | Plataforma | Archivo |
-            | --- | --- |
-            | macOS (Apple Silicon e Intel) | `.dmg` con `arm64` o `x64` en el nombre |
-            | Windows (x64) | `.exe` |
-            | Linux (x64) | `.AppImage` |
-
-            **Requisito:** `adb` (Android platform-tools) instalado. La app no lo incluye.
-
-            **Primer arranque (instaladores sin firmar):** en macOS, clic derecho sobre la app → **Abrir**, o permítela en **Ajustes del Sistema → Privacidad y seguridad**. En Windows, SmartScreen puede avisar: **Más información → Ejecutar de todas formas**.
+            Requiere `adb` instalado. Los instaladores no están firmados: en macOS usa clic derecho → **Abrir**; en Windows, **Más información → Ejecutar de todas formas**.

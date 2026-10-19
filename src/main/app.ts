@@ -1,6 +1,6 @@
 import { app, BrowserWindow, type BrowserWindowConstructorOptions } from 'electron';
 import path from 'node:path';
-import { MAIN_DIST, RENDERER_DIST, VITE_DEV_SERVER_URL } from './paths';
+import { DEV_ICON, MAIN_DIST, RENDERER_DIST, VITE_DEV_SERVER_URL } from './paths';
 import { applySystemAccent, getWindowBackground } from './system-theme';
 import { attachWindowSecurity, registerDevContentSecurityPolicy } from './window-security';
 
@@ -14,6 +14,8 @@ if (process.platform === 'win32') {
 /** Every window runs sandboxed with context isolation and only the preload bridge. */
 export function createSecureWindow(options: BrowserWindowConstructorOptions): BrowserWindow {
   const window = new BrowserWindow({
+    // Windows and Linux show this in dev; packaged builds use the icon embedded by the packager.
+    ...(app.isPackaged ? {} : { icon: DEV_ICON }),
     ...options,
     webPreferences: {
       preload: path.join(MAIN_DIST, 'preload.cjs'),
@@ -74,6 +76,9 @@ export function claimSingleInstance(): boolean {
 export function registerAppLifecycle(): void {
   void app.whenReady().then(() => {
     registerDevContentSecurityPolicy();
+    if (!app.isPackaged) {
+      app.dock?.setIcon(DEV_ICON);
+    }
     if (process.platform === 'darwin') {
       app.setAboutPanelOptions({
         applicationName: APP_NAME,

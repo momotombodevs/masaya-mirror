@@ -78,7 +78,7 @@ export function registerQaIpcHandlers(mirrorWindowService: MirrorWindowService):
   handleFromMirrorWindow(QA_CHANNELS.saveCapture, (data) =>
     saveBufferWithDialog(
       {
-        title: 'Save capture',
+        title: 'Guardar captura',
         defaultPath: `manolo-mirror-${Date.now()}.png`,
         filters: [{ name: 'PNG', extensions: ['png'] }],
       },
@@ -94,7 +94,7 @@ export function registerQaIpcHandlers(mirrorWindowService: MirrorWindowService):
     const extension = mimeType.includes('webm') ? 'webm' : 'mp4';
     return saveBufferWithDialog(
       {
-        title: 'Save recording',
+        title: 'Guardar grabación',
         defaultPath: `recording-${Date.now()}.${extension}`,
         filters: [{ name: 'Video', extensions: [extension] }],
       },

@@ -18,7 +18,7 @@ export default function App(): JSX.Element {
     async (deviceId: string): Promise<void> => {
       const api = getManoloApi();
       if (!api) {
-        setWindowError('No se pudo iniciar Manolo Mirror.');
+        setWindowError('No se pudo abrir el espejo.');
         return;
       }
 
