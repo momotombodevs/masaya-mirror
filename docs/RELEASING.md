@@ -29,6 +29,23 @@ pnpm build:win     # en Windows
 Cada comando compila la app y empaqueta solo para esa plataforma. `pnpm build:app` compila sin
 empaquetar. CI también ejecuta `build:app` en macOS y Windows en cada PR.
 
+## Qué entra en el paquete
+
+Todo el código (main, preload y renderer) lo empaqueta Vite, así que las dependencias de la app van en
+`devDependencies`: electron-builder copia `dependencies` a `app.asar` aunque ya estén dentro del bundle. Si
+algún día una dependencia se carga en tiempo de ejecución sin pasar por Vite (un módulo nativo), esa sí va
+en `dependencies`.
+
+`electronFuses` (en `electron-builder.json5`) desactiva `ELECTRON_RUN_AS_NODE`, `NODE_OPTIONS` y
+`--inspect`, y obliga a cargar la app solo desde `app.asar`. La app no se lanza a sí misma como Node; si
+eso cambia, revisa `runAsNode`.
+
+## Materiales de ventana
+
+La ventana principal usa `vibrancy` en macOS y Mica en Windows 11 22H2 o superior
+(`src/main/system-theme.ts`). En Linux y en Windows anterior se ve el color sólido del tema. Son efectos
+del sistema: revísalos a mano en cada plataforma antes de publicar.
+
 ## Firma
 
 El workflow **Release** firma solo cuando existen los secretos del repositorio; sin ellos, el instalador

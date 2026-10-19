@@ -1,6 +1,6 @@
 # Manolo Mirror
 
-Espeja y controla dispositivos Android desde el escritorio (macOS y Windows). Pensada para QA:
+Espeja y controla dispositivos Android desde el escritorio (macOS, Windows y Linux). Pensada para QA:
 captura de pantalla, grabación de video y control con mouse y teclado, sin instalar scrcpy.
 
 - **Espejo en ventana propia** por dispositivo, con calidad ajustable (Equilibrada, Alta, Máxima).
@@ -49,7 +49,8 @@ pnpm dev:debug      # igual, con DevTools
 | `pnpm build:app`                             | Compila main, preload y renderer (sin empaquetar)  |
 | `pnpm build:mac`                             | DMG para Apple Silicon e Intel (solo en macOS)     |
 | `pnpm build:win`                             | Instalador NSIS x64 (en Windows)                   |
-| `pnpm build:linux`                           | AppImage x64                                       |
+| `pnpm build:linux`                           | AppImage x64 (en Linux)                            |
+| `pnpm pack:dir`                              | Empaqueta sin instalador, para probar la config    |
 
 Los instaladores quedan en `release/<versión>/`. Detalles de versionado y firma en
 [docs/RELEASING.md](docs/RELEASING.md).

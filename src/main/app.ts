@@ -1,7 +1,12 @@
 import { app, BrowserWindow, type BrowserWindowConstructorOptions } from 'electron';
 import path from 'node:path';
 import { DEV_ICON, MAIN_DIST, RENDERER_DIST, VITE_DEV_SERVER_URL } from './paths';
-import { applySystemAccent, getWindowBackground } from './system-theme';
+import {
+  applySystemAccent,
+  getWindowBackground,
+  getWindowMaterial,
+  keepWindowBackgroundInSync,
+} from './system-theme';
 import { attachWindowSecurity, registerDevContentSecurityPolicy } from './window-security';
 
 const APP_NAME = 'Manolo Mirror';
@@ -31,14 +36,20 @@ export function createSecureWindow(options: BrowserWindowConstructorOptions): Br
 }
 
 export function createWindow(): BrowserWindow {
+  const material = getWindowMaterial();
   const mainWindow = createSecureWindow({
     width: 720,
     height: 560,
     minWidth: 480,
     minHeight: 360,
     title: APP_NAME,
-    backgroundColor: getWindowBackground(),
+    // The page is transparent: a material shows through it, otherwise this color does.
+    backgroundColor: material ? '#00000000' : getWindowBackground(),
+    ...material,
   });
+  if (!material) {
+    keepWindowBackgroundInSync(mainWindow);
+  }
 
   if (VITE_DEV_SERVER_URL) {
     void mainWindow.loadURL(VITE_DEV_SERVER_URL);

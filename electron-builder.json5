@@ -12,6 +12,13 @@
     buildResources: 'build',
   },
   files: ['dist', 'dist-electron'],
+  // Hardens the packaged Electron binary. The app never forks itself as Node and loads only from app.asar.
+  electronFuses: {
+    runAsNode: false,
+    enableNodeOptionsEnvironmentVariable: false,
+    enableNodeCliInspectArguments: false,
+    onlyLoadAppFromAsar: true,
+  },
   extraResources: [
     {
       from: 'resources/scrcpy-server',
@@ -50,9 +57,11 @@
     category: 'Development',
     target: ['AppImage'],
     desktop: {
-      Name: 'Manolo Mirror',
-      Comment: 'Android device mirroring and QA workspace',
-      Categories: 'Development;',
+      entry: {
+        Name: 'Manolo Mirror',
+        Comment: 'Android device mirroring and QA workspace',
+        Categories: 'Development;',
+      },
     },
   },
 }
