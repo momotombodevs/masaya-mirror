@@ -57,6 +57,10 @@ export function metaStateOf(modifiers: KeyModifiers): number {
 export type KeyInput = KeyModifiers & {
   readonly key: string;
   readonly code: string;
+  /** True while the AltGr layer is active (reported as Ctrl+Alt on Windows). */
+  readonly altGraph?: boolean;
+  /** True during IME composition or dead-key sequences, which produce no character yet. */
+  readonly composing?: boolean;
 };
 
 export type ResolvedKey =
@@ -65,12 +69,16 @@ export type ResolvedKey =
 
 /**
  * Decides how a key press reaches the device. Printable characters without a
- * shortcut modifier are injected as text so any character (accents, symbols)
+ * Ctrl/Meta shortcut modifier are injected as text so any character (accents, symbols)
  * arrives correctly. Everything else is sent as an Android key code with the
  * active modifiers.
  */
 export function resolveKeyInput(input: KeyInput): ResolvedKey | null {
-  const isShortcut = input.ctrlKey || input.altKey || input.metaKey;
+  if (input.composing || input.key === 'Dead' || input.key === 'Process') {
+    return null;
+  }
+
+  const isShortcut = (input.ctrlKey && !input.altGraph) || input.metaKey;
   if (!isShortcut && [...input.key].length === 1) {
     return { kind: 'text', text: input.key };
   }

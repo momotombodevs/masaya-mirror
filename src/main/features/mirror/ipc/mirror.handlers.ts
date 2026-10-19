@@ -26,7 +26,7 @@ const MAX_VIDEO_DIMENSION = 10_000;
 const MAX_POINTER_ID = Number.MAX_SAFE_INTEGER;
 const MAX_ANDROID_KEYCODE = 400;
 const MAX_REPEAT_COUNT = 100;
-const MAX_META_STATE = 0xffff;
+const MAX_META_STATE = 0xffffff;
 const MAX_ANDROID_BUTTON_MASK = 0xffff;
 
 function parseFiniteNumber(
