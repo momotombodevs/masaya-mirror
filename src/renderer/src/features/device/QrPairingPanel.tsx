@@ -1,6 +1,7 @@
 import QRCode from 'qrcode';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '../../components/ui/Button';
+import { useI18n } from '../../shared/i18n';
 import { getManoloApi } from '../../shared/manolo-api';
 
 type QrPairingPanelProps = {
@@ -15,10 +16,9 @@ type QrState =
   | { readonly step: 'done'; readonly message: string }
   | { readonly step: 'error'; readonly message: string };
 
-const NO_BRIDGE = 'Sin conexión con la app. Reiníciala.';
-
 /** Pairs a phone by showing a QR code that it scans from "Depuración inalámbrica". */
 export function QrPairingPanel({ onConnected }: QrPairingPanelProps): JSX.Element {
+  const { t } = useI18n();
   const [state, setState] = useState<QrState>({ step: 'idle' });
   const activeSession = useRef<string | null>(null);
 
@@ -36,7 +36,7 @@ export function QrPairingPanel({ onConnected }: QrPairingPanelProps): JSX.Elemen
   const start = async (): Promise<void> => {
     const api = getManoloApi();
     if (!api) {
-      setState({ step: 'error', message: NO_BRIDGE });
+      setState({ step: 'error', message: t('common.noBridge') });
       return;
     }
     setState({ step: 'starting' });
@@ -83,36 +83,33 @@ export function QrPairingPanel({ onConnected }: QrPairingPanelProps): JSX.Elemen
   };
 
   return (
-    <section aria-label="Vincular con código QR" className="flex flex-col items-center gap-2">
+    <section aria-label={t('qr.section')} className="flex flex-col items-center gap-2">
       {state.step === 'waiting' ? (
         <>
           {/* Always dark on white: scanners need the contrast whatever the app theme is. */}
           <img
             src={state.qrUrl}
-            alt="Código QR para vincular el teléfono"
+            alt={t('qr.alt')}
             className="size-44 rounded-control bg-white p-1"
           />
           <ol className="list-decimal self-stretch pl-5 text-sm text-ink-2">
-            <li>En el teléfono abre Opciones de desarrollador → Depuración inalámbrica.</li>
-            <li>Toca «Vincular dispositivo con código QR» y escanea este código.</li>
+            <li>{t('qr.step1')}</li>
+            <li>{t('qr.step2')}</li>
           </ol>
           <p role="status" className="text-sm text-ink-2">
-            Esperando al teléfono…
+            {t('qr.waiting')}
           </p>
-          <Button onClick={stop}>Cancelar</Button>
+          <Button onClick={stop}>{t('common.cancel')}</Button>
         </>
       ) : (
         <>
-          <p className="text-center text-ink-2">
-            Vincula el teléfono escaneando un código QR. El teléfono y este equipo deben estar en la
-            misma red Wi-Fi.
-          </p>
+          <p className="text-center text-ink-2">{t('qr.intro')}</p>
           <Button
             variant="primary"
             onClick={() => void start()}
             disabled={state.step === 'starting'}
           >
-            Mostrar código QR
+            {t('qr.show')}
           </Button>
         </>
       )}

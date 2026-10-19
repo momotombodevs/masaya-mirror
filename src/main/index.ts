@@ -1,4 +1,4 @@
-import { app } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
 import { installApplicationMenu } from './app-menu';
 import { claimSingleInstance, createWindow, registerAppLifecycle } from './app';
@@ -15,6 +15,8 @@ import { ScrcpyService } from './features/mirror/scrcpy.service';
 import { registerMirrorIpcHandlers } from './features/mirror/ipc/mirror.handlers';
 import { registerPreferencesIpcHandlers } from './features/preferences/ipc/preferences.handlers';
 import { PreferencesService } from './features/preferences/preferences.service';
+import { resolveLocale } from '../shared/i18n/locale';
+import { PREFERENCES_CHANNELS } from '../shared/ipc/preferences.contract';
 import { registerQaIpcHandlers } from './features/qa/ipc/qa.handlers';
 
 function bootstrap(): void {
@@ -37,7 +39,7 @@ function bootstrap(): void {
   });
 
   void app.whenReady().then(() => {
-    installApplicationMenu();
+    installApplicationMenu(resolveLocale(preferences.get().language, app.getLocale()));
     registerDeviceIpcHandlers(deviceService);
     registerSetupIpcHandlers(
       adbService,
@@ -47,7 +49,14 @@ function bootstrap(): void {
     );
     registerApkIpcHandlers(adbService, mirrorWindowService);
     registerDeviceSettingsIpcHandlers(adbService, mirrorWindowService);
-    registerPreferencesIpcHandlers(preferences);
+    registerPreferencesIpcHandlers(preferences, {
+      onLanguageChange: (language) => {
+        installApplicationMenu(resolveLocale(language, app.getLocale()));
+        for (const window of BrowserWindow.getAllWindows()) {
+          window.webContents.send(PREFERENCES_CHANNELS.languageChanged, language);
+        }
+      },
+    });
     registerMirrorIpcHandlers(scrcpyService, mirrorWindowService);
     registerQaIpcHandlers(mirrorWindowService, preferences);
     createWindow();

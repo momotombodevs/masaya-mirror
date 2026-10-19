@@ -1,5 +1,6 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { DEFAULT_MIRROR_OPTIONS, type MirrorOptions } from '../../../../shared/mirror/types';
+import { useI18n } from '../../shared/i18n';
 import { getManoloApi } from '../../shared/manolo-api';
 import { useMirrorStatus } from './useMirrorStatus';
 import { disposeMirrorStreamClient } from './mirror-stream.client';
@@ -17,6 +18,9 @@ export type UseMirrorResult = {
 };
 
 export function useMirror(deviceId: string | null): UseMirrorResult {
+  const { t } = useI18n();
+  const tRef = useRef(t);
+  tRef.current = t;
   const { activeDeviceIds, refreshStatus } = useMirrorStatus();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +32,7 @@ export function useMirror(deviceId: string | null): UseMirrorResult {
     async (targetDeviceId?: string, startOptions?: MirrorOptions): Promise<boolean> => {
       const api = getManoloApi();
       if (!api) {
-        setError('API de Manolo Mirror no disponible.');
+        setError(tRef.current('mirror.apiUnavailable'));
         return false;
       }
 

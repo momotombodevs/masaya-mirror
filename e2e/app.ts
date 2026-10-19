@@ -20,7 +20,7 @@ export async function launchApp(options: { readonly adbPath: string }): Promise<
   const dataDir = mkdtempSync(path.join(tmpdir(), 'manolo-e2e-'));
   const app = await electron.launch({
     // The CI sandbox cannot create the Chromium setuid sandbox.
-    args: ['.', '--no-sandbox', `--user-data-dir=${path.join(dataDir, 'user-data')}`],
+    args: ['.', '--no-sandbox', '--lang=es', `--user-data-dir=${path.join(dataDir, 'user-data')}`],
     cwd: path.resolve(here, '..'),
     env: {
       ...process.env,

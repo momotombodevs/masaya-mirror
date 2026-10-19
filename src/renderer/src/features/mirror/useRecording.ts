@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { useI18n } from '../../shared/i18n';
 import { getManoloApi } from '../../shared/manolo-api';
 
 const RECORDING_FPS = 30;
@@ -20,13 +21,14 @@ export function useRecording(
   canvas: HTMLCanvasElement | null,
   showStatus: (message: string) => void,
 ): UseRecordingResult {
+  const { t } = useI18n();
   const [recording, setRecording] = useState(false);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
   const toggle = useCallback(async (): Promise<void> => {
     if (!canvas) {
-      showStatus('Espejo no listo');
+      showStatus(t('status.notReady'));
       return;
     }
 
@@ -57,7 +59,7 @@ export function useRecording(
       }
       const result = await api.saveRecording(buffer, mimeType);
       if (result.ok && result.value.saved) {
-        showStatus('Video guardado');
+        showStatus(t('status.videoSaved'));
       } else if (!result.ok) {
         showStatus(result.error);
       }
@@ -66,8 +68,8 @@ export function useRecording(
     recorder.start(RECORDING_CHUNK_MS);
     recorderRef.current = recorder;
     setRecording(true);
-    showStatus('Grabando');
-  }, [canvas, recording, showStatus]);
+    showStatus(t('status.recording'));
+  }, [canvas, recording, showStatus, t]);
 
   return { recording, toggle };
 }

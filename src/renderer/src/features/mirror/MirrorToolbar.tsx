@@ -5,6 +5,7 @@ import { cx } from '../../components/ui/cx';
 import { CapturePreviewDialog } from './CapturePreviewDialog';
 import { useCapture } from './useCapture';
 import { useRecording } from './useRecording';
+import { useI18n } from '../../shared/i18n';
 import { useMenuActions } from '../../shared/useMenuAction';
 import { ANDROID_KEYCODE } from './android-keycodes';
 import { useApkInstall } from './useApkInstall';
@@ -30,6 +31,7 @@ export function MirrorToolbar({
   captureAction,
   disabled = false,
 }: MirrorToolbarProps): JSX.Element {
+  const { t } = useI18n();
   const { statusMessage, showStatus } = useToolbarStatus();
   const capture = useCapture(canvas, showStatus, captureAction);
   const recorder = useRecording(canvas, showStatus);
@@ -44,7 +46,7 @@ export function MirrorToolbar({
 
   return (
     <>
-      <header className="relative flex min-h-[52px] shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-mirror-line bg-mirror-bar px-3 py-2 text-mirror-text">
+      <header className="relative flex min-h-[52px] shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-mirror-line bg-mirror-bar/95 px-3 py-2 text-mirror-text backdrop-blur-xl">
         <div className="flex min-w-0 items-baseline gap-2">
           <span className="truncate text-base font-medium">{deviceLabel}</span>
           {statusMessage && (
@@ -54,21 +56,21 @@ export function MirrorToolbar({
 
         <div className="ml-auto flex items-center gap-1">
           <ToolbarIconButton
-            label="Subir volumen"
+            label={t('toolbar.volumeUp')}
             disabled={disabled}
             onClick={() => pressKey(ANDROID_KEYCODE.volumeUp)}
           >
             <VolumeUpIcon />
           </ToolbarIconButton>
           <ToolbarIconButton
-            label="Bajar volumen"
+            label={t('toolbar.volumeDown')}
             disabled={disabled}
             onClick={() => pressKey(ANDROID_KEYCODE.volumeDown)}
           >
             <VolumeDownIcon />
           </ToolbarIconButton>
           <ToolbarIconButton
-            label="Encender o apagar pantalla"
+            label={t('toolbar.power')}
             disabled={disabled}
             onClick={() => pressKey(ANDROID_KEYCODE.power)}
           >
@@ -76,32 +78,40 @@ export function MirrorToolbar({
           </ToolbarIconButton>
           <ToolbarDivider />
           <ToolbarIconButton
-            label="Captura"
+            label={t('toolbar.capture')}
             disabled={disabled || !canvas}
             onClick={() => void capture.open()}
           >
             <CameraIcon />
           </ToolbarIconButton>
           <ToolbarIconButton
-            label={recorder.recording ? 'Detener grabación' : 'Grabar'}
+            label={recorder.recording ? t('toolbar.stopRecording') : t('toolbar.record')}
             disabled={disabled}
             pressed={recorder.recording}
             onClick={() => void recorder.toggle()}
           >
             <RecordIcon recording={recorder.recording} />
           </ToolbarIconButton>
-          <ToolbarIconButton label="Pantalla completa" disabled={disabled} onClick={onFullscreen}>
+          <ToolbarIconButton
+            label={t('toolbar.fullscreen')}
+            disabled={disabled}
+            onClick={onFullscreen}
+          >
             <FullscreenIcon />
           </ToolbarIconButton>
           <ToolbarDivider />
           <ToolbarIconButton
-            label="Instalar APK"
+            label={t('toolbar.installApk')}
             disabled={disabled || apk.installing}
             onClick={() => void apk.install()}
           >
             <ApkIcon />
           </ToolbarIconButton>
-          <ToolbarIconButton label="Ajustes" disabled={disabled} onClick={onOpenSettings}>
+          <ToolbarIconButton
+            label={t('toolbar.settings')}
+            disabled={disabled}
+            onClick={onOpenSettings}
+          >
             <SettingsIcon />
           </ToolbarIconButton>
         </div>

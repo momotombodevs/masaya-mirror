@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Button } from '../../components/ui/Button';
+import { useI18n } from '../../shared/i18n';
 import { getManoloApi } from '../../shared/manolo-api';
 
 type AdbSetupPanelProps = {
@@ -11,13 +12,14 @@ type AdbSetupPanelProps = {
 
 /** Shown instead of the device list when `adb` cannot be found. */
 export function AdbSetupPanel({ onResolved, onRetry, retrying }: AdbSetupPanelProps): JSX.Element {
+  const { t } = useI18n();
   const [error, setError] = useState<string | null>(null);
 
   const choose = async (): Promise<void> => {
     setError(null);
     const result = await getManoloApi()?.chooseAdb();
     if (!result) {
-      setError('Sin conexión con la app. Reiníciala.');
+      setError(t('common.noBridge'));
     } else if (!result.ok) {
       setError(result.error);
     } else if (result.value.path !== null) {
@@ -27,18 +29,15 @@ export function AdbSetupPanel({ onResolved, onRetry, retrying }: AdbSetupPanelPr
 
   return (
     <section className="mx-auto flex min-h-[60vh] max-w-sm flex-col items-center justify-center gap-3 px-6 text-center">
-      <p className="text-lg font-semibold">Falta adb</p>
-      <p className="text-ink-2">
-        Manolo Mirror usa adb (Android platform-tools) para hablar con el teléfono. Descárgalo e
-        instálalo, o elige el que ya tienes.
-      </p>
+      <p className="text-lg font-semibold">{t('adb.missing')}</p>
+      <p className="text-ink-2">{t('adb.missingBody')}</p>
       <div className="flex flex-wrap justify-center gap-2">
         <Button variant="primary" onClick={() => void getManoloApi()?.openAdbDownload()}>
-          Descargar platform-tools
+          {t('adb.download')}
         </Button>
-        <Button onClick={() => void choose()}>Elegir adb…</Button>
+        <Button onClick={() => void choose()}>{t('adb.choose')}</Button>
         <Button onClick={onRetry} disabled={retrying}>
-          Reintentar
+          {t('common.retry')}
         </Button>
       </div>
       {error && (

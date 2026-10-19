@@ -23,12 +23,12 @@ export function Dialog({ title, onClose, children, footer }: DialogProps): JSX.E
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-6"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30 p-6 backdrop-blur-[2px]"
       role="presentation"
       onClick={onClose}
     >
       <div
-        className="flex max-h-[90vh] w-[min(440px,100%)] flex-col overflow-hidden rounded-xl border border-line bg-content text-ink shadow-sheet"
+        className="flex max-h-[90vh] w-[min(440px,100%)] flex-col overflow-hidden rounded-2xl border border-line/70 bg-content text-ink shadow-sheet"
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

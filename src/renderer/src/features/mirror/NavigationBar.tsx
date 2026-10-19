@@ -1,4 +1,5 @@
 import { Button } from '../../components/ui/Button';
+import { useI18n } from '../../shared/i18n';
 import { ANDROID_KEYCODE } from './android-keycodes';
 import { useDeviceKeys } from './useDeviceKeys';
 
@@ -21,18 +22,19 @@ const ICON = {
 
 /** Back, Home and Recents under the screen, like the buttons of the phone itself. */
 export function NavigationBar({ deviceId, disabled = false }: NavigationBarProps): JSX.Element {
+  const { t } = useI18n();
   const pressKey = useDeviceKeys(deviceId);
 
   return (
     <nav
-      aria-label="Navegación del dispositivo"
+      aria-label={t('nav.label')}
       className="flex h-10 shrink-0 items-center justify-center gap-10 border-t border-mirror-line bg-mirror-bar"
     >
       <Button
         icon
         variant="toolbar"
-        title="Atrás"
-        aria-label="Atrás"
+        title={t('nav.back')}
+        aria-label={t('nav.back')}
         disabled={disabled}
         onClick={() => pressKey(ANDROID_KEYCODE.back)}
       >
@@ -43,8 +45,8 @@ export function NavigationBar({ deviceId, disabled = false }: NavigationBarProps
       <Button
         icon
         variant="toolbar"
-        title="Inicio"
-        aria-label="Inicio"
+        title={t('nav.home')}
+        aria-label={t('nav.home')}
         disabled={disabled}
         onClick={() => pressKey(ANDROID_KEYCODE.home)}
       >
@@ -55,8 +57,8 @@ export function NavigationBar({ deviceId, disabled = false }: NavigationBarProps
       <Button
         icon
         variant="toolbar"
-        title="Apps recientes"
-        aria-label="Apps recientes"
+        title={t('nav.recents')}
+        aria-label={t('nav.recents')}
         disabled={disabled}
         onClick={() => pressKey(ANDROID_KEYCODE.appSwitch)}
       >

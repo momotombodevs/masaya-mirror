@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
+import { useI18n } from '../../shared/i18n';
 import { getManoloApi } from '../../shared/manolo-api';
+import type { Translate } from '../../../../shared/i18n/messages';
 import type { CaptureAction } from '../../../../shared/preferences/types';
 import { captureCanvasPng } from './capture-canvas';
 
@@ -22,6 +24,7 @@ async function deliver(
   action: Exclude<CaptureAction, 'preview'>,
   buffer: ArrayBuffer,
   showStatus: (message: string) => void,
+  t: Translate,
 ): Promise<void> {
   const api = getManoloApi();
   if (!api) {
@@ -31,9 +34,9 @@ async function deliver(
   if (!result.ok) {
     showStatus(result.error);
   } else if (action === 'copy') {
-    showStatus('Copiado al portapapeles');
+    showStatus(t('status.copied'));
   } else {
-    showStatus(result.value.saved ? 'Captura guardada' : 'Guardado cancelado');
+    showStatus(result.value.saved ? t('status.captureSaved') : t('status.saveCancelled'));
   }
 }
 
@@ -44,6 +47,7 @@ export function useCapture(
   /** What to do with a new capture: show the preview dialog, or copy or save it right away. */
   action: CaptureAction = 'preview',
 ): UseCaptureResult {
+  const { t } = useI18n();
   const [preview, setPreview] = useState<CapturePreview | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -66,18 +70,18 @@ export function useCapture(
 
   const open = useCallback(async (): Promise<void> => {
     if (!canvas) {
-      showStatus('Espejo no listo');
+      showStatus(t('status.notReady'));
       return;
     }
 
     const buffer = await captureCanvasPng(canvas);
     if (!buffer) {
-      showStatus('No se pudo capturar');
+      showStatus(t('status.captureFailed'));
       return;
     }
 
     if (action !== 'preview') {
-      await deliver(action, buffer, showStatus);
+      await deliver(action, buffer, showStatus, t);
       return;
     }
 
@@ -88,7 +92,7 @@ export function useCapture(
       }
       return { url, buffer };
     });
-  }, [canvas, showStatus, action]);
+  }, [canvas, showStatus, action, t]);
 
   const copy = useCallback(async (): Promise<void> => {
     const api = getManoloApi();
@@ -99,12 +103,12 @@ export function useCapture(
     const result = await api.copyCapture(preview.buffer);
     setBusy(false);
     if (result.ok && result.value.copied) {
-      showStatus('Copiado al portapapeles');
+      showStatus(t('status.copied'));
       close();
     } else if (!result.ok) {
       showStatus(result.error);
     }
-  }, [preview, close, showStatus]);
+  }, [preview, close, showStatus, t]);
 
   const save = useCallback(async (): Promise<void> => {
     const api = getManoloApi();
@@ -115,14 +119,14 @@ export function useCapture(
     const result = await api.saveCapture(preview.buffer);
     setBusy(false);
     if (result.ok && result.value.saved) {
-      showStatus('Captura guardada');
+      showStatus(t('status.captureSaved'));
       close();
     } else if (result.ok) {
-      showStatus('Guardado cancelado');
+      showStatus(t('status.saveCancelled'));
     } else {
       showStatus(result.error);
     }
-  }, [preview, close, showStatus]);
+  }, [preview, close, showStatus, t]);
 
   return { preview, busy, open, copy, save, close };
 }

@@ -7,7 +7,7 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   default:
     'border border-line bg-fill text-ink shadow-control enabled:hover:bg-hover enabled:active:bg-line',
   primary:
-    'border border-transparent bg-accent text-white enabled:hover:opacity-90 enabled:active:opacity-80',
+    'border border-transparent bg-accent font-medium text-white enabled:hover:opacity-90 enabled:active:opacity-75',
   plain: 'border border-transparent text-ink-2 enabled:hover:bg-hover enabled:hover:text-ink',
   toolbar:
     'border border-transparent text-mirror-text enabled:hover:bg-mirror-hover enabled:active:bg-mirror-line',
@@ -30,7 +30,7 @@ export function Button({
     <button
       type={type}
       className={cx(
-        'inline-flex h-7 items-center justify-center gap-1.5 rounded-control text-base transition-colors duration-100 disabled:opacity-40',
+        'inline-flex h-7 items-center justify-center gap-1.5 rounded-control text-base transition duration-100 disabled:opacity-40',
         icon ? 'w-7' : 'px-3',
         VARIANT_CLASSES[variant],
         className,

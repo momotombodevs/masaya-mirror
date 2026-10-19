@@ -8,7 +8,7 @@ type ToggleProps = {
   readonly disabled?: boolean;
 };
 
-/** On/off switch. */
+/** On/off switch in the iOS style: a green track and a white knob that slides over it. */
 export function Toggle({ checked, onChange, label, disabled = false }: ToggleProps): JSX.Element {
   return (
     <button
@@ -19,15 +19,15 @@ export function Toggle({ checked, onChange, label, disabled = false }: TogglePro
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cx(
-        'relative h-5 w-9 shrink-0 rounded-full transition-colors duration-150 disabled:opacity-40',
-        checked ? 'bg-accent' : 'bg-ink-3/40',
+        'relative h-[26px] w-[44px] shrink-0 rounded-full transition-colors duration-200 disabled:opacity-40',
+        checked ? 'bg-success' : 'bg-ink-3/35',
       )}
     >
       <span
         aria-hidden
         className={cx(
-          'absolute left-0.5 top-0.5 size-4 rounded-full bg-white shadow-control transition-transform duration-150',
-          checked && 'translate-x-4',
+          'absolute left-0.5 top-0.5 size-[22px] rounded-full bg-white shadow-[0_2px_4px_rgba(0,0,0,0.25)] transition-transform duration-200',
+          checked && 'translate-x-[18px]',
         )}
       />
     </button>

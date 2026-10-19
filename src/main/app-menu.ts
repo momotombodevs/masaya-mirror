@@ -1,4 +1,6 @@
 import { app, BrowserWindow, Menu, type MenuItemConstructorOptions } from 'electron';
+import type { Locale } from '../shared/i18n/locale';
+import { createTranslator, type Translate } from '../shared/i18n/messages';
 import { MENU_ACTION_CHANNEL, type MenuAction } from '../shared/ipc/menu.contract';
 
 const APP_NAME = 'Manolo Mirror';
@@ -23,94 +25,95 @@ function buildDevItems(): MenuItemConstructorOptions[] {
     : [{ role: 'forceReload' }, { role: 'toggleDevTools' }, { type: 'separator' }];
 }
 
-function buildDeviceMenu(): MenuItemConstructorOptions {
+function buildDeviceMenu(t: Translate): MenuItemConstructorOptions {
   return {
-    label: 'Dispositivo',
+    label: t('menu.device'),
     submenu: [
-      menuItem('Actualizar lista', 'CmdOrCtrl+R', 'refresh'),
-      menuItem('Conectar por Wi-Fi…', 'CmdOrCtrl+Shift+W', 'wifi'),
+      menuItem(t('menu.refresh'), 'CmdOrCtrl+R', 'refresh'),
+      menuItem(t('menu.wifi'), 'CmdOrCtrl+Shift+W', 'wifi'),
       { type: 'separator' },
-      menuItem('Captura de pantalla', 'CmdOrCtrl+Shift+4', 'capture'),
-      menuItem('Grabar', 'CmdOrCtrl+Shift+5', 'record'),
+      menuItem(t('menu.capture'), 'CmdOrCtrl+Shift+4', 'capture'),
+      menuItem(t('menu.record'), 'CmdOrCtrl+Shift+5', 'record'),
       { type: 'separator' },
-      menuItem('Ajustes del espejo…', 'CmdOrCtrl+,', 'settings'),
+      menuItem(t('menu.mirrorSettings'), 'CmdOrCtrl+,', 'settings'),
     ],
   };
 }
 
-function buildViewMenu(): MenuItemConstructorOptions {
+function buildViewMenu(t: Translate): MenuItemConstructorOptions {
   return {
-    label: 'Ver',
+    label: t('menu.view'),
     submenu: [
       ...buildDevItems(),
-      { role: 'resetZoom', label: 'Tamaño real' },
-      { role: 'zoomIn', label: 'Acercar' },
-      { role: 'zoomOut', label: 'Alejar' },
+      { role: 'resetZoom', label: t('menu.actualSize') },
+      { role: 'zoomIn', label: t('menu.zoomIn') },
+      { role: 'zoomOut', label: t('menu.zoomOut') },
       { type: 'separator' },
-      { role: 'togglefullscreen', label: 'Pantalla completa' },
+      { role: 'togglefullscreen', label: t('menu.fullscreen') },
     ],
   };
 }
 
-function buildDarwinMenu(): MenuItemConstructorOptions[] {
+function buildDarwinMenu(t: Translate): MenuItemConstructorOptions[] {
   return [
     {
       label: APP_NAME,
       submenu: [
-        { role: 'about', label: `Acerca de ${APP_NAME}` },
+        { role: 'about', label: t('menu.about', { app: APP_NAME }) },
         { type: 'separator' },
-        { role: 'services', label: 'Servicios' },
+        { role: 'services', label: t('menu.services') },
         { type: 'separator' },
-        { role: 'hide', label: `Ocultar ${APP_NAME}` },
-        { role: 'hideOthers', label: 'Ocultar otros' },
-        { role: 'unhide', label: 'Mostrar todo' },
+        { role: 'hide', label: t('menu.hide', { app: APP_NAME }) },
+        { role: 'hideOthers', label: t('menu.hideOthers') },
+        { role: 'unhide', label: t('menu.unhide') },
         { type: 'separator' },
-        { role: 'quit', label: `Salir de ${APP_NAME}` },
+        { role: 'quit', label: t('menu.quit', { app: APP_NAME }) },
       ],
     },
     {
-      label: 'Edición',
+      label: t('menu.edit'),
       submenu: [
-        { role: 'undo', label: 'Deshacer' },
-        { role: 'redo', label: 'Rehacer' },
+        { role: 'undo', label: t('menu.undo') },
+        { role: 'redo', label: t('menu.redo') },
         { type: 'separator' },
-        { role: 'cut', label: 'Cortar' },
-        { role: 'copy', label: 'Copiar' },
-        { role: 'paste', label: 'Pegar' },
-        { role: 'selectAll', label: 'Seleccionar todo' },
+        { role: 'cut', label: t('menu.cut') },
+        { role: 'copy', label: t('menu.copy') },
+        { role: 'paste', label: t('menu.paste') },
+        { role: 'selectAll', label: t('menu.selectAll') },
       ],
     },
-    buildDeviceMenu(),
-    buildViewMenu(),
+    buildDeviceMenu(t),
+    buildViewMenu(t),
     {
-      label: 'Ventana',
+      label: t('menu.window'),
       submenu: [
-        { role: 'minimize', label: 'Minimizar' },
-        { role: 'close', label: 'Cerrar' },
+        { role: 'minimize', label: t('menu.minimize') },
+        { role: 'close', label: t('menu.close') },
         { type: 'separator' },
-        { role: 'front', label: 'Traer todo al frente' },
+        { role: 'front', label: t('menu.front') },
       ],
     },
   ];
 }
 
-function buildDefaultMenu(): MenuItemConstructorOptions[] {
+function buildDefaultMenu(t: Translate): MenuItemConstructorOptions[] {
   return [
     {
-      label: 'Archivo',
+      label: t('menu.file'),
       submenu: [
-        { role: 'close', label: 'Cerrar ventana' },
-        { role: 'quit', label: `Salir de ${APP_NAME}` },
+        { role: 'close', label: t('menu.closeWindow') },
+        { role: 'quit', label: t('menu.quit', { app: APP_NAME }) },
       ],
     },
-    buildDeviceMenu(),
-    buildViewMenu(),
+    buildDeviceMenu(t),
+    buildViewMenu(t),
   ];
 }
 
-export function installApplicationMenu(): void {
+export function installApplicationMenu(locale: Locale): void {
   app.setName(APP_NAME);
 
-  const template = process.platform === 'darwin' ? buildDarwinMenu() : buildDefaultMenu();
+  const t = createTranslator(locale);
+  const template = process.platform === 'darwin' ? buildDarwinMenu(t) : buildDefaultMenu(t);
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }

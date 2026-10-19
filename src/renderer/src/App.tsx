@@ -6,10 +6,12 @@ import { WifiConnectDialog } from './features/device/WifiConnectDialog';
 import { summarizeDevices } from './features/device/connected-devices';
 import { useDevices } from './features/device/useDevices';
 import { useMirrorStatus } from './features/mirror/useMirrorStatus';
+import { useI18n } from './shared/i18n';
 import { getManoloApi } from './shared/manolo-api';
 import { useMenuActions } from './shared/useMenuAction';
 
 export default function App(): JSX.Element {
+  const { t } = useI18n();
   const { devices, loading, error, refresh } = useDevices();
   const [windowError, setWindowError] = useState<string | null>(null);
   const [wifiOpen, setWifiOpen] = useState(false);
@@ -22,7 +24,7 @@ export default function App(): JSX.Element {
     async (deviceId: string): Promise<void> => {
       const api = getManoloApi();
       if (!api) {
-        setWindowError('No se pudo abrir el espejo.');
+        setWindowError(t('app.openMirrorFailed'));
         return;
       }
 
@@ -35,7 +37,7 @@ export default function App(): JSX.Element {
       }
       await refreshStatus();
     },
-    [summary.connected, refreshStatus],
+    [summary.connected, refreshStatus, t],
   );
 
   const handleDisconnect = useCallback(
@@ -60,7 +62,7 @@ export default function App(): JSX.Element {
   }
 
   return (
-    <main className="min-h-screen bg-content">
+    <main className="min-h-screen bg-window">
       <DeviceList
         summary={summary}
         loading={loading}

@@ -4,6 +4,7 @@ import App from './App';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { MirrorWindowApp } from './features/mirror/MirrorWindowApp';
 import { parseMirrorWindowParams } from './features/mirror/mirror-window-params';
+import { I18nProvider } from './shared/I18nProvider';
 import './features/mirror/mirror-port-delivery';
 import './index.css';
 
@@ -18,16 +19,20 @@ const root = ReactDOM.createRoot(rootElement);
 
 if (mirrorParams) {
   root.render(
-    <ErrorBoundary>
-      <MirrorWindowApp deviceId={mirrorParams.deviceId} deviceLabel={mirrorParams.deviceLabel} />
-    </ErrorBoundary>,
+    <I18nProvider>
+      <ErrorBoundary>
+        <MirrorWindowApp deviceId={mirrorParams.deviceId} deviceLabel={mirrorParams.deviceLabel} />
+      </ErrorBoundary>
+    </I18nProvider>,
   );
 } else {
   root.render(
     <React.StrictMode>
-      <ErrorBoundary>
-        <App />
-      </ErrorBoundary>
+      <I18nProvider>
+        <ErrorBoundary>
+          <App />
+        </ErrorBoundary>
+      </I18nProvider>
     </React.StrictMode>,
   );
 }

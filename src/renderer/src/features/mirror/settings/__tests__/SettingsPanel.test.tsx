@@ -62,6 +62,16 @@ describe('SettingsPanel', () => {
     expect(screen.getByText('Crafted with passion by Momotombo Devs')).toBeTruthy();
   });
 
+  it('changes the app language from the picker', () => {
+    renderPanel();
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Idioma' }), {
+      target: { value: 'en' },
+    });
+
+    expect(onPreferenceChange).toHaveBeenCalledWith({ language: 'en' });
+  });
+
   it('reflects the current window preferences', () => {
     renderPanel({
       preferences: { ...DEFAULT_PREFERENCES, navigationBar: false, alwaysOnTop: true },
