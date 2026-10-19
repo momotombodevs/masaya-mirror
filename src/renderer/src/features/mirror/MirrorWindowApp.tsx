@@ -3,8 +3,7 @@ import { MirrorView } from './MirrorView';
 import { MirrorToolbar } from './MirrorToolbar';
 import { useMirror } from './useMirror';
 import { applyQualityPreset, qualityPresetOf } from '../../../../shared/mirror/quality';
-import ui from '../../components/ui/primitives.module.css';
-import styles from './MirrorWindowApp.module.css';
+import { OverlayError } from '../../components/ui/OverlayError';
 
 type MirrorWindowAppProps = {
   readonly deviceId: string;
@@ -40,7 +39,7 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
   }, []);
 
   return (
-    <div className={styles.window}>
+    <div className="flex h-screen flex-col overflow-hidden bg-mirror-canvas">
       <MirrorToolbar
         deviceLabel={deviceLabel}
         canvas={mirrorCanvas}
@@ -53,13 +52,13 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
         disabled={mirror.loading}
       />
 
-      <div ref={mirrorStageRef} className={styles.stage}>
-        {mirror.loading && <p className={styles.status}>Conectando…</p>}
-        {mirror.error && (
-          <p className={`${ui.overlayError} ${styles.error}`} role="alert">
-            {mirror.error}
+      <div ref={mirrorStageRef} className="relative min-h-0 flex-1 bg-mirror-canvas">
+        {mirror.loading && (
+          <p className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center text-sm text-mirror-muted">
+            Conectando…
           </p>
         )}
+        {mirror.error && <OverlayError>{mirror.error}</OverlayError>}
         {mirror.isMirrorActive && (
           <MirrorView
             deviceId={deviceId}

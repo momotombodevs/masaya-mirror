@@ -1,135 +1,33 @@
-:root {
-  font-family:
-    'SF Pro Text',
-    'Segoe UI',
-    -apple-system,
-    BlinkMacSystemFont,
-    'Helvetica Neue',
-    sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-  color-scheme: light;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-  --font-sans: 'SF Pro Text', 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
-  --font-size-xs: 0.69rem;
-  --font-size-sm: 0.8rem;
-  --font-size-md: 0.9rem;
-  --font-size-lg: 1.02rem;
-  --font-size-xl: 1.2rem;
-  --font-weight-regular: 400;
-  --font-weight-medium: 560;
-  --font-weight-semibold: 680;
-  --font-weight-bold: 740;
-  --line-height-tight: 1.12;
-  --line-height-normal: 1.5;
+@layer base {
+  :root {
+    color-scheme: light;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
 
-  --layout-max-width: 1120px;
+  body {
+    @apply min-h-screen min-w-[320px] bg-canvas font-sans text-base leading-normal text-ink;
+  }
 
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-7: 32px;
-  --space-8: 40px;
+  #root {
+    @apply min-h-screen w-full;
+  }
 
-  --radius-xs: 6px;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
-  --radius-full: 999px;
-  --control-height-sm: 32px;
-  --control-height-md: 36px;
-  --control-height-lg: 42px;
-  --control-radius: 10px;
-  --icon-button-size: 32px;
+  button,
+  select {
+    font-family: inherit;
+  }
 
-  --color-canvas: #f5f5f2;
-  --color-surface-1: #fffefa;
-  --color-surface-2: #faf9f5;
-  --color-surface-3: #f2f1ec;
-  --color-border-subtle: #e8e3da;
-  --color-border: #d8d1c5;
-  --color-border-strong: #b9afa0;
-  --color-text-primary: #181715;
-  --color-text-secondary: #5e5a52;
-  --color-text-tertiary: #817b70;
-  --color-brand: #6d5efc;
-  --color-action: #1f1d1a;
-  --color-action-hover: #11100e;
-  --color-action-soft: #f0eee8;
-  --color-hover: #f1efe9;
-  --color-hover-strong: #e9e4dc;
-  --color-selected: #f6f3ff;
-
-  --color-success-bg: #eef7f1;
-  --color-success-border: #c5decc;
-  --color-success-text: #286143;
-  --color-warning-bg: #fbf3e3;
-  --color-warning-border: #ead2a5;
-  --color-warning-text: #77541b;
-  --color-danger-bg: #fbefef;
-  --color-danger-border: #e6c1c1;
-  --color-danger-text: #8e2d35;
-
-  --color-mirror-canvas: #090908;
-  --color-mirror-surface-1: #0f0f0d;
-  --color-mirror-surface-2: #171612;
-  --color-mirror-surface-3: #222017;
-  --color-mirror-border: rgba(226, 219, 205, 0.14);
-  --color-mirror-text: #f5f2ea;
-  --color-mirror-text-muted: #aaa397;
-  --color-mirror-hover: rgba(226, 219, 205, 0.1);
-  --color-mirror-danger-bg: color-mix(in srgb, var(--color-danger-text) 20%, var(--color-mirror-surface-2));
-  --color-mirror-danger-border: color-mix(in srgb, var(--color-danger-text) 44%, transparent);
-  --color-mirror-danger-text: #ffe5ea;
-
-  --shadow-surface: 0 1px 2px rgba(24, 23, 21, 0.04), 0 12px 30px rgba(24, 23, 21, 0.045);
-  --shadow-popover: 0 18px 46px rgba(0, 0, 0, 0.3);
-  --shadow-dialog: 0 24px 70px rgba(12, 10, 8, 0.24);
-  --focus-ring: 0 0 0 3px color-mix(in srgb, var(--color-action) 15%, transparent);
-  --transition-fast: 0.16s ease;
-
-  --text-xs: var(--font-size-xs);
-  --text-sm: var(--font-size-sm);
-  --text-md: var(--font-size-md);
-  --text-lg: var(--font-size-lg);
-  --panel-padding: var(--space-5);
-  --panel-border: 1px solid var(--color-border-subtle);
-}
-
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-  color: var(--color-text-primary);
-  background: var(--color-canvas);
-}
-
-#root {
-  width: 100%;
-  min-height: 100vh;
-}
-
-button,
-select {
-  font-family: inherit;
-}
-
-button:focus-visible,
-select:focus-visible,
-[tabindex]:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--color-action) 78%, white);
-  outline-offset: 3px;
+  button:focus-visible,
+  select:focus-visible,
+  [tabindex]:focus-visible {
+    @apply outline outline-2 outline-offset-[3px] outline-action/80;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

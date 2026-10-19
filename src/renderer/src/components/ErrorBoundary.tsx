@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { Button } from './ui/Button';
 
 type ErrorBoundaryProps = {
   readonly children: ReactNode;
@@ -25,14 +26,12 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   render(): ReactNode {
     if (this.state.error) {
       return (
-        <div style={{ padding: 24, fontFamily: 'system-ui, sans-serif', color: '#18181b' }}>
-          <h1 style={{ marginTop: 0 }}>Manolo Mirror</h1>
-          <p role="alert" style={{ color: '#dc2626' }}>
+        <div className="p-6">
+          <h1 className="mb-4 text-xl font-semibold">Manolo Mirror</h1>
+          <p role="alert" className="mb-4 text-danger-text">
             Error al cargar la interfaz: {this.state.error.message}
           </p>
-          <button type="button" onClick={() => window.location.reload()}>
-            Recargar
-          </button>
+          <Button onClick={() => window.location.reload()}>Recargar</Button>
         </div>
       );
     }

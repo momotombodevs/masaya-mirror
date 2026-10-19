@@ -1,4 +1,6 @@
 import { type ReactNode } from 'react';
+import { Button } from '../../components/ui/Button';
+import { Chip } from '../../components/ui/Chip';
 import { CapturePreviewDialog } from './CapturePreviewDialog';
 import { useCapture } from './useCapture';
 import { useRecording } from './useRecording';
@@ -8,8 +10,6 @@ import {
   type MirrorQualityPreset,
 } from '../../../../shared/mirror/quality';
 import { useToolbarStatus } from './useToolbarStatus';
-import ui from '../../components/ui/primitives.module.css';
-import styles from './MirrorToolbar.module.css';
 
 type MirrorToolbarProps = {
   readonly deviceLabel: string;
@@ -36,17 +36,17 @@ export function MirrorToolbar({
 
   return (
     <>
-      <header className={styles.toolbar}>
-        <div className={styles.lead}>
-          <span className={styles.deviceName}>{deviceLabel}</span>
-          {statusMessage && <span className={`${ui.chip} ${ui.chipMirror} ${styles.status}`}>{statusMessage}</span>}
+      <header className="relative flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-mirror-border bg-mirror-1/90 px-5 py-3 text-mirror-text max-md:flex-col max-md:items-start max-md:px-4">
+        <div className="flex min-w-0 items-center gap-2">
+          <span className="truncate text-sm font-medium">{deviceLabel}</span>
+          {statusMessage && <Chip tone="mirror">{statusMessage}</Chip>}
         </div>
 
-        <div className={styles.actions}>
-          <label className={styles.qualityLabel}>
-            <span className={styles.qualityText}>Calidad</span>
+        <div className="ml-auto flex items-center gap-2 max-md:ml-0 max-md:w-full max-md:flex-wrap">
+          <label className="inline-flex items-center gap-2">
+            <span className="text-sm text-mirror-muted">Calidad</span>
             <select
-              className={styles.qualitySelect}
+              className="max-w-56 rounded-sm border border-mirror-border bg-transparent px-2 py-1 text-sm text-inherit [color-scheme:dark] disabled:opacity-50"
               value={quality ?? ''}
               disabled={disabled}
               onChange={(event) => onQualityChange(event.target.value as MirrorQualityPreset)}
@@ -72,7 +72,6 @@ export function MirrorToolbar({
             title={recorder.recording ? 'Stop recording' : 'Start recording'}
             ariaLabel={recorder.recording ? 'Stop recording' : 'Start recording'}
             disabled={disabled}
-            active={recorder.recording}
             pressed={recorder.recording}
             onClick={() => void recorder.toggle()}
           >
@@ -86,14 +85,14 @@ export function MirrorToolbar({
           >
             <FullscreenIcon />
           </ToolbarIconButton>
-          <button
-            type="button"
-            className={`${ui.button} ${ui.buttonMirror} ${styles.stopButton}`}
+          <Button
+            variant="mirror"
+            className="text-mirror-muted max-md:flex-[1_1_100%]"
             disabled={disabled}
             onClick={onStop}
           >
             Close
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -114,7 +113,6 @@ type ToolbarIconButtonProps = {
   readonly title: string;
   readonly ariaLabel: string;
   readonly disabled?: boolean;
-  readonly active?: boolean;
   readonly pressed?: boolean;
   readonly onClick: () => void;
   readonly children: ReactNode;
@@ -124,25 +122,23 @@ function ToolbarIconButton({
   title,
   ariaLabel,
   disabled = false,
-  active,
   pressed,
   onClick,
   children,
 }: ToolbarIconButtonProps): JSX.Element {
-  const isActive = active === true;
-
   return (
-    <button
-      type="button"
-      className={`${ui.button} ${ui.iconButton} ${ui.iconButtonMirror} ${isActive ? ui.active : ''} ${styles.iconButton}`}
+    <Button
+      icon
+      variant="mirror"
+      active={pressed === true}
       title={title}
       disabled={disabled}
       onClick={onClick}
       aria-label={ariaLabel}
-      aria-pressed={pressed === undefined ? undefined : pressed}
+      aria-pressed={pressed}
     >
       {children}
-    </button>
+    </Button>
   );
 }
 
