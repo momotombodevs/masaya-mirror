@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { AdbService, parseAdbDevicesOutput } from '../adb.service';
+import { AdbService, parseAdbDevicesOutput, parseMdnsServices } from '../adb.service';
 import { CommandError, runCommand } from '../../../utils/runCommand';
 
 vi.mock('../../../utils/runCommand', () => ({
@@ -224,5 +224,57 @@ describe('AdbService wireless and install commands', () => {
     service.setCustomPath(null);
     await service.getExecutablePath();
     expect(resolveAdbPath).toHaveBeenLastCalledWith(null);
+  });
+});
+
+describe('parseMdnsServices', () => {
+  it('reads pairing and connect services from adb mdns output', () => {
+    const stdout = [
+      'List of discovered mdns services',
+      'manolo-a1b2c3\t_adb-tls-pairing._tcp\t192.168.1.23:41921',
+      'adb-R5CT123456-abcdef\t_adb-tls-connect._tcp\t192.168.1.23:38711',
+    ].join('\n');
+
+    expect(parseMdnsServices(stdout)).toEqual([
+      { name: 'manolo-a1b2c3', kind: 'pairing', address: '192.168.1.23:41921' },
+      { name: 'adb-R5CT123456-abcdef', kind: 'connect', address: '192.168.1.23:38711' },
+    ]);
+  });
+
+  it('skips headers, other service types and IPv6 addresses', () => {
+    const stdout = [
+      'List of discovered mdns services',
+      'printer\t_ipp._tcp\t192.168.1.50:631',
+      'phone\t_adb-tls-connect._tcp\t[fe80::1]:5555',
+      'garbage line',
+    ].join('\n');
+
+    expect(parseMdnsServices(stdout)).toEqual([]);
+  });
+});
+
+describe('AdbService mDNS', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('accepts a working mdns daemon', async () => {
+    mockedRunCommand.mockResolvedValue({
+      stdout: 'mdns daemon version [Openscreen discovery 0.0.0]',
+      stderr: '',
+    });
+
+    expect((await new AdbService().checkMdns()).ok).toBe(true);
+  });
+
+  it('reports when mdns is unavailable', async () => {
+    mockedRunCommand.mockResolvedValue({
+      stdout: 'ERROR: mdns discovery unavailable',
+      stderr: '',
+    });
+
+    const result = await new AdbService().checkMdns();
+
+    expect(result.ok).toBe(false);
   });
 });

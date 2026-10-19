@@ -7,6 +7,7 @@ import { AdbService } from './features/device/adb.service';
 import { DeviceService } from './features/device/device.service';
 import { registerApkIpcHandlers } from './features/device/ipc/apk.handlers';
 import { registerDeviceIpcHandlers } from './features/device/ipc/device.handlers';
+import { QrPairingService } from './features/device/qr-pairing.service';
 import { registerSetupIpcHandlers } from './features/device/ipc/setup.handlers';
 import { MirrorWindowService } from './features/mirror/mirror-window.service';
 import { ScrcpyService } from './features/mirror/scrcpy.service';
@@ -35,7 +36,12 @@ function bootstrap(): void {
 
     installApplicationMenu();
     registerDeviceIpcHandlers(deviceService);
-    registerSetupIpcHandlers(adbService, preferences, mirrorWindowService);
+    registerSetupIpcHandlers(
+      adbService,
+      preferences,
+      mirrorWindowService,
+      new QrPairingService(adbService),
+    );
     registerApkIpcHandlers(adbService, mirrorWindowService);
     registerPreferencesIpcHandlers(preferences);
     registerMirrorIpcHandlers(scrcpyService, mirrorWindowService);

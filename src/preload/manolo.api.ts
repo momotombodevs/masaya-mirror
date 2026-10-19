@@ -31,6 +31,9 @@ const MAIN_WINDOW_API: readonly ApiName[] = [
   'pairWifi',
   'connectWifi',
   'disconnectDevice',
+  'startQrPairing',
+  'waitQrPairing',
+  'cancelQrPairing',
 ];
 
 const MIRROR_WINDOW_API: readonly ApiName[] = [

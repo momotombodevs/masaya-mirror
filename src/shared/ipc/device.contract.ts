@@ -9,6 +9,9 @@ export const DEVICE_CHANNELS = {
   pairWifi: 'device:pair-wifi',
   connectWifi: 'device:connect-wifi',
   disconnect: 'device:disconnect',
+  qrPairStart: 'device:qr-pair-start',
+  qrPairWait: 'device:qr-pair-wait',
+  qrPairCancel: 'device:qr-pair-cancel',
   installApk: 'device:install-apk',
 } as const;
 
@@ -36,3 +39,7 @@ export type InstallApkRequest = {
 
 /** `installed` is false when the user cancelled the file picker. */
 export type InstallApkResponse = Result<{ readonly installed: boolean }>;
+
+export type QrPairingSession = { readonly sessionId: string };
+
+export type QrPairStartResponse = Result<QrPairingSession & { readonly payload: string }>;

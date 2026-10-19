@@ -3,6 +3,7 @@ import { Button } from '../../components/ui/Button';
 import { Dialog } from '../../components/ui/Dialog';
 import { TextField } from '../../components/ui/TextField';
 import { getManoloApi } from '../../shared/manolo-api';
+import { QrPairingPanel } from './QrPairingPanel';
 
 type WifiConnectDialogProps = {
   readonly onClose: () => void;
@@ -68,53 +69,59 @@ export function WifiConnectDialog({ onClose, onConnected }: WifiConnectDialogPro
       onClose={onClose}
       footer={<Button onClick={onClose}>Cerrar</Button>}
     >
-      <form className="flex flex-col gap-2" onSubmit={connect}>
-        <TextField
-          label="Dirección IP y puerto"
-          placeholder="192.168.1.20:5555"
-          value={address}
-          onChange={(event) => setAddress(event.target.value)}
-          autoFocus
-        />
-        <Button
-          type="submit"
-          variant="primary"
-          className="self-end"
-          disabled={busy || !address.trim()}
-        >
-          Conectar
-        </Button>
-      </form>
+      <QrPairingPanel onConnected={onConnected} />
 
-      <details className="mt-3 border-t border-line pt-3">
-        <summary className="cursor-default text-ink-2">Primera vez en este teléfono</summary>
-        <p className="mt-2 text-sm text-ink-2">
-          En el teléfono: Opciones de desarrollador → Depuración inalámbrica → Vincular dispositivo
-          con código. Copia aquí la dirección y el código que muestra.
-        </p>
-        <form className="mt-2 flex flex-col gap-2" onSubmit={pair}>
-          <TextField
-            label="Dirección de vinculación"
-            placeholder="192.168.1.20:37099"
-            value={pairAddress}
-            onChange={(event) => setPairAddress(event.target.value)}
-          />
-          <TextField
-            label="Código de 6 dígitos"
-            placeholder="123456"
-            inputMode="numeric"
-            maxLength={6}
-            value={pairCode}
-            onChange={(event) => setPairCode(event.target.value)}
-          />
-          <Button
-            type="submit"
-            className="self-end"
-            disabled={busy || !pairAddress.trim() || pairCode.trim().length !== 6}
-          >
-            Vincular
-          </Button>
-        </form>
+      <details className="mt-4 border-t border-line pt-3">
+        <summary className="cursor-default text-ink-2">Otras formas de conectar</summary>
+        <div className="mt-3">
+          <form className="flex flex-col gap-2" onSubmit={connect}>
+            <TextField
+              label="Dirección IP y puerto"
+              placeholder="192.168.1.20:5555"
+              value={address}
+              onChange={(event) => setAddress(event.target.value)}
+            />
+            <Button
+              type="submit"
+              variant="primary"
+              className="self-end"
+              disabled={busy || !address.trim()}
+            >
+              Conectar
+            </Button>
+          </form>
+
+          <details className="mt-3 border-t border-line pt-3">
+            <summary className="cursor-default text-ink-2">Vincular con código (sin QR)</summary>
+            <p className="mt-2 text-sm text-ink-2">
+              En el teléfono: Opciones de desarrollador → Depuración inalámbrica → Vincular
+              dispositivo con código. Copia aquí la dirección y el código que muestra.
+            </p>
+            <form className="mt-2 flex flex-col gap-2" onSubmit={pair}>
+              <TextField
+                label="Dirección de vinculación"
+                placeholder="192.168.1.20:37099"
+                value={pairAddress}
+                onChange={(event) => setPairAddress(event.target.value)}
+              />
+              <TextField
+                label="Código de 6 dígitos"
+                placeholder="123456"
+                inputMode="numeric"
+                maxLength={6}
+                value={pairCode}
+                onChange={(event) => setPairCode(event.target.value)}
+              />
+              <Button
+                type="submit"
+                className="self-end"
+                disabled={busy || !pairAddress.trim() || pairCode.trim().length !== 6}
+              >
+                Vincular
+              </Button>
+            </form>
+          </details>
+        </div>
       </details>
 
       {feedback && (

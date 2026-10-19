@@ -20,6 +20,7 @@ test.describe('with adb available', () => {
   test('connects a phone over Wi-Fi and disconnects it again', async () => {
     const { window } = launched;
     await window.getByRole('button', { name: 'Conectar por Wi-Fi…' }).click();
+    await window.getByText('Otras formas de conectar').click();
 
     await window.getByLabel('Dirección IP y puerto').fill('192.168.1.20:5555');
     await window.getByRole('button', { name: 'Conectar', exact: true }).click();
@@ -36,6 +37,7 @@ test.describe('with adb available', () => {
   test('rejects a malformed address before touching adb', async () => {
     const { window } = launched;
     await window.getByRole('button', { name: 'Conectar por Wi-Fi…' }).click();
+    await window.getByText('Otras formas de conectar').click();
 
     await window.getByLabel('Dirección IP y puerto').fill('not-an-address');
     await window.getByRole('button', { name: 'Conectar', exact: true }).click();
@@ -46,7 +48,8 @@ test.describe('with adb available', () => {
   test('pairs with the right code and reports a wrong one', async () => {
     const { window } = launched;
     await window.getByRole('button', { name: 'Conectar por Wi-Fi…' }).click();
-    await window.getByText('Primera vez en este teléfono').click();
+    await window.getByText('Otras formas de conectar').click();
+    await window.getByText('Vincular con código (sin QR)').click();
     await window.getByLabel('Dirección de vinculación').fill('192.168.1.20:37099');
 
     await window.getByLabel('Código de 6 dígitos').fill('000000');
@@ -56,6 +59,21 @@ test.describe('with adb available', () => {
     await window.getByLabel('Código de 6 dígitos').fill('123456');
     await window.getByRole('button', { name: 'Vincular' }).click();
     await expect(window.getByRole('status')).toContainText('Dispositivo vinculado');
+  });
+
+  test('shows a QR code and waits for the phone, and stops when cancelled', async () => {
+    const { window } = launched;
+    await window.getByRole('button', { name: 'Conectar por Wi-Fi…' }).click();
+
+    await window.getByRole('button', { name: 'Mostrar código QR' }).click();
+
+    await expect(
+      window.getByRole('img', { name: 'Código QR para vincular el teléfono' }),
+    ).toBeVisible();
+    await expect(window.getByText('Esperando al teléfono…')).toBeVisible();
+
+    await window.getByRole('button', { name: 'Cancelar' }).click();
+    await expect(window.getByRole('button', { name: 'Mostrar código QR' })).toBeVisible();
   });
 
   test('opens a mirror window with the device controls', async () => {

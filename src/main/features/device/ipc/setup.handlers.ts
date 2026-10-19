@@ -5,6 +5,7 @@ import {
   type AdbStatusResponse,
   type ChooseAdbResponse,
   type OpenAdbDownloadResponse,
+  type QrPairStartResponse,
   type WifiResponse,
 } from '../../../../shared/ipc/device.contract';
 import { err, ok, type Result } from '../../../../shared/ipc/result';
@@ -16,6 +17,7 @@ import {
 import type { MirrorWindowService } from '../../mirror/mirror-window.service';
 import type { PreferencesService } from '../../preferences/preferences.service';
 import type { AdbService } from '../adb.service';
+import type { QrPairingService } from '../qr-pairing.service';
 
 const NOT_ADB_MESSAGE = 'El archivo elegido no es adb.';
 
@@ -33,6 +35,7 @@ export function registerSetupIpcHandlers(
   adbService: AdbService,
   preferences: PreferencesService,
   mirrorWindowService: MirrorWindowService,
+  qrPairing: QrPairingService,
 ): void {
   const handleFromMainWindow = <T>(
     channel: string,
@@ -114,5 +117,26 @@ export function registerSetupIpcHandlers(
     }
     const disconnected = await adbService.disconnect(deviceId);
     return disconnected.ok ? ok({ message: disconnected.value }) : disconnected;
+  });
+
+  handleFromMainWindow(DEVICE_CHANNELS.qrPairStart, async (): Promise<QrPairStartResponse> =>
+    qrPairing.start(),
+  );
+
+  handleFromMainWindow(DEVICE_CHANNELS.qrPairWait, async (payload): Promise<WifiResponse> => {
+    const sessionId = readField(payload, 'sessionId');
+    if (typeof sessionId !== 'string') {
+      return err('Sesión de vinculación inválida.');
+    }
+    const paired = await qrPairing.wait(sessionId);
+    return paired.ok ? ok({ message: paired.value }) : paired;
+  });
+
+  handleFromMainWindow(DEVICE_CHANNELS.qrPairCancel, async (payload): Promise<Result<void>> => {
+    const sessionId = readField(payload, 'sessionId');
+    if (typeof sessionId === 'string') {
+      qrPairing.cancel(sessionId);
+    }
+    return ok(undefined);
   });
 }

@@ -85,6 +85,29 @@ function lastLine(text: string): string {
   return text.trim().split('\n').pop()?.trim() ?? '';
 }
 
+/** A service adb found on the local network through mDNS. */
+export type MdnsService = {
+  readonly name: string;
+  /** `pairing` is the phone showing the QR/code screen; `connect` is a phone ready to connect. */
+  readonly kind: 'pairing' | 'connect';
+  readonly address: string;
+};
+
+const MDNS_LINE_PATTERN = /^(\S+)\s+_adb-tls-(pairing|connect)\._tcp\.?\s+(\S+:\d+)\s*$/;
+
+/** Parses `adb mdns services`, keeping only wireless-debugging entries with an IPv4/host address. */
+export function parseMdnsServices(stdout: string): readonly MdnsService[] {
+  const services: MdnsService[] = [];
+  for (const line of stdout.split('\n')) {
+    const match = MDNS_LINE_PATTERN.exec(line.trim());
+    const [, name, kind, address] = match ?? [];
+    if (name && address && (kind === 'pairing' || kind === 'connect') && !address.startsWith('[')) {
+      services.push({ name, kind, address });
+    }
+  }
+  return services;
+}
+
 export class AdbService {
   private adbPath: string | null = null;
   private customPath: string | null = null;
@@ -127,6 +150,22 @@ export class AdbService {
     } catch (error: unknown) {
       return err(mapCommandError(error));
     }
+  }
+
+  /** mDNS lets adb find phones without typing an address. Some adb builds or networks lack it. */
+  async checkMdns(): Promise<Result<void>> {
+    const result = await this.run(['mdns', 'check']);
+    if (!result.ok) {
+      return result;
+    }
+    return /mdns daemon version/i.test(result.value) && !/unavailable|error/i.test(result.value)
+      ? ok(undefined)
+      : err('Esta red o esta versión de adb no permite buscar el teléfono.');
+  }
+
+  async listMdnsServices(): Promise<Result<readonly MdnsService[]>> {
+    const result = await this.run(['mdns', 'services']);
+    return result.ok ? ok(parseMdnsServices(result.value)) : result;
   }
 
   async pair(address: string, code: string): Promise<Result<string>> {
