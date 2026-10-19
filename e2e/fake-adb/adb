@@ -1,0 +1,38 @@
+#!/bin/sh
+# Stand-in for adb used by the end-to-end tests. It knows one USB phone, plus whatever
+# `adb connect` added to the state file, and fails every command the tests do not use.
+STATE="${FAKE_ADB_STATE:-/tmp/manolo-fake-adb-state}"
+
+case "$1" in
+  version)
+    echo "Android Debug Bridge version 1.0.41"
+    ;;
+  devices)
+    echo "List of devices attached"
+    echo "FAKE123 device product:fake model:Pixel_Fake device:fake transport_id:1"
+    if [ -f "$STATE" ]; then
+      while read -r address; do
+        echo "$address device product:fake model:Wifi_Fake device:fake transport_id:2"
+      done < "$STATE"
+    fi
+    ;;
+  connect)
+    echo "$2" > "$STATE"
+    echo "connected to $2"
+    ;;
+  disconnect)
+    rm -f "$STATE"
+    echo "disconnected $2"
+    ;;
+  pair)
+    if [ "$3" = "123456" ]; then
+      echo "Successfully paired to $2 [guid=adb-FAKE]"
+    else
+      echo "Failed: Wrong password or connection was dropped."
+    fi
+    ;;
+  *)
+    echo "fake adb: unsupported command: $*" >&2
+    exit 1
+    ;;
+esac

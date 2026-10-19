@@ -34,3 +34,5 @@ resources/.tmp
 
 .agents
 .cursor
+playwright-report
+test-results

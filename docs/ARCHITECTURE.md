@@ -44,6 +44,23 @@ tipos del espejo.
 `parseAdbDevicesOutput` lo convierte en `AndroidDevice[]`. La lista se refresca al enfocar la ventana, cada
 5 s y con ⌘/Ctrl+R.
 
+### Encontrar adb y conectar por Wi-Fi
+
+`AdbService` busca `adb` en este orden: el que el usuario eligió en la app (guardado en
+`settings.json`), `ADB_PATH`, el SDK de Android, el `PATH` y las rutas habituales. Si no hay ninguno, el
+error `ADB_NOT_FOUND_MESSAGE` hace que `App` muestre `AdbSetupPanel` (descargar, elegir o reintentar). Elegir
+un archivo lo valida con `adb version` antes de guardarlo.
+
+`WifiConnectDialog` llama a `pairWifi` / `connectWifi` / `disconnectDevice`. `setup.handlers.ts` valida la
+dirección (`parseWifiAddress`), rechaza a las ventanas del espejo y ejecuta `adb pair|connect|disconnect`
+sin shell. adb informa de muchos fallos con código 0, por eso `AdbService` lee el texto de respuesta.
+
+### Preferencias
+
+`PreferencesService` guarda `settings.json` en la carpeta de datos del usuario: calidad del espejo, ruta de
+`adb` y última carpeta de capturas. Se lee una vez al arrancar; un archivo corrupto o con valores
+desconocidos se sustituye por los valores por defecto. El renderer solo ve la calidad (`preferences:get|set`).
+
 ### Abrir un espejo
 
 1. La lista pide `openMirrorWindow`; `MirrorWindowService` crea una ventana por dispositivo.
@@ -61,10 +78,18 @@ movimientos se agrupan por puntero y por cuadro de animación (`control-coalesce
 principal, `parseControlMessage` los valida y `ScrcpyService` los ejecuta **de uno en uno por
 dispositivo**, para que no se reordenen.
 
+### Teclas del dispositivo e instalar APK
+
+Los botones Atrás, Inicio, Recientes, volumen y encendido envían una pulsación (`key` abajo y arriba) por el
+mismo canal de control (`useDeviceKeys`). Instalar un APK (`installApk`, solo desde la ventana dueña del
+dispositivo) llega por el selector de archivos o arrastrando un `.apk` a la ventana; el preload traduce el
+`File` a una ruta con `webUtils.getPathForFile`. El proceso principal exige ruta absoluta, extensión `.apk` y
+archivo existente, y ejecuta `adb -s <id> install -r -t`.
+
 ### Cambiar la calidad
 
 `setMirrorOptions` cierra la sesión **sin avisar a la ventana** (`notifyRenderer: false`) y abre otra con
-las nuevas opciones. La ventana recibe un puerto nuevo y reinicia el decodificador. Si avisara del cierre,
+las nuevas opciones. La calidad elegida se guarda como preferencia y la usan las ventanas nuevas. La ventana recibe un puerto nuevo y reinicia el decodificador. Si avisara del cierre,
 la ventana se cerraría sola.
 
 ## Límites de confianza
@@ -77,7 +102,8 @@ El renderer no es de confianza. Cada canal IPC:
    obligatorios deben existir y estar dentro de rango.
 
 Además, cada ventana recibe una API recortada (`exposeOnly` en `manolo.api.ts`): la ventana principal
-no puede enviar control y la del espejo no puede listar dispositivos.
+no puede enviar control y la del espejo no puede listar dispositivos ni cambiar `adb`. Las acciones de
+configuración (`setup.handlers.ts`) también rechazan a las ventanas del espejo en el proceso principal.
 
 ## Decisiones
 
