@@ -38,6 +38,29 @@ describe('resolveKeyInput', () => {
     ).toEqual({ kind: 'keycode', keyCode: 31, metaState: 0x3000 });
   });
 
+  it('injects AltGr characters as text', () => {
+    expect(
+      resolveKeyInput({ ...none, ctrlKey: true, altKey: true, altGraph: true, key: '@', code: 'Digit2' }),
+    ).toEqual({ kind: 'text', text: '@' });
+  });
+
+  it('injects Option-layer characters as text', () => {
+    expect(resolveKeyInput({ ...none, altKey: true, key: '€', code: 'Digit2' })).toEqual({
+      kind: 'text',
+      text: '€',
+    });
+  });
+
+  it('ignores dead keys and composition', () => {
+    expect(resolveKeyInput({ ...none, key: 'Dead', code: 'Quote' })).toBeNull();
+    expect(resolveKeyInput({ ...none, composing: true, key: 'a', code: 'KeyA' })).toBeNull();
+  });
+
+  it('keeps the meta state sent for the Meta key within the validated range', () => {
+    const resolved = resolveKeyInput({ ...none, metaKey: true, key: 'a', code: 'KeyA' });
+    expect(resolved).toEqual({ kind: 'keycode', keyCode: 29, metaState: 0x30000 });
+  });
+
   it('returns null for keys it cannot map', () => {
     expect(resolveKeyInput({ ...none, key: 'F13', code: 'F13' })).toBeNull();
   });

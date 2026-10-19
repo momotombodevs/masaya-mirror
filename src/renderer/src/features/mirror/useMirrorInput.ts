@@ -13,7 +13,7 @@ import {
   type MirrorControlMessage,
 } from '../../../../shared/mirror/types';
 import { getManoloApi } from '../../shared/manolo-api';
-import { ANDROID_KEYCODE_BACK, resolveKeyInput } from './android-keycodes';
+import { ANDROID_KEYCODE_BACK, resolveKeyInput, type KeyInput } from './android-keycodes';
 import { createControlCoalescer, type ControlCoalescer } from './control-coalescer';
 
 export type VideoSize = { width: number; height: number };
@@ -29,6 +29,19 @@ export type MirrorInputHandlers = {
 };
 
 const MOUSE_BUTTON_RIGHT = 2;
+
+function toKeyInput(event: KeyboardEvent<HTMLDivElement>): KeyInput {
+  return {
+    key: event.key,
+    code: event.code,
+    shiftKey: event.shiftKey,
+    altKey: event.altKey,
+    ctrlKey: event.ctrlKey,
+    metaKey: event.metaKey,
+    altGraph: event.getModifierState('AltGraph'),
+    composing: event.nativeEvent.isComposing,
+  };
+}
 
 /** Translates pointer/keyboard events into scrcpy control messages for a device. */
 export function useMirrorInput(
@@ -220,7 +233,7 @@ export function useMirrorInput(
       if (event.key === 'Escape') {
         return;
       }
-      const resolved = resolveKeyInput(event);
+      const resolved = resolveKeyInput(toKeyInput(event));
       if (!resolved) {
         return;
       }
@@ -246,7 +259,7 @@ export function useMirrorInput(
       if (textKeyCodesRef.current.delete(event.code)) {
         return;
       }
-      const resolved = resolveKeyInput(event);
+      const resolved = resolveKeyInput(toKeyInput(event));
       if (!resolved || resolved.kind !== 'keycode') {
         return;
       }
