@@ -1,3 +1,4 @@
+import type { LanguagePreference } from '../i18n/locale';
 import { DEFAULT_MIRROR_OPTIONS, type MirrorOptions } from '../mirror/types';
 
 /** What happens right after taking a screenshot. */
@@ -16,6 +17,7 @@ export type Preferences = {
   /** Draws a dot in the mirror window where the mouse touches the screen. */
   readonly showClicks: boolean;
   readonly captureAction: CaptureAction;
+  readonly language: LanguagePreference;
 };
 
 export const DEFAULT_PREFERENCES: Preferences = {
@@ -28,4 +30,5 @@ export const DEFAULT_PREFERENCES: Preferences = {
   alwaysOnTop: false,
   showClicks: true,
   captureAction: 'preview',
+  language: 'system',
 };

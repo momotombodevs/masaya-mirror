@@ -41,6 +41,14 @@ describe('parsePreferencesPatch', () => {
     expect(parsePreferencesPatch({ mirror: { maxSize: 1920 } }).ok).toBe(false);
   });
 
+  it('accepts a known language and rejects an unknown one', () => {
+    expect(parsePreferencesPatch({ language: 'en' })).toEqual({
+      ok: true,
+      value: { language: 'en' },
+    });
+    expect(parsePreferencesPatch({ language: 'fr' }).ok).toBe(false);
+  });
+
   it('rejects payloads that are not objects', () => {
     expect(parsePreferencesPatch(null).ok).toBe(false);
     expect(parsePreferencesPatch('navigationBar').ok).toBe(false);

@@ -27,26 +27,42 @@ export function Select<T extends string | number>({
   ...props
 }: SelectProps<T>): JSX.Element {
   return (
-    <select
-      aria-label={label}
-      value={String(value)}
-      onChange={(event) => {
-        const picked = options.find((option) => String(option.value) === event.target.value);
-        if (picked) {
-          onChange(picked.value);
-        }
-      }}
-      className={cx(
-        'h-7 max-w-[220px] rounded-control border border-line bg-fill px-2 text-base text-ink shadow-control disabled:opacity-40',
-        className,
-      )}
-      {...props}
-    >
-      {options.map((option) => (
-        <option key={option.value} value={String(option.value)}>
-          {option.label}
-        </option>
-      ))}
-    </select>
+    <span className="relative inline-flex items-center">
+      <select
+        aria-label={label}
+        value={String(value)}
+        onChange={(event) => {
+          const picked = options.find((option) => String(option.value) === event.target.value);
+          if (picked) {
+            onChange(picked.value);
+          }
+        }}
+        className={cx(
+          'h-7 max-w-[220px] appearance-none rounded-control border border-line bg-fill py-0 pl-2.5 pr-7 text-base text-ink shadow-control enabled:hover:bg-hover disabled:opacity-40',
+          className,
+        )}
+        {...props}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={String(option.value)}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+      <svg
+        aria-hidden
+        className="pointer-events-none absolute right-2 text-ink-3"
+        width="10"
+        height="14"
+        viewBox="0 0 10 14"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M2 5.5 5 2.5l3 3M2 8.5l3 3 3-3" />
+      </svg>
+    </span>
   );
 }

@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { AndroidDevice } from '../../../../shared/device/types';
+import { useI18n } from '../../shared/i18n';
 import { getManoloApi } from '../../shared/manolo-api';
 
 type DevicesState = {
@@ -21,6 +22,9 @@ const initialState: DevicesState = {
 };
 
 export function useDevices(): UseDevicesResult {
+  const { t } = useI18n();
+  const tRef = useRef(t);
+  tRef.current = t;
   const [state, setState] = useState<DevicesState>(initialState);
 
   const refresh = useCallback(async ({ silent = false } = {}): Promise<void> => {
@@ -34,7 +38,7 @@ export function useDevices(): UseDevicesResult {
         setState({
           devices: [],
           loading: false,
-          error: 'Sin conexión con la app. Reiníciala.',
+          error: tRef.current('common.noBridge'),
         });
         return;
       }
@@ -51,7 +55,7 @@ export function useDevices(): UseDevicesResult {
       setState({
         devices: [],
         loading: false,
-        error: 'No se pudo cargar la lista.',
+        error: tRef.current('devices.loadFailed'),
       });
     }
   }, []);

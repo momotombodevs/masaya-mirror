@@ -6,6 +6,7 @@ import {
 import type { ScrcpyMediaStreamPacket } from '@yume-chan/scrcpy';
 import { PushReadableStream } from '@yume-chan/stream-extra';
 import type { MirrorStreamInitMessage, MirrorVideoMetadata } from '../../../../shared/mirror/types';
+import { useI18n } from '../../shared/i18n';
 import { getManoloApi } from '../../shared/manolo-api';
 import { getMirrorStreamClient, useMirrorStream } from './mirror-stream.client';
 import { createPacketQueue, type PacketQueue } from './packet-queue';
@@ -43,6 +44,9 @@ export function useMirrorDecoder(
   const [ready, setReady] = useState(false);
   const [streamError, setStreamError] = useState<string | null>(null);
   const streamState = useMirrorStream(deviceId);
+  const { t } = useI18n();
+  const tRef = useRef(t);
+  tRef.current = t;
 
   onCloseRef.current = options.onClose;
   onSizeChangeRef.current = options.onSizeChange;
@@ -91,7 +95,7 @@ export function useMirrorDecoder(
 
     const setupDecoder = (metadata: MirrorVideoMetadata): void => {
       if (!WebCodecsVideoDecoder.isSupported) {
-        setStreamError('Video no compatible con este sistema.');
+        setStreamError(tRef.current('mirror.videoUnsupported'));
         return;
       }
 
@@ -134,7 +138,7 @@ export function useMirrorDecoder(
         if (disposed) {
           return;
         }
-        const message = error instanceof Error ? error.message : 'Error de video.';
+        const message = error instanceof Error ? error.message : tRef.current('mirror.videoError');
         setStreamError(message);
         requestClose();
       });
@@ -162,7 +166,7 @@ export function useMirrorDecoder(
 
     const initTimeout = window.setTimeout(() => {
       if (!disposed && !queueConsumed) {
-        setStreamError('Sin señal de video.');
+        setStreamError(tRef.current('mirror.noSignal'));
       }
     }, INIT_TIMEOUT_MS);
 

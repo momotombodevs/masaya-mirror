@@ -1,5 +1,6 @@
 import { Button } from '../../components/ui/Button';
 import { Dialog } from '../../components/ui/Dialog';
+import { useI18n } from '../../shared/i18n';
 import { QrPairingPanel } from './QrPairingPanel';
 
 type WifiConnectDialogProps = {
@@ -9,11 +10,12 @@ type WifiConnectDialogProps = {
 };
 
 export function WifiConnectDialog({ onClose, onConnected }: WifiConnectDialogProps): JSX.Element {
+  const { t } = useI18n();
   return (
     <Dialog
-      title="Conectar por Wi-Fi"
+      title={t('wifi.title')}
       onClose={onClose}
-      footer={<Button onClick={onClose}>Cerrar</Button>}
+      footer={<Button onClick={onClose}>{t('common.close')}</Button>}
     >
       <QrPairingPanel onConnected={onConnected} />
     </Dialog>

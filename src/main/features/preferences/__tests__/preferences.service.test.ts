@@ -34,6 +34,7 @@ describe('PreferencesService', () => {
       alwaysOnTop: true,
       showClicks: false,
       captureAction: 'copy',
+      language: 'en',
     });
     prefs.setAdbPath('/opt/adb');
     prefs.setSaveDirectory('/Users/qa/Captures');
@@ -45,6 +46,7 @@ describe('PreferencesService', () => {
       alwaysOnTop: true,
       showClicks: false,
       captureAction: 'copy',
+      language: 'en',
     });
     expect(reloaded.getAdbPath()).toBe('/opt/adb');
     expect(reloaded.getSaveDirectory()).toBe('/Users/qa/Captures');
@@ -89,6 +91,7 @@ describe('PreferencesService', () => {
       'adbPath',
       'alwaysOnTop',
       'captureAction',
+      'language',
       'mirror',
       'navigationBar',
       'saveDirectory',

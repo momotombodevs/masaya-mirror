@@ -25,8 +25,8 @@ export default {
         xl: ['20px', '26px'],
       },
       borderRadius: {
-        control: '6px',
-        panel: '10px',
+        control: '8px',
+        panel: '12px',
       },
       colors: {
         window: token('window'),
@@ -50,7 +50,7 @@ export default {
       },
       boxShadow: {
         control: '0 1px 1px rgba(0, 0, 0, 0.06)',
-        sheet: '0 12px 40px rgba(0, 0, 0, 0.28)',
+        sheet: '0 16px 48px rgba(0, 0, 0, 0.32)',
       },
     },
   },

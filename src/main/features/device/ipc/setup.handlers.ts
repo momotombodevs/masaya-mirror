@@ -14,8 +14,7 @@ import type { MirrorWindowService } from '../../mirror/mirror-window.service';
 import type { PreferencesService } from '../../preferences/preferences.service';
 import type { AdbService } from '../adb.service';
 import type { QrPairingService } from '../qr-pairing.service';
-
-const NOT_ADB_MESSAGE = 'El archivo elegido no es adb.';
+import { mt } from '../../../i18n';
 
 function readField(payload: unknown, field: string): unknown {
   return typeof payload === 'object' && payload !== null
@@ -39,7 +38,7 @@ export function registerSetupIpcHandlers(
   ): void => {
     ipcMain.handle(channel, async (event, payload: unknown): Promise<Result<T>> => {
       if (mirrorWindowService.isMirrorWindowSender(event.sender.id)) {
-        return err('La ventana no puede ejecutar esta acción.');
+        return err(mt('main.windowNotAllowed'));
       }
       return run(payload, event.sender);
     });
@@ -54,7 +53,7 @@ export function registerSetupIpcHandlers(
     async (_payload, sender): Promise<ChooseAdbResponse> => {
       const parent = BrowserWindow.fromWebContents(sender);
       const options: Electron.OpenDialogOptions = {
-        title: 'Elegir adb',
+        title: mt('main.chooseAdbTitle'),
         properties: ['openFile'],
         ...(process.platform === 'win32'
           ? { filters: [{ name: 'adb', extensions: ['exe'] }] }
@@ -68,7 +67,7 @@ export function registerSetupIpcHandlers(
         return ok({ path: null });
       }
       if (!(await adbService.verifyExecutable(chosen))) {
-        return err(NOT_ADB_MESSAGE);
+        return err(mt('main.notAdb'));
       }
       preferences.setAdbPath(chosen);
       adbService.setCustomPath(chosen);
@@ -87,7 +86,7 @@ export function registerSetupIpcHandlers(
   handleFromMainWindow(DEVICE_CHANNELS.disconnect, async (payload): Promise<WifiResponse> => {
     const deviceId = readField(payload, 'deviceId');
     if (typeof deviceId !== 'string' || !isWifiDeviceId(deviceId)) {
-      return err('Solo se pueden desconectar dispositivos Wi-Fi.');
+      return err(mt('main.wifiOnlyDisconnect'));
     }
     const disconnected = await adbService.disconnect(deviceId);
     return disconnected.ok ? ok({ message: disconnected.value }) : disconnected;
@@ -100,7 +99,7 @@ export function registerSetupIpcHandlers(
   handleFromMainWindow(DEVICE_CHANNELS.qrPairWait, async (payload): Promise<WifiResponse> => {
     const sessionId = readField(payload, 'sessionId');
     if (typeof sessionId !== 'string') {
-      return err('Sesión de vinculación inválida.');
+      return err(mt('main.invalidPairingSession'));
     }
     const paired = await qrPairing.wait(sessionId);
     return paired.ok ? ok({ message: paired.value }) : paired;

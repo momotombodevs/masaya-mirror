@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { DeviceSettingKey, DeviceSettings } from '../../../../shared/device/types';
+import { useI18n } from '../../shared/i18n';
 import { getManoloApi } from '../../shared/manolo-api';
 
 export type UseDeviceSettingsResult = {
@@ -11,6 +12,7 @@ export type UseDeviceSettingsResult = {
 
 /** Developer options of the phone (show touches, stay awake), read once and written on demand. */
 export function useDeviceSettings(deviceId: string): UseDeviceSettingsResult {
+  const { t } = useI18n();
   const [settings, setSettings] = useState<DeviceSettings | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,13 +28,13 @@ export function useDeviceSettings(deviceId: string): UseDeviceSettingsResult {
       if (result?.ok) {
         setSettings(result.value);
       } else {
-        setError(result?.ok === false ? result.error : 'No se pudo leer el dispositivo.');
+        setError(result?.ok === false ? result.error : t('deviceSettings.readFailed'));
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [deviceId]);
+  }, [deviceId, t]);
 
   const set = useCallback(
     async (key: DeviceSettingKey, enabled: boolean): Promise<void> => {
@@ -41,10 +43,10 @@ export function useDeviceSettings(deviceId: string): UseDeviceSettingsResult {
         setError(null);
         setSettings((current) => (current ? { ...current, [key]: enabled } : current));
       } else {
-        setError(result?.ok === false ? result.error : 'No se pudo cambiar el ajuste.');
+        setError(result?.ok === false ? result.error : t('deviceSettings.writeFailed'));
       }
     },
-    [deviceId],
+    [deviceId, t],
   );
 
   return { settings, error, set };

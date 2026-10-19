@@ -8,6 +8,7 @@ import { usePreferences } from './usePreferences';
 import { DEFAULT_MIRROR_OPTIONS } from '../../../../shared/mirror/types';
 import type { MirrorVideoPreferences } from '../../../../shared/preferences/types';
 import { OverlayError } from '../../components/ui/OverlayError';
+import { useI18n } from '../../shared/i18n';
 import { getManoloApi } from '../../shared/manolo-api';
 
 type MirrorWindowAppProps = {
@@ -16,6 +17,7 @@ type MirrorWindowAppProps = {
 };
 
 export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps): JSX.Element {
+  const { t } = useI18n();
   const mirrorStageRef = useRef<HTMLDivElement>(null);
   const [mirrorCanvas, setMirrorCanvas] = useState<HTMLCanvasElement | null>(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -93,7 +95,7 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
       <div ref={mirrorStageRef} className="relative min-h-0 flex-1 bg-mirror-canvas">
         {mirror.loading && !mirror.isMirrorActive && (
           <p className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center text-base text-mirror-muted">
-            Conectando…
+            {t('mirror.connecting')}
           </p>
         )}
         {mirror.error && <OverlayError>{mirror.error}</OverlayError>}

@@ -1,6 +1,7 @@
 import { randomBytes, randomInt } from 'node:crypto';
 import { err, ok, type Result } from '../../../shared/ipc/result';
 import type { AdbService, MdnsService } from './adb.service';
+import { mt } from '../../i18n';
 
 const PASSWORD_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
 const PASSWORD_LENGTH = 12;
@@ -8,9 +9,6 @@ const PASSWORD_LENGTH = 12;
 const SEARCH_TIMEOUT_MS = 120_000;
 const CONNECT_TIMEOUT_MS = 15_000;
 const POLL_INTERVAL_MS = 1_500;
-
-const CANCELLED_MESSAGE = 'Vinculación cancelada.';
-const TIMEOUT_MESSAGE = 'No se encontró el teléfono. Revisa que esté en la misma red Wi-Fi.';
 
 export type QrPairingStart = {
   readonly sessionId: string;
@@ -102,14 +100,14 @@ export class QrPairingService {
   async wait(sessionId: string): Promise<Result<string>> {
     const session = this.session;
     if (!session || session.id !== sessionId) {
-      return err(CANCELLED_MESSAGE);
+      return err(mt('main.pairingCancelled'));
     }
 
     const pairing = await this.poll(session, this.searchTimeoutMs, (services) =>
       services.find((service) => service.kind === 'pairing' && service.name === session.name),
     );
     if (!pairing) {
-      return err(session.cancelled ? CANCELLED_MESSAGE : TIMEOUT_MESSAGE);
+      return err(session.cancelled ? mt('main.pairingCancelled') : mt('main.pairingTimeout'));
     }
 
     const paired = await this.adbService.pair(pairing.address, session.password);
@@ -125,7 +123,7 @@ export class QrPairingService {
     );
     this.finish(session);
     if (!connectable) {
-      return ok('Teléfono vinculado. Aparecerá en la lista en unos segundos.');
+      return ok(mt('main.pairedPending'));
     }
     return this.adbService.connect(connectable.address);
   }

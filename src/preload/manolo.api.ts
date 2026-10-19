@@ -19,7 +19,12 @@ export type ManoloApi = typeof manoloApi;
 type ApiName = keyof ManoloApi;
 
 /** Calls every window may make. The rest is only exposed to the window that needs it. */
-const COMMON_API: readonly ApiName[] = ['getMirrorStatus', 'onMenuAction'];
+const COMMON_API: readonly ApiName[] = [
+  'getMirrorStatus',
+  'onMenuAction',
+  'getPreferences',
+  'onLanguageChange',
+];
 
 const MAIN_WINDOW_API: readonly ApiName[] = [
   ...COMMON_API,
@@ -50,7 +55,6 @@ const MIRROR_WINDOW_API: readonly ApiName[] = [
   'setDeviceSetting',
   'setAlwaysOnTop',
   'getPathForFile',
-  'getPreferences',
   'setPreferences',
 ];
 

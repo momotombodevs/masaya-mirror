@@ -1,3 +1,4 @@
+import { LANGUAGE_PREFERENCES } from '../i18n/locale';
 import { err, ok, type Result } from '../ipc/result';
 import { MIRROR_QUALITY_ORDER, MIRROR_QUALITY_PRESETS } from '../mirror/quality';
 import {
@@ -41,6 +42,9 @@ const parseBoolean = (value: unknown): boolean | undefined =>
 const parseCaptureAction = (value: unknown): Preferences['captureAction'] | undefined =>
   CAPTURE_ACTIONS.find((action) => action === value);
 
+const parseLanguage = (value: unknown): Preferences['language'] | undefined =>
+  LANGUAGE_PREFERENCES.find((language) => language === value);
+
 /** One parser per preference. Each returns undefined for an invalid value. */
 const FIELD_PARSERS: {
   readonly [K in keyof Preferences]: (value: unknown) => Preferences[K] | undefined;
@@ -50,6 +54,7 @@ const FIELD_PARSERS: {
   alwaysOnTop: parseBoolean,
   showClicks: parseBoolean,
   captureAction: parseCaptureAction,
+  language: parseLanguage,
 };
 
 const FIELDS = Object.keys(FIELD_PARSERS) as readonly (keyof Preferences)[];
@@ -94,5 +99,6 @@ export function readPreferences(raw: unknown): Preferences {
     alwaysOnTop: field('alwaysOnTop'),
     showClicks: field('showClicks'),
     captureAction: field('captureAction'),
+    language: field('language'),
   };
 }

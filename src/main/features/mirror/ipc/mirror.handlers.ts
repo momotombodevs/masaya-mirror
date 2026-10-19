@@ -6,6 +6,7 @@ import type { MirrorWindowService } from '../mirror-window.service';
 import type { ScrcpyService } from '../scrcpy.service';
 import { handleOwnedDevice, type DeviceHandler } from './device-handler';
 import { parseControlMessage, parseMirrorOptions, parseVideoLayout } from './mirror-parsers';
+import { mt } from '../../../i18n';
 
 export function registerMirrorIpcHandlers(
   scrcpyService: ScrcpyService,
@@ -43,7 +44,7 @@ export function registerMirrorIpcHandlers(
   ownedDevice(MIRROR_CHANNELS.setAlwaysOnTop, ({ deviceId, body }) =>
     typeof body.enabled === 'boolean'
       ? mirrorWindowService.setAlwaysOnTop(deviceId, body.enabled)
-      : err('Ajuste inválido.'),
+      : err(mt('main.invalidSetting')),
   );
 
   ownedDevice(MIRROR_CHANNELS.streamReady, ({ deviceId }) =>

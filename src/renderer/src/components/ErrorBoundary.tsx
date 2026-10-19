@@ -1,5 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
-import { Button } from './ui/Button';
+import { ErrorFallback } from './ErrorFallback';
 
 type ErrorBoundaryProps = {
   readonly children: ReactNode;
@@ -25,15 +25,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   render(): ReactNode {
     if (this.state.error) {
-      return (
-        <div className="p-6">
-          <h1 className="mb-2 text-xl font-semibold">Manolo Mirror</h1>
-          <p role="alert" className="mb-4 text-danger">
-            Error al cargar: {this.state.error.message}
-          </p>
-          <Button onClick={() => window.location.reload()}>Recargar</Button>
-        </div>
-      );
+      return <ErrorFallback error={this.state.error} />;
     }
     return this.props.children;
   }
