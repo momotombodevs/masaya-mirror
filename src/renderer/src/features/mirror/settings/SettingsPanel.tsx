@@ -16,6 +16,8 @@ import type { MirrorOptions } from '../../../../../shared/mirror/types';
 import { Button } from '../../../components/ui/Button';
 import { Select, type SelectOption } from '../../../components/ui/Select';
 import { Toggle } from '../../../components/ui/Toggle';
+import { cx } from '../../../components/ui/cx';
+import logoUrl from '../../../assets/manolo-logo.svg';
 import { useDeviceSettings } from '../useDeviceSettings';
 import { SettingRow, SettingsSection } from './settings-layout';
 
@@ -104,13 +106,20 @@ export function SettingsPanel({
       aria-label="Ajustes"
       className="absolute inset-0 z-40 flex flex-col bg-window text-ink"
     >
-      <header className="flex h-11 shrink-0 items-center justify-between border-b border-line bg-content px-4">
-        <h2 className="text-lg font-semibold">Ajustes</h2>
-        <Button onClick={onClose}>Cerrar</Button>
+      <header className="relative flex h-11 shrink-0 items-center justify-center border-b border-line bg-content/80 px-4 backdrop-blur">
+        <h2 className="text-base font-semibold">Ajustes</h2>
+        <Button className="absolute right-3" variant="primary" onClick={onClose}>
+          Cerrar
+        </Button>
       </header>
 
       <div className="min-h-0 flex-1 select-none overflow-y-auto p-4">
-        <div className="mx-auto flex max-w-xl flex-col gap-4">
+        <div className="mx-auto flex max-w-xl flex-col gap-5">
+          <div className="flex flex-col items-center gap-2 pb-1 pt-2">
+            <img src={logoUrl} alt="Manolo Mirror" className="size-16 drop-shadow-sm" />
+            <p className="text-lg font-semibold">Manolo Mirror</p>
+          </div>
+
           <SettingsSection title="Ventana">
             <SettingRow
               label="Barra de navegación"
@@ -148,17 +157,27 @@ export function SettingsPanel({
                   : 'Valores personalizados'
               }
             >
-              <div role="group" aria-label="Preajustes" className="flex gap-1">
+              <div
+                role="group"
+                aria-label="Preajustes"
+                className="flex rounded-control bg-ink-3/20 p-0.5"
+              >
                 {MIRROR_QUALITY_ORDER.map((preset) => (
-                  <Button
+                  <button
                     key={preset}
-                    variant={activePreset === preset ? 'primary' : 'default'}
+                    type="button"
                     aria-pressed={activePreset === preset}
                     disabled={busy}
                     onClick={() => applyPreset(preset)}
+                    className={cx(
+                      'h-6 rounded-[5px] px-3 text-base transition-colors duration-100 disabled:opacity-40',
+                      activePreset === preset
+                        ? 'bg-fill text-ink shadow-control'
+                        : 'text-ink-2 enabled:hover:text-ink',
+                    )}
                   >
                     {MIRROR_QUALITY_PRESETS[preset].label}
-                  </Button>
+                  </button>
                 ))}
               </div>
             </SettingRow>
@@ -218,11 +237,15 @@ export function SettingsPanel({
             )}
           </SettingsSection>
 
-          <div className="flex justify-end pb-2">
+          <div className="flex justify-center">
             <Button variant="plain" onClick={reset} disabled={busy}>
               Restablecer valores
             </Button>
           </div>
+
+          <footer className="pb-2 pt-4 text-center text-sm text-ink-3">
+            Crafted with passion by Momotombo Devs
+          </footer>
         </div>
       </div>
     </div>

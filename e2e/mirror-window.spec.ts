@@ -21,15 +21,14 @@ async function openMirrorWindow(): Promise<Page> {
 }
 
 async function openSettings(mirror: Page): Promise<void> {
-  await mirror.getByRole('button', { name: 'Más opciones' }).click();
-  await mirror.getByRole('menuitem', { name: 'Ajustes…' }).click();
+  await mirror.getByRole('button', { name: 'Ajustes' }).click();
   await expect(mirror.getByRole('dialog', { name: 'Ajustes' })).toBeVisible();
 }
 
 test('shows the toolbar actions and the navigation bar', async () => {
   const mirror = await openMirrorWindow();
 
-  for (const name of ['Captura', 'Grabar', 'Pantalla completa', 'Más opciones']) {
+  for (const name of ['Captura', 'Grabar', 'Pantalla completa', 'Subir volumen', 'Ajustes']) {
     await expect(mirror.getByRole('button', { name })).toBeVisible();
   }
   const navigation = mirror.getByRole('navigation', { name: 'Navegación del dispositivo' });
@@ -38,19 +37,17 @@ test('shows the toolbar actions and the navigation bar', async () => {
   }
 });
 
-test('keeps volume, power, APK install and settings in the options menu', async () => {
+test('keeps volume, power, APK install and settings in the toolbar', async () => {
   const mirror = await openMirrorWindow();
-
-  await mirror.getByRole('button', { name: 'Más opciones' }).click();
 
   for (const name of [
     'Subir volumen',
     'Bajar volumen',
     'Encender o apagar pantalla',
-    'Instalar APK…',
-    'Ajustes…',
+    'Instalar APK',
+    'Ajustes',
   ]) {
-    await expect(mirror.getByRole('menuitem', { name })).toBeVisible();
+    await expect(mirror.getByRole('button', { name })).toBeVisible();
   }
 });
 
@@ -62,6 +59,7 @@ test('settings screen has window, image and device sections', async () => {
   for (const title of ['Ventana', 'Calidad de imagen', 'Dispositivo']) {
     await expect(mirror.getByRole('heading', { name: title })).toBeVisible();
   }
+  await expect(mirror.getByText('Crafted with passion by Momotombo Devs')).toBeVisible();
   await mirror.getByRole('button', { name: 'Cerrar' }).click();
   await expect(mirror.getByRole('dialog', { name: 'Ajustes' })).toBeHidden();
 });
@@ -75,7 +73,7 @@ test('hides the navigation bar from settings and remembers it in the next window
   await mirror.close();
 
   const again = await openMirrorWindow();
-  await expect(again.getByRole('button', { name: 'Más opciones' })).toBeVisible();
+  await expect(again.getByRole('button', { name: 'Ajustes' })).toBeVisible();
   await expect(again.getByRole('navigation', { name: 'Navegación del dispositivo' })).toBeHidden();
 });
 

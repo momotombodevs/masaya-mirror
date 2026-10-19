@@ -1,7 +1,6 @@
 import { type ReactNode } from 'react';
 import type { CaptureAction } from '../../../../shared/preferences/types';
 import { Button } from '../../components/ui/Button';
-import { Menu } from '../../components/ui/Menu';
 import { cx } from '../../components/ui/cx';
 import { CapturePreviewDialog } from './CapturePreviewDialog';
 import { useCapture } from './useCapture';
@@ -55,6 +54,28 @@ export function MirrorToolbar({
 
         <div className="ml-auto flex items-center gap-1">
           <ToolbarIconButton
+            label="Subir volumen"
+            disabled={disabled}
+            onClick={() => pressKey(ANDROID_KEYCODE.volumeUp)}
+          >
+            <VolumeUpIcon />
+          </ToolbarIconButton>
+          <ToolbarIconButton
+            label="Bajar volumen"
+            disabled={disabled}
+            onClick={() => pressKey(ANDROID_KEYCODE.volumeDown)}
+          >
+            <VolumeDownIcon />
+          </ToolbarIconButton>
+          <ToolbarIconButton
+            label="Encender o apagar pantalla"
+            disabled={disabled}
+            onClick={() => pressKey(ANDROID_KEYCODE.power)}
+          >
+            <PowerIcon />
+          </ToolbarIconButton>
+          <ToolbarDivider />
+          <ToolbarIconButton
             label="Captura"
             disabled={disabled || !canvas}
             onClick={() => void capture.open()}
@@ -72,27 +93,17 @@ export function MirrorToolbar({
           <ToolbarIconButton label="Pantalla completa" disabled={disabled} onClick={onFullscreen}>
             <FullscreenIcon />
           </ToolbarIconButton>
-          <Menu
-            label="Más opciones"
-            disabled={disabled}
-            items={[
-              { label: 'Subir volumen', onSelect: () => pressKey(ANDROID_KEYCODE.volumeUp) },
-              { label: 'Bajar volumen', onSelect: () => pressKey(ANDROID_KEYCODE.volumeDown) },
-              {
-                label: 'Encender o apagar pantalla',
-                onSelect: () => pressKey(ANDROID_KEYCODE.power),
-              },
-              {
-                label: 'Instalar APK…',
-                onSelect: () => void apk.install(),
-                disabled: apk.installing,
-                separatorBefore: true,
-              },
-              { label: 'Ajustes…', onSelect: onOpenSettings, separatorBefore: true },
-            ]}
+          <ToolbarDivider />
+          <ToolbarIconButton
+            label="Instalar APK"
+            disabled={disabled || apk.installing}
+            onClick={() => void apk.install()}
           >
-            <MoreIcon />
-          </Menu>
+            <ApkIcon />
+          </ToolbarIconButton>
+          <ToolbarIconButton label="Ajustes" disabled={disabled} onClick={onOpenSettings}>
+            <SettingsIcon />
+          </ToolbarIconButton>
         </div>
       </header>
 
@@ -139,6 +150,12 @@ function ToolbarIconButton({
   );
 }
 
+function ToolbarDivider(): JSX.Element {
+  return (
+    <div role="separator" aria-orientation="vertical" className="mx-1 h-4 w-px bg-mirror-line" />
+  );
+}
+
 const ICON_PROPS = {
   width: 18,
   height: 18,
@@ -182,12 +199,48 @@ function FullscreenIcon(): JSX.Element {
   );
 }
 
-function MoreIcon(): JSX.Element {
+function VolumeUpIcon(): JSX.Element {
   return (
     <svg {...ICON_PROPS}>
-      <circle cx="5" cy="12" r="1" />
-      <circle cx="12" cy="12" r="1" />
-      <circle cx="19" cy="12" r="1" />
+      <path d="M11 5 6 9H2v6h4l5 4z" />
+      <path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14" />
+    </svg>
+  );
+}
+
+function VolumeDownIcon(): JSX.Element {
+  return (
+    <svg {...ICON_PROPS}>
+      <path d="M11 5 6 9H2v6h4l5 4z" />
+      <path d="M15.5 8.5a5 5 0 0 1 0 7" />
+    </svg>
+  );
+}
+
+function PowerIcon(): JSX.Element {
+  return (
+    <svg {...ICON_PROPS}>
+      <path d="M12 2v10" />
+      <path d="M18.4 6.6a9 9 0 1 1-12.8 0" />
+    </svg>
+  );
+}
+
+function ApkIcon(): JSX.Element {
+  return (
+    <svg {...ICON_PROPS}>
+      <path d="M12 3v12m0 0-4-4m4 4 4-4" />
+      <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+    </svg>
+  );
+}
+
+function SettingsIcon(): JSX.Element {
+  return (
+    <svg {...ICON_PROPS}>
+      <path d="M4 7h10M18 7h2M4 17h2M10 17h10" />
+      <circle cx="16" cy="7" r="2" />
+      <circle cx="8" cy="17" r="2" />
     </svg>
   );
 }

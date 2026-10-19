@@ -55,6 +55,13 @@ describe('SettingsPanel', () => {
     }
   });
 
+  it('shows the logo and the credits footer', () => {
+    renderPanel();
+
+    expect(screen.getByRole('img', { name: 'Manolo Mirror' })).toBeTruthy();
+    expect(screen.getByText('Crafted with passion by Momotombo Devs')).toBeTruthy();
+  });
+
   it('reflects the current window preferences', () => {
     renderPanel({
       preferences: { ...DEFAULT_PREFERENCES, navigationBar: false, alwaysOnTop: true },
