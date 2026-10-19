@@ -1,8 +1,9 @@
-import { BrowserWindow } from 'electron';
+import { BrowserWindow, screen } from 'electron';
 import path from 'node:path';
 import { ok, err, type Result } from '../../../shared/ipc/result';
 import { MAIN_DIST, RENDERER_DIST, VITE_DEV_SERVER_URL, createSecureWindow } from '../../app';
 import type { ScrcpyService } from './scrcpy.service';
+import { computeStageHeight, TOOLBAR_CONTENT_HEIGHT } from './mirror-layout';
 
 export type MirrorWindowServiceDeps = {
   readonly scrcpyService: ScrcpyService;
@@ -29,8 +30,6 @@ function buildMirrorLoadOptions(
 
 const MIN_CONTENT_WIDTH = 280;
 const MIN_CONTENT_HEIGHT = 480;
-const TOOLBAR_CONTENT_HEIGHT = 52;
-const DEFAULT_STAGE_HEIGHT = 780;
 
 export class MirrorWindowService {
   private readonly windows = new Map<string, BrowserWindow>();
@@ -117,7 +116,8 @@ export class MirrorWindowService {
     if (!this.layoutApplied.has(deviceId)) {
       this.layoutApplied.add(deviceId);
       const aspectRatio = videoWidth / videoHeight;
-      const stageHeight = Math.min(DEFAULT_STAGE_HEIGHT, videoHeight);
+      const workArea = screen.getPrimaryDisplay().workAreaSize;
+      const stageHeight = computeStageHeight(videoHeight, workArea.height);
       const stageWidth = Math.round(stageHeight * aspectRatio);
       const contentWidth = Math.max(MIN_CONTENT_WIDTH, stageWidth);
       const contentHeight = Math.max(

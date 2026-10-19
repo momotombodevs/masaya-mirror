@@ -2,6 +2,11 @@ import { type ReactNode } from 'react';
 import { CapturePreviewDialog } from './CapturePreviewDialog';
 import { useCapture } from './useCapture';
 import { useRecording } from './useRecording';
+import {
+  MIRROR_QUALITY_ORDER,
+  MIRROR_QUALITY_PRESETS,
+  type MirrorQualityPreset,
+} from '../../../../shared/mirror/quality';
 import { useToolbarStatus } from './useToolbarStatus';
 import ui from '../../components/ui/primitives.module.css';
 import styles from './MirrorToolbar.module.css';
@@ -11,6 +16,8 @@ type MirrorToolbarProps = {
   readonly canvas: HTMLCanvasElement | null;
   readonly onFullscreen: () => void;
   readonly onStop: () => void;
+  readonly quality: MirrorQualityPreset | null;
+  readonly onQualityChange: (preset: MirrorQualityPreset) => void;
   readonly disabled?: boolean;
 };
 
@@ -19,6 +26,8 @@ export function MirrorToolbar({
   canvas,
   onFullscreen,
   onStop,
+  quality,
+  onQualityChange,
   disabled = false,
 }: MirrorToolbarProps): JSX.Element {
   const { statusMessage, showStatus } = useToolbarStatus();
@@ -34,6 +43,23 @@ export function MirrorToolbar({
         </div>
 
         <div className={styles.actions}>
+          <label className={styles.qualityLabel}>
+            <span className={styles.qualityText}>Calidad</span>
+            <select
+              className={styles.qualitySelect}
+              value={quality ?? ''}
+              disabled={disabled}
+              onChange={(event) => onQualityChange(event.target.value as MirrorQualityPreset)}
+            >
+              {quality === null && <option value="">Personalizada</option>}
+              {MIRROR_QUALITY_ORDER.map((preset) => (
+                <option key={preset} value={preset}>
+                  {MIRROR_QUALITY_PRESETS[preset].label}
+                </option>
+              ))}
+            </select>
+          </label>
+
           <ToolbarIconButton
             title="Capture preview"
             ariaLabel="Capture"
