@@ -3,6 +3,8 @@ import { getManoloApi } from '../../shared/manolo-api';
 
 const RECORDING_FPS = 30;
 const RECORDING_CHUNK_MS = 1000;
+// MediaRecorder defaults to about 2.5 Mbps, far below the 8-32 Mbps stream it re-encodes.
+const RECORDING_BIT_RATE = 16_000_000;
 
 export type UseRecordingResult = {
   readonly recording: boolean;
@@ -37,7 +39,10 @@ export function useRecording(
 
     const stream = canvas.captureStream(RECORDING_FPS);
     const mimeType = pickMimeType();
-    const recorder = new MediaRecorder(stream, { mimeType });
+    const recorder = new MediaRecorder(stream, {
+      mimeType,
+      videoBitsPerSecond: RECORDING_BIT_RATE,
+    });
     chunksRef.current = [];
 
     recorder.ondataavailable = (event) => {
