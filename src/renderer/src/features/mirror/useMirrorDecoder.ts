@@ -41,7 +41,6 @@ export function useMirrorDecoder(
   const decoderRef = useRef<WebCodecsVideoDecoder | null>(null);
   const videoSizeRef = useRef<VideoSize>({ width: 0, height: 0 });
   const packetQueueRef = useRef<PacketQueue | null>(null);
-  const pendingPacketsRef = useRef<ScrcpyMediaStreamPacket[]>([]);
   const onCloseRef = useRef(options.onClose);
   const onSizeChangeRef = useRef(options.onSizeChange);
   const [ready, setReady] = useState(false);
@@ -84,13 +83,13 @@ export function useMirrorDecoder(
       }
     };
 
+    // Packets arriving before the decoder exists wait in the same bounded queue.
+    let queue = createPacketQueue();
+    let queueConsumed = false;
+    packetQueueRef.current = queue;
+
     const enqueueVideoPacket = (packet: ScrcpyMediaStreamPacket): void => {
-      const queue = packetQueueRef.current;
-      if (queue) {
-        queue.push(packet);
-        return;
-      }
-      pendingPacketsRef.current.push(packet);
+      queue.push(packet);
     };
 
     const setupDecoder = (metadata: MirrorVideoMetadata): void => {
@@ -104,13 +103,13 @@ export function useMirrorDecoder(
         decoderRef.current = null;
       }
 
-      packetQueueRef.current?.close();
-      const queue = createPacketQueue();
-      packetQueueRef.current = queue;
-      for (const packet of pendingPacketsRef.current) {
-        queue.push(packet);
+      if (queueConsumed) {
+        queue.close();
+        queue = createPacketQueue();
+        packetQueueRef.current = queue;
       }
-      pendingPacketsRef.current = [];
+      queueConsumed = true;
+      const decoderQueue = queue;
 
       const renderer = new BitmapVideoFrameRenderer(canvas);
       const decoder = new WebCodecsVideoDecoder({ codec: metadata.codec, renderer });
@@ -126,7 +125,7 @@ export function useMirrorDecoder(
       // them. Backlog is dropped inside the queue, so latency cannot keep growing.
       const packetStream = new PushReadableStream<ScrcpyMediaStreamPacket>(async (controller) => {
         for (;;) {
-          const packet = await queue.next();
+          const packet = await decoderQueue.next();
           if (!packet) {
             return;
           }
@@ -166,7 +165,7 @@ export function useMirrorDecoder(
     });
 
     const initTimeout = window.setTimeout(() => {
-      if (!disposed && !packetQueueRef.current) {
+      if (!disposed && !queueConsumed) {
         setStreamError('No video signal. Close and reopen the mirror.');
       }
     }, INIT_TIMEOUT_MS);
@@ -175,9 +174,8 @@ export function useMirrorDecoder(
       disposed = true;
       window.clearTimeout(initTimeout);
       unsubscribe();
-      packetQueueRef.current?.close();
+      queue.close();
       packetQueueRef.current = null;
-      pendingPacketsRef.current = [];
       if (decoderRef.current) {
         void decoderRef.current.dispose();
         decoderRef.current = null;
