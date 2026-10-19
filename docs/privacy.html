@@ -9,19 +9,25 @@
       content="Manolo Mirror no recopila ni envía datos personales. Todo se procesa en tu equipo."
     />
     <link rel="icon" type="image/svg+xml" href="manolo-logo.svg" />
+    <link rel="preload" href="fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <header class="site">
-      <div class="wrap">
+    <header class="topbar">
+      <div class="topbar-in">
         <a class="brand" href="./"><img src="manolo-logo.svg" alt="" />Manolo Mirror</a>
-        <nav><a href="./">Inicio</a></nav>
+        <nav class="topnav" aria-label="Principal">
+          <a href="./">Documentación</a>
+          <a class="pill" href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
+            >Descargar</a
+          >
+        </nav>
       </div>
     </header>
 
-    <main class="prose">
+    <main class="prose" id="contenido">
       <h1>Política de privacidad</h1>
-      <p>Última actualización: 19 de octubre de 2026.</p>
+      <p class="stamp">Última actualización: 19 de octubre de 2026.</p>
 
       <h2>Resumen</h2>
       <p>
@@ -85,9 +91,12 @@
     </main>
 
     <footer class="site">
-      <div class="wrap">
+      <div class="in">
         <span>© 2026 Manolo Mirror</span>
-        <span><a href="./">Inicio</a></span>
+        <span>
+          <a href="./">Documentación</a>
+          <a href="https://github.com/donmanueldev/manolo-mirror">GitHub</a>
+        </span>
       </div>
     </footer>
   </body>

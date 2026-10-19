@@ -6,139 +6,986 @@
     <title>Manolo Mirror — Espeja y controla Android desde tu escritorio</title>
     <meta
       name="description"
-      content="Manolo Mirror espeja y controla dispositivos Android desde macOS, Windows y Linux. Captura, graba y controla con mouse y teclado. Sin nube, sin cuentas."
+      content="Documentación de Manolo Mirror: espeja y controla dispositivos Android en macOS, Windows y Linux, con captura, grabación, Wi-Fi por QR y sin anuncios ni cuentas."
     />
+    <meta name="theme-color" content="#0d1224" />
     <link rel="icon" type="image/svg+xml" href="manolo-logo.svg" />
+    <link rel="preload" href="fonts/bricolage.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <header class="site">
-      <div class="wrap">
+    <!-- icon sprite -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+      <defs>
+        <symbol
+          id="i-check"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.4"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M5 12.5l4.5 4.5L19 7.5" />
+        </symbol>
+        <symbol
+          id="i-x"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.4"
+          stroke-linecap="round"
+        >
+          <path d="M6 6l12 12M18 6L6 18" />
+        </symbol>
+        <symbol
+          id="i-down"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14" />
+        </symbol>
+        <symbol
+          id="i-info"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        >
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 11v5M12 7.8v.1" />
+        </symbol>
+        <symbol
+          id="i-screen"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.9"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <rect x="3" y="4" width="18" height="12" rx="2" />
+          <path d="M8 20h8M12 16v4" />
+        </symbol>
+        <symbol
+          id="i-touch"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.9"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path
+            d="M9 11V5.5a1.5 1.5 0 013 0V11m0-1.5a1.5 1.5 0 013 0V11m0-.5a1.5 1.5 0 013 0V15a6 6 0 01-6 6h-1a6 6 0 01-4.7-2.3L4 15.5a1.5 1.5 0 012.3-1.9L9 16"
+          />
+        </symbol>
+        <symbol
+          id="i-camera"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.9"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M4 8h3l1.5-2h7L17 8h3v11H4z" />
+          <circle cx="12" cy="13" r="3.5" />
+        </symbol>
+        <symbol id="i-rec" viewBox="0 0 24 24" fill="currentColor">
+          <circle cx="12" cy="12" r="6.5" />
+        </symbol>
+        <symbol
+          id="i-wifi"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.9"
+          stroke-linecap="round"
+        >
+          <path d="M3 9.5a14 14 0 0118 0M6 13a9.5 9.5 0 0112 0M9 16.5a5 5 0 016 0" />
+          <circle cx="12" cy="19.5" r="1" fill="currentColor" />
+        </symbol>
+        <symbol
+          id="i-apk"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.9"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" />
+          <path d="M12 12l8-4.5M12 12v9M12 12L4 7.5" />
+        </symbol>
+        <symbol
+          id="i-moon"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.9"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M20 14.5A8 8 0 019.5 4 8 8 0 1020 14.5z" />
+        </symbol>
+        <symbol
+          id="i-sliders"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.9"
+          stroke-linecap="round"
+        >
+          <path d="M4 7h9m4 0h3M4 17h3m4 0h9" />
+          <circle cx="15" cy="7" r="2" />
+          <circle cx="9" cy="17" r="2" />
+        </symbol>
+        <symbol
+          id="i-shield"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.9"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6z" />
+          <path d="M9 12l2.2 2.2L15.5 10" />
+        </symbol>
+        <symbol
+          id="i-vol"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M4 10v4h3l5 4V6L7 10zM16 9a4 4 0 010 6" />
+        </symbol>
+        <symbol
+          id="i-power"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        >
+          <path d="M12 3v8M6.6 6.6a7.5 7.5 0 1010.8 0" />
+        </symbol>
+        <symbol
+          id="i-full"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+        </symbol>
+      </defs>
+    </svg>
+
+    <a class="skip" href="#contenido">Saltar al contenido</a>
+
+    <header class="topbar">
+      <div class="topbar-in">
         <a class="brand" href="./"><img src="manolo-logo.svg" alt="" />Manolo Mirror</a>
-        <nav>
+        <nav class="topnav" aria-label="Principal">
           <a href="#funciones">Funciones</a>
-          <a href="#empezar">Empezar</a>
-          <a href="#faq">Preguntas</a>
+          <a href="#empezar">Guía</a>
+          <a href="#vysor">Vs. Vysor</a>
+          <a href="privacy.html">Privacidad</a>
+          <a class="pill" href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
+            >Descargar</a
+          >
         </nav>
       </div>
     </header>
 
-    <main>
-      <div class="wrap hero">
-        <h1>Espeja y controla tu Android desde el escritorio</h1>
-        <p>
-          Pensada para QA: captura de pantalla, grabación de video y control con mouse y teclado en
-          macOS, Windows y Linux. Todo ocurre en tu equipo.
-        </p>
-        <div class="cta">
-          <a class="btn" href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
-            >Descargar</a
-          >
-          <a class="btn ghost" href="#empezar">Cómo empezar</a>
+    <section class="hero">
+      <div class="hero-in">
+        <div>
+          <h1>Tu Android en tu escritorio, sin cuentas ni anuncios.</h1>
+          <p class="lead">
+            Espeja el teléfono, tócalo con el mouse, escribe con el teclado, captura y graba. Todo
+            ocurre en tu equipo, por USB o por Wi-Fi con un código QR.
+          </p>
+          <div class="cta">
+            <a
+              class="btn btn-primary"
+              href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
+            >
+              <svg><use href="#i-down" /></svg>Descargar Manolo Mirror
+            </a>
+            <a class="btn btn-vs" href="#vysor">Mejor que Vysor: compáralos</a>
+          </div>
+          <p class="platforms">
+            macOS (Apple Silicon e Intel) · Windows x64 · Linux x64 (AppImage)
+          </p>
+          <ul class="hero-facts">
+            <li>
+              <svg><use href="#i-check" /></svg>Sin anuncios
+            </li>
+            <li>
+              <svg><use href="#i-check" /></svg>Sin cuenta
+            </li>
+            <li>
+              <svg><use href="#i-check" /></svg>Wi-Fi incluido
+            </li>
+            <li>
+              <svg><use href="#i-check" /></svg>Nada sale de tu red
+            </li>
+          </ul>
         </div>
-        <p class="note">macOS (Apple Silicon e Intel) · Windows x64 · Linux x64 (AppImage)</p>
-      </div>
 
-      <section id="funciones">
-        <div class="wrap">
-          <h2>Lo que necesitas para probar en un dispositivo real</h2>
-          <div class="grid">
-            <div class="card">
-              <h3>Espejo en ventana propia</h3>
-              <p>Una ventana por dispositivo, con calidad ajustable: Equilibrada, Alta o Máxima.</p>
-            </div>
-            <div class="card">
-              <h3>Control completo</h3>
-              <p>
-                Toques, multitouch, arrastre, rueda y teclado con acentos y símbolos. Clic derecho
-                como «Atrás».
-              </p>
-            </div>
-            <div class="card">
-              <h3>Captura y grabación</h3>
-              <p>Un clic o un atajo. Elige la carpeta donde se guardan y qué hacer al capturar.</p>
-            </div>
-            <div class="card">
-              <h3>Wi-Fi sin cable</h3>
-              <p>Escanea un código QR desde el teléfono y conéctate sin USB.</p>
-            </div>
-            <div class="card">
-              <h3>Instalar APK</h3>
-              <p>Desde la barra o arrastrando el archivo a la ventana del espejo.</p>
-            </div>
-            <div class="card">
-              <h3>Claro, oscuro y en español</h3>
-              <p>Sigue el tema y el color de acento del sistema. Disponible en español e inglés.</p>
+        <div
+          class="demo"
+          role="img"
+          aria-label="El teléfono y su copia en la ventana de Manolo Mirror responden al mismo toque"
+        >
+          <div class="phone">
+            <div class="scr" style="height: 100%">
+              <div class="scr-top">Tu app<small>Pedido 2481</small></div>
+              <div class="scr-row"><i></i>Café<span>$4</span></div>
+              <div class="scr-row"><i></i>Pan<span>$2</span></div>
+              <div class="scr-row"><i></i>Jugo<span>$3</span></div>
+              <div class="scr-btn">
+                <span class="idle">Pagar</span><span class="ok">Listo</span>
+              </div>
             </div>
           </div>
+          <div class="link" aria-hidden="true"></div>
+          <div class="win">
+            <div class="win-bar">
+              <i></i><i></i><i></i>
+              <span class="win-title">Pixel 8</span>
+              <span class="win-tools" aria-hidden="true">
+                <b
+                  ><svg><use href="#i-camera" /></svg
+                ></b>
+                <b class="rec"
+                  ><svg><use href="#i-rec" /></svg
+                ></b>
+                <b
+                  ><svg><use href="#i-full" /></svg
+                ></b>
+              </span>
+            </div>
+            <div class="win-body">
+              <div class="scr">
+                <div class="scr-top">Tu app<small>Pedido 2481</small></div>
+                <div class="scr-row"><i></i>Café<span>$4</span></div>
+                <div class="scr-row"><i></i>Pan<span>$2</span></div>
+                <div class="scr-row"><i></i>Jugo<span>$3</span></div>
+                <div class="scr-btn">
+                  <span class="idle">Pagar</span><span class="ok">Listo</span>
+                </div>
+                <div class="tap"></div>
+              </div>
+            </div>
+            <div class="win-nav" aria-hidden="true"><i></i><i></i><i></i></div>
+          </div>
         </div>
-      </section>
+      </div>
+    </section>
 
-      <section id="empezar">
-        <div class="wrap">
-          <h2>Empieza en tres pasos</h2>
+    <div class="docs">
+      <aside class="side" aria-label="Contenido de la documentación">
+        <h2>Empezar</h2>
+        <ul>
+          <li><a href="#que-es">Qué es</a></li>
+          <li><a href="#vysor">Manolo vs. Vysor</a></li>
+          <li><a href="#funciones">Funciones</a></li>
+          <li><a href="#capturas">Capturas</a></li>
+          <li><a href="#instalar">Instalar</a></li>
+          <li><a href="#empezar">Primeros pasos</a></li>
+        </ul>
+        <h2 class="group-2">Usar</h2>
+        <ul class="group-2">
+          <li><a href="#wifi">Conectar por Wi-Fi</a></li>
+          <li><a href="#control">Control y atajos</a></li>
+          <li><a href="#ajustes">Ajustes y calidad</a></li>
+          <li><a href="#problemas">Solución de problemas</a></li>
+          <li><a href="privacy.html">Privacidad</a></li>
+        </ul>
+      </aside>
+
+      <main id="contenido">
+        <section class="doc" id="que-es">
+          <h2>Qué es Manolo Mirror</h2>
+          <p class="intro">
+            Una app de escritorio que muestra la pantalla de tu Android en una ventana y te deja
+            controlarla con el mouse y el teclado. Está pensada para QA: probar en un dispositivo
+            real, capturar un error y grabar cómo ocurre.
+          </p>
+          <p>
+            Funciona en macOS, Windows y Linux. Habla con el teléfono a través de <code>adb</code> y
+            usa el servidor de <a href="https://github.com/Genymobile/scrcpy">scrcpy</a> para el
+            video, pero no necesitas instalar scrcpy. No hay servicio en la nube: el video va del
+            teléfono a tu equipo y se queda ahí.
+          </p>
+          <div class="note">
+            <svg><use href="#i-info" /></svg>
+            <p>
+              <strong>Requisito.</strong> Necesitas <code>adb</code> (Android platform-tools). La
+              app no lo incluye, pero si no lo encuentra te guía para descargarlo o elegir uno que
+              ya tengas.
+            </p>
+          </div>
+        </section>
+
+        <section class="doc" id="vysor">
+          <h2>Manolo Mirror frente a Vysor</h2>
+          <p class="intro">
+            Vysor es la opción conocida para espejar Android. Su plan gratis es limitado y las
+            funciones que más se usan en QA pasan por el plan de pago. Manolo Mirror trae todo en la
+            misma app.
+          </p>
+          <div class="vs">
+            <table>
+              <thead>
+                <tr>
+                  <th></th>
+                  <th class="us">Manolo Mirror</th>
+                  <th>Vysor (plan gratis)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">Conexión por Wi-Fi</th>
+                  <td class="us">
+                    <span class="yes"
+                      ><svg><use href="#i-check" /></svg>Incluida: escanea un QR y listo</span
+                    >
+                  </td>
+                  <td>
+                    <span class="no"
+                      ><svg><use href="#i-x" /></svg>Solo USB; el Wi-Fi es de Pro</span
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">Calidad de imagen</th>
+                  <td class="us">
+                    <span class="yes"
+                      ><svg><use href="#i-check" /></svg>Equilibrada, Alta o Máxima, con resolución,
+                      velocidad de datos y códec ajustables</span
+                    >
+                  </td>
+                  <td>
+                    <span class="no"
+                      ><svg><use href="#i-x" /></svg>Resolución y velocidad de datos limitadas; HD
+                      es de Pro</span
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">Anuncios</th>
+                  <td class="us">
+                    <span class="yes"
+                      ><svg><use href="#i-check" /></svg>Ninguno</span
+                    >
+                  </td>
+                  <td>
+                    <span class="no"
+                      ><svg><use href="#i-x" /></svg>Con anuncios; se quitan con Pro</span
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">Planes</th>
+                  <td class="us">
+                    <span class="yes"
+                      ><svg><use href="#i-check" /></svg>Sin funciones bloqueadas por plan</span
+                    >
+                  </td>
+                  <td>
+                    <span class="no"
+                      ><svg><use href="#i-x" /></svg>Pro de pago (mensual, anual o de por
+                      vida)</span
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row">Captura y grabación</th>
+                  <td class="us">
+                    <span class="yes"
+                      ><svg><use href="#i-check" /></svg>Con atajos y carpeta de guardado
+                      propia</span
+                    >
+                  </td>
+                  <td>Consulta su sitio</td>
+                </tr>
+                <tr>
+                  <th scope="row">Instalar APK</th>
+                  <td class="us">
+                    <span class="yes"
+                      ><svg><use href="#i-check" /></svg>Arrastra el archivo a la ventana</span
+                    >
+                  </td>
+                  <td>Consulta su sitio</td>
+                </tr>
+                <tr>
+                  <th scope="row">Dónde se procesa</th>
+                  <td class="us">
+                    <span class="yes"
+                      ><svg><use href="#i-check" /></svg>En tu equipo y tu red local</span
+                    >
+                  </td>
+                  <td>Consulta su sitio</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="fine">
+            Comparación basada en la información pública de Vysor en octubre de 2026. Los planes
+            cambian: confirma los vigentes en
+            <a href="https://www.vysor.io/#pricing" rel="noopener">vysor.io</a>.
+          </p>
+        </section>
+
+        <section class="doc" id="funciones">
+          <h2>Funciones</h2>
+          <p class="intro">
+            Lo necesario para probar en un dispositivo real, sin instalar nada más.
+          </p>
+          <div class="feats">
+            <article class="feat">
+              <div class="ico">
+                <svg><use href="#i-screen" /></svg>
+              </div>
+              <div>
+                <h3>Una ventana por dispositivo</h3>
+                <p>
+                  Conecta varios teléfonos y abre cada uno en su propia ventana. La barra de
+                  navegación (Atrás, Inicio, Recientes) queda bajo la pantalla.
+                </p>
+              </div>
+            </article>
+            <article class="feat">
+              <div class="ico">
+                <svg><use href="#i-touch" /></svg>
+              </div>
+              <h3>Control completo</h3>
+              <p>
+                Toques, multitouch, arrastre y rueda con el mouse. El teclado envía acentos y
+                símbolos. El clic derecho hace «Atrás».
+              </p>
+            </article>
+            <article class="feat">
+              <div class="ico">
+                <svg><use href="#i-camera" /></svg>
+              </div>
+              <h3>Captura y grabación</h3>
+              <p>
+                Un clic en la barra o un atajo. Grabas a 16 Mbps y eliges la carpeta y qué hacer
+                después de capturar.
+              </p>
+            </article>
+            <article class="feat">
+              <div class="ico">
+                <svg><use href="#i-wifi" /></svg>
+              </div>
+              <h3>Wi-Fi con código QR</h3>
+              <p>
+                Escanea el QR desde el teléfono y se conecta sin cable. Sin escribir direcciones IP.
+              </p>
+            </article>
+            <article class="feat">
+              <div class="ico">
+                <svg><use href="#i-apk" /></svg>
+              </div>
+              <h3>Instalar APK</h3>
+              <p>Desde el menú de la barra o arrastrando el archivo a la ventana del espejo.</p>
+            </article>
+            <article class="feat">
+              <div class="ico">
+                <svg><use href="#i-sliders" /></svg>
+              </div>
+              <h3>Calidad a tu medida</h3>
+              <p>
+                Tres preajustes, más resolución, velocidad de datos y códec. Muestra tus clics como
+                un círculo sobre la pantalla.
+              </p>
+            </article>
+            <article class="feat">
+              <div class="ico">
+                <svg><use href="#i-moon" /></svg>
+              </div>
+              <h3>Claro, oscuro y bilingüe</h3>
+              <p>Sigue el tema y el color de acento de tu sistema. Interfaz en español e inglés.</p>
+            </article>
+            <article class="feat">
+              <div class="ico">
+                <svg><use href="#i-shield" /></svg>
+              </div>
+              <h3>Privado por diseño</h3>
+              <p>
+                Sin cuentas, sin nube y sin telemetría. Las ventanas usan sandbox y solo la ventana
+                dueña de un dispositivo puede controlarlo.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section class="doc" id="capturas">
+          <h2>Capturas</h2>
+          <p class="intro">Así se ve la app en cada pantalla.</p>
+          <div class="shots">
+            <div class="tabs" role="tablist" aria-label="Pantallas de la app">
+              <button
+                class="tab"
+                role="tab"
+                id="t-espejo"
+                aria-controls="p-espejo"
+                aria-selected="true"
+              >
+                Espejo
+              </button>
+              <button
+                class="tab"
+                role="tab"
+                id="t-lista"
+                aria-controls="p-lista"
+                aria-selected="false"
+                tabindex="-1"
+              >
+                Dispositivos
+              </button>
+              <button
+                class="tab"
+                role="tab"
+                id="t-qr"
+                aria-controls="p-qr"
+                aria-selected="false"
+                tabindex="-1"
+              >
+                Wi-Fi por QR
+              </button>
+              <button
+                class="tab"
+                role="tab"
+                id="t-ajustes"
+                aria-controls="p-ajustes"
+                aria-selected="false"
+                tabindex="-1"
+              >
+                Ajustes
+              </button>
+            </div>
+            <div class="stage">
+              <div class="panel" id="p-espejo" role="tabpanel" aria-labelledby="t-espejo">
+                <div class="win" style="max-width: 300px">
+                  <div class="win-bar">
+                    <i></i><i></i><i></i>
+                    <span class="win-title">Pixel 8</span>
+                    <span class="win-tools" aria-hidden="true">
+                      <b
+                        ><svg><use href="#i-vol" /></svg
+                      ></b>
+                      <b
+                        ><svg><use href="#i-power" /></svg
+                      ></b>
+                      <b
+                        ><svg><use href="#i-camera" /></svg
+                      ></b>
+                      <b class="rec"
+                        ><svg><use href="#i-rec" /></svg
+                      ></b>
+                      <b
+                        ><svg><use href="#i-full" /></svg
+                      ></b>
+                    </span>
+                  </div>
+                  <div class="win-body">
+                    <div class="scr" style="max-height: 340px">
+                      <div class="scr-top">Tu app<small>Pedido 2481</small></div>
+                      <div class="scr-row"><i></i>Café<span>$4</span></div>
+                      <div class="scr-row"><i></i>Pan<span>$2</span></div>
+                      <div class="scr-row"><i></i>Jugo<span>$3</span></div>
+                      <div class="scr-btn">
+                        <span class="idle">Pagar</span><span class="ok">Listo</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="win-nav" aria-hidden="true"><i></i><i></i><i></i></div>
+                </div>
+              </div>
+
+              <div class="panel" id="p-lista" role="tabpanel" aria-labelledby="t-lista" hidden>
+                <div class="app">
+                  <div class="win-bar">
+                    <i></i><i></i><i></i><span class="win-title">Manolo Mirror</span>
+                  </div>
+                  <div class="app-body">
+                    <div class="grp">Conectados</div>
+                    <div class="dev">
+                      <div class="thumb"></div>
+                      <div><strong>Pixel 8</strong><small>Android 15 · USB</small></div>
+                      <span class="st">Listo</span>
+                    </div>
+                    <div class="dev">
+                      <div class="thumb b"></div>
+                      <div><strong>Galaxy A54</strong><small>Android 14 · Wi-Fi</small></div>
+                      <span class="st">Listo</span>
+                    </div>
+                    <div class="dev">
+                      <div class="thumb"></div>
+                      <div><strong>Moto G</strong><small>Android 13 · USB</small></div>
+                      <span class="st off">Sin autorizar</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="panel" id="p-qr" role="tabpanel" aria-labelledby="t-qr" hidden>
+                <div class="app" style="max-width: 380px">
+                  <div class="win-bar">
+                    <i></i><i></i><i></i><span class="win-title">Conectar por Wi-Fi</span>
+                  </div>
+                  <div class="app-body center">
+                    <div class="qr">
+                      <svg
+                        viewBox="0 0 21 21"
+                        shape-rendering="crispEdges"
+                        fill="#0d1224"
+                        aria-hidden="true"
+                      >
+                        <path d="M0 0h7v7H0zM14 0h7v7h-7zM0 14h7v7H0z" />
+                        <path fill="#fff" d="M1 1h5v5H1zM15 1h5v5h-5zM1 15h5v5H1z" />
+                        <path
+                          d="M2 2h3v3H2zM16 2h3v3h-3zM2 16h3v3H2zM9 0h2v2H9zM8 3h2v2H8zM11 4h2v3h-2zM9 7h3v2H9zM0 9h2v2H0zM3 9h3v2H3zM8 10h2v3H8zM12 9h3v2h-3zM16 9h2v3h-2zM19 10h2v2h-2zM9 14h2v2H9zM12 13h2v3h-2zM15 14h3v2h-3zM19 14h2v3h-2zM10 17h3v2h-3zM14 18h2v3h-2zM18 18h3v2h-3zM8 19h2v2H8z"
+                        />
+                      </svg>
+                    </div>
+                    <strong>Escanea desde el teléfono</strong>
+                    <p style="margin: 6px 0 0; color: #6e6e73">
+                      Ajustes → Opciones de desarrollador → Depuración inalámbrica → Vincular con
+                      código QR
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="panel" id="p-ajustes" role="tabpanel" aria-labelledby="t-ajustes" hidden>
+                <div class="app">
+                  <div class="win-bar">
+                    <i></i><i></i><i></i><span class="win-title">Ajustes</span>
+                  </div>
+                  <div class="app-body">
+                    <div class="grp">Ventana</div>
+                    <div class="field">
+                      <span>Barra de navegación</span><span class="switch on"></span>
+                    </div>
+                    <div class="field">
+                      <span>Siempre visible</span><span class="switch"></span>
+                    </div>
+                    <div class="field">
+                      <span>Mostrar clics</span><span class="switch on"></span>
+                    </div>
+                    <div class="grp">Calidad de imagen</div>
+                    <div class="field"><span>Preajuste</span><span>Alta</span></div>
+                    <div class="field"><span>Velocidad de datos</span><span>16 Mbps</span></div>
+                    <div class="field"><span>Códec</span><span>H.264</span></div>
+                    <div class="grp">Dispositivo</div>
+                    <div class="field">
+                      <span>Mostrar toques</span><span class="switch on"></span>
+                    </div>
+                    <div class="field">
+                      <span>Mantener pantalla encendida</span><span class="switch on"></span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p class="shot-cap">Ilustraciones de la interfaz. Los valores son de ejemplo.</p>
+          </div>
+        </section>
+
+        <section class="doc" id="instalar">
+          <h2>Instalar</h2>
+          <p>
+            Descarga el instalador de tu sistema desde la
+            <a href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
+              >última versión</a
+            >.
+          </p>
+          <div class="tbl">
+            <table>
+              <thead>
+                <tr>
+                  <th>Sistema</th>
+                  <th>Archivo</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>macOS</td>
+                  <td>
+                    <code>manolo-mirror-&lt;versión&gt;-mac-arm64.dmg</code> o <code>-x64.dmg</code>
+                  </td>
+                </tr>
+                <tr>
+                  <td>Windows</td>
+                  <td><code>manolo-mirror-&lt;versión&gt;-win-x64.exe</code></td>
+                </tr>
+                <tr>
+                  <td>Linux</td>
+                  <td><code>manolo-mirror-&lt;versión&gt;-linux-x64.AppImage</code></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="note warn">
+            <svg><use href="#i-info" /></svg>
+            <p>
+              <strong>Aviso del sistema al abrirla.</strong> Los instaladores aún no están firmados.
+              En macOS usa clic derecho → <em>Abrir</em> (en Apple Silicon puede hacer falta
+              <code>xattr -cr "/Applications/Manolo Mirror.app"</code>). En Windows, SmartScreen
+              pide <em>Más información → Ejecutar de todas formas</em>.
+            </p>
+          </div>
+          <h3>Compilarla desde el código</h3>
+          <p>Necesitas Node.js 20 o superior y pnpm 10.</p>
+          <div class="code">
+            <pre><code>pnpm install   # descarga scrcpy-server y verifica su hash
+pnpm dev       # abre la app con recarga en caliente</code></pre>
+            <button class="copy" type="button">Copiar</button>
+          </div>
+        </section>
+
+        <section class="doc" id="empezar">
+          <h2>Primeros pasos</h2>
           <ol class="steps">
             <li>
-              <strong>Activa la depuración USB</strong> en el teléfono: Ajustes → Opciones de
-              desarrollador → Depuración USB.
+              <h3>Activa la depuración USB en el teléfono</h3>
+              <p>
+                Ajustes → Acerca del teléfono → toca siete veces <em>Número de compilación</em>.
+                Luego entra en Opciones de desarrollador y activa <strong>Depuración USB</strong>.
+              </p>
             </li>
             <li>
-              <strong>Instala Manolo Mirror</strong> y, si hace falta, deja que la app te guíe para
-              descargar <code>adb</code> (Android platform-tools) o elegirlo.
+              <h3>Ten <code>adb</code> a mano</h3>
+              <p>
+                La app lo busca en la ruta que elijas, en <code>ADB_PATH</code>, en
+                <code>ANDROID_HOME</code> o <code>ANDROID_SDK_ROOT</code>, en las rutas habituales
+                del SDK y en el <code>PATH</code>. Si no aparece, te ofrece descargarlo o elegirlo.
+              </p>
+              <div class="code">
+                <pre><code>adb version</code></pre>
+                <button class="copy" type="button">Copiar</button>
+              </div>
             </li>
             <li>
-              <strong>Conecta el teléfono</strong> por USB o con el código QR, y haz doble clic en
-              el dispositivo para abrir el espejo.
+              <h3>Conecta el teléfono y acepta el aviso</h3>
+              <p>
+                Por USB, acepta el diálogo «¿Permitir depuración USB?». El dispositivo pasa de
+                <em>Sin autorizar</em> a <em>Listo</em>.
+              </p>
+            </li>
+            <li>
+              <h3>Abre el espejo</h3>
+              <p>
+                Haz doble clic en el dispositivo de la lista. Se abre su ventana y ya puedes tocar,
+                escribir, capturar y grabar.
+              </p>
             </li>
           </ol>
-        </div>
-      </section>
+        </section>
 
-      <section id="faq">
-        <div class="wrap">
-          <h2>Preguntas frecuentes</h2>
-          <details>
-            <summary>¿Envía mis datos a algún servidor?</summary>
+        <section class="doc" id="wifi">
+          <h2>Conectar por Wi-Fi</h2>
+          <p>
+            Sin cable y sin escribir direcciones. El teléfono y el equipo deben estar en la misma
+            red.
+          </p>
+          <ol class="steps">
+            <li>
+              <h3>Abre el diálogo de Wi-Fi</h3>
+              <p>
+                Pulsa <kbd>⌘⇧W</kbd> en macOS o <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>W</kbd> en
+                Windows y Linux.
+              </p>
+            </li>
+            <li>
+              <h3>Escanea el código QR</h3>
+              <p>
+                En el teléfono: Opciones de desarrollador → Depuración inalámbrica →
+                <em>Vincular dispositivo con código QR</em>.
+              </p>
+            </li>
+          </ol>
+          <div class="note">
+            <svg><use href="#i-info" /></svg>
             <p>
-              No. Manolo Mirror no tiene cuentas, nube ni telemetría. El video y los archivos
-              permanecen en tu equipo. Consulta la
-              <a href="privacy.html">política de privacidad</a>.
+              Si no lo encuentra, tu red puede bloquear mDNS (pasa en algunas redes de oficina).
+              Prueba con otra red o conéctalo por USB.
+            </p>
+          </div>
+        </section>
+
+        <section class="doc" id="control">
+          <h2>Control y atajos</h2>
+          <p>En la ventana del espejo, el mouse y el teclado se envían al dispositivo.</p>
+          <div class="tbl">
+            <table>
+              <thead>
+                <tr>
+                  <th>Acción</th>
+                  <th>macOS</th>
+                  <th>Windows y Linux</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Actualizar la lista de dispositivos</td>
+                  <td><kbd>⌘R</kbd></td>
+                  <td><kbd>Ctrl</kbd> <kbd>R</kbd></td>
+                </tr>
+                <tr>
+                  <td>Captura de pantalla</td>
+                  <td><kbd>⌘⇧4</kbd></td>
+                  <td><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>4</kbd></td>
+                </tr>
+                <tr>
+                  <td>Grabar o detener</td>
+                  <td><kbd>⌘⇧5</kbd></td>
+                  <td><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>5</kbd></td>
+                </tr>
+                <tr>
+                  <td>Conectar por Wi-Fi</td>
+                  <td><kbd>⌘⇧W</kbd></td>
+                  <td><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>W</kbd></td>
+                </tr>
+                <tr>
+                  <td>Ajustes del espejo</td>
+                  <td><kbd>⌘,</kbd></td>
+                  <td><kbd>Ctrl</kbd> <kbd>,</kbd></td>
+                </tr>
+                <tr>
+                  <td>Abrir el espejo</td>
+                  <td colspan="2">Doble clic en el dispositivo</td>
+                </tr>
+                <tr>
+                  <td>«Atrás» en el teléfono</td>
+                  <td colspan="2">Clic derecho en la ventana</td>
+                </tr>
+                <tr>
+                  <td>Instalar un APK</td>
+                  <td colspan="2">Arrastra el archivo a la ventana</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="doc" id="ajustes">
+          <h2>Ajustes y calidad</h2>
+          <p>
+            Abre los ajustes con <kbd>⌘,</kbd> o <kbd>Ctrl</kbd> <kbd>,</kbd>. La app recuerda tus
+            cambios y la carpeta donde guardas capturas y grabaciones.
+          </p>
+          <h3>Ventana</h3>
+          <p>
+            Mostrar la barra de navegación, mantener la ventana siempre visible, mostrar un círculo
+            donde haces clic y elegir qué hacer al capturar.
+          </p>
+          <h3>Calidad de imagen</h3>
+          <p>Elige un preajuste y afina la resolución, la velocidad de datos y el códec.</p>
+          <div class="tbl">
+            <table>
+              <thead>
+                <tr>
+                  <th>Preajuste</th>
+                  <th>Cuándo usarlo</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Equilibrada</td>
+                  <td>Redes lentas o equipos modestos. Menos retraso.</td>
+                </tr>
+                <tr>
+                  <td>Alta</td>
+                  <td>El uso diario en QA.</td>
+                </tr>
+                <tr>
+                  <td>Máxima</td>
+                  <td>Cuando necesitas ver detalle, por ejemplo al grabar.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <h3>Dispositivo</h3>
+          <p>
+            Mostrar los toques en el teléfono y mantener su pantalla encendida mientras trabajas.
+          </p>
+        </section>
+
+        <section class="doc" id="problemas">
+          <h2>Solución de problemas</h2>
+          <details>
+            <summary>«ADB no encontrado»</summary>
+            <p>
+              Instala Android platform-tools o define <code>ADB_PATH</code> con la ruta del
+              ejecutable. También puedes elegirlo desde la app.
             </p>
           </details>
           <details>
-            <summary>¿Necesito instalar adb?</summary>
+            <summary>El dispositivo aparece «Sin autorizar»</summary>
             <p>
-              Sí, la app usa <code>adb</code> para hablar con el dispositivo y no lo incluye. Si no
-              lo encuentra, te indica cómo descargarlo desde Android o elegir uno que ya tengas.
+              Acepta el diálogo de depuración USB en el teléfono. Si no aparece, desconecta el cable
+              y vuelve a conectarlo.
             </p>
           </details>
           <details>
-            <summary>macOS o Windows muestran un aviso al abrirla</summary>
-            <p>
-              Mientras los instaladores no estén firmados, macOS pide abrirla con clic derecho →
-              Abrir, y Windows SmartScreen pide «Más información → Ejecutar de todas formas».
-            </p>
-          </details>
-          <details>
-            <summary>El código QR no encuentra mi teléfono</summary>
+            <summary>El código QR no encuentra el teléfono</summary>
             <p>
               El teléfono y el equipo deben estar en la misma red Wi-Fi y la red debe permitir mDNS.
-              Algunas redes de oficina lo bloquean; prueba con otra red o usa USB.
+              Prueba con otra red o conéctalo por USB.
             </p>
           </details>
           <details>
-            <summary>¿La imagen va con retraso?</summary>
+            <summary>La imagen va con retraso</summary>
             <p>
-              Baja la calidad a «Equilibrada» en Ajustes. El decodificador descarta cuadros antiguos
-              si no da abasto.
+              Baja la calidad a «Equilibrada» en los ajustes. El decodificador descarta cuadros
+              antiguos cuando no da abasto.
             </p>
           </details>
+          <details>
+            <summary>macOS o Windows avisan al abrir la app</summary>
+            <p>
+              Los instaladores aún no están firmados. Mira los pasos en
+              <a href="#instalar">Instalar</a>.
+            </p>
+          </details>
+        </section>
+
+        <div class="final">
+          <div>
+            <h2>Pruébalo con tu teléfono</h2>
+            <p>Descarga, conecta y abre el espejo en menos de cinco minutos.</p>
+          </div>
+          <a
+            class="btn btn-primary"
+            href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
+          >
+            <svg><use href="#i-down" /></svg>Descargar
+          </a>
         </div>
-      </section>
-    </main>
+      </main>
+    </div>
 
     <footer class="site">
-      <div class="wrap">
+      <div class="in">
         <span>© 2026 Manolo Mirror</span>
         <span>
           <a href="privacy.html">Privacidad</a>
@@ -146,5 +993,7 @@
         </span>
       </div>
     </footer>
+
+    <script src="site.js"></script>
   </body>
 </html>
