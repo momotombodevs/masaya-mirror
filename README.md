@@ -75,8 +75,7 @@ src/
   preload/    Puente seguro: expone a cada ventana solo las llamadas que necesita
   renderer/   Interfaz React + Tailwind: lista de dispositivos y ventana del espejo
   shared/     Tipos y contratos IPC compartidos entre procesos
-docs/         Arquitectura, decisiones (ADR) y publicación
-landing/      Sitio estático (inicio y política de privacidad)
+docs/         Sitio web (inicio y privacidad), arquitectura, decisiones (ADR) y publicación
 ```
 
 Para el detalle de flujos y decisiones, lee [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
