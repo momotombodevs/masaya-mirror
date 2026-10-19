@@ -58,4 +58,24 @@ describe('createControlCoalescer', () => {
     coalescer.flush();
     expect(sent).toEqual([]);
   });
+
+  it('keeps the latest value for each key independently', () => {
+    const sent: Array<{ id: number; x: number }> = [];
+    const { scheduler, runFrame } = fakeScheduler();
+    const coalescer = createControlCoalescer<{ id: number; x: number }>(
+      (value) => sent.push(value),
+      scheduler,
+      (value) => value.id,
+    );
+
+    coalescer.submit({ id: 1, x: 1 });
+    coalescer.submit({ id: 2, x: 1 });
+    coalescer.submit({ id: 1, x: 2 });
+    runFrame();
+
+    expect(sent).toEqual([
+      { id: 1, x: 2 },
+      { id: 2, x: 1 },
+    ]);
+  });
 });
