@@ -1,11 +1,13 @@
 import { useCallback, useRef } from 'react';
 import { useMirrorDecoder } from './useMirrorDecoder';
 import { useMirrorInput } from './useMirrorInput';
+import { TouchIndicators } from './TouchIndicators';
 import { OverlayError } from '../../components/ui/OverlayError';
 import { cx } from '../../components/ui/cx';
 
 type MirrorViewProps = {
   readonly deviceId: string;
+  readonly showClicks?: boolean;
   readonly onSizeChange?: (width: number, height: number) => void;
   readonly onClose?: () => void;
   readonly onCanvasChange?: (canvas: HTMLCanvasElement | null) => void;
@@ -13,6 +15,7 @@ type MirrorViewProps = {
 
 export function MirrorView({
   deviceId,
+  showClicks = false,
   onSizeChange,
   onClose,
   onCanvasChange,
@@ -53,6 +56,7 @@ export function MirrorView({
         onWheel={input.onWheel}
         onContextMenu={input.onContextMenu}
       />
+      {showClicks && <TouchIndicators canvasRef={canvasRef} />}
       {showLoading && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-base text-mirror-muted">
           Conectando…

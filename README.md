@@ -8,7 +8,7 @@ captura de pantalla, grabación de video y control con mouse y teclado, sin inst
   clic derecho como «Atrás».
 - **Barra superior** con captura, grabación, pantalla completa y un menú con volumen, encendido de pantalla,
   instalar APK y Ajustes. **Barra de navegación** (Atrás, Inicio, Recientes) bajo la pantalla.
-- **Pantalla de Ajustes** (⌘/Ctrl+,): ventana (barra de navegación, siempre visible, qué hacer al capturar),
+- **Pantalla de Ajustes** (⌘/Ctrl+,): ventana (barra de navegación, siempre visible, mostrar clics, qué hacer al capturar),
   calidad de imagen (preajustes, resolución, velocidad de datos, códec) y dispositivo (mostrar toques,
   mantener pantalla encendida).
 - **Instalar APK** desde la barra o arrastrando el archivo a la ventana del espejo.

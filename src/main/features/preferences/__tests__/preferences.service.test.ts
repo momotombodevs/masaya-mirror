@@ -32,6 +32,7 @@ describe('PreferencesService', () => {
       mirror: { maxSize: 2560, videoBitRate: 32_000_000, videoCodec: 'h265' },
       navigationBar: false,
       alwaysOnTop: true,
+      showClicks: false,
       captureAction: 'copy',
     });
     prefs.setAdbPath('/opt/adb');
@@ -42,6 +43,7 @@ describe('PreferencesService', () => {
       mirror: { maxSize: 2560, videoBitRate: 32_000_000, videoCodec: 'h265' },
       navigationBar: false,
       alwaysOnTop: true,
+      showClicks: false,
       captureAction: 'copy',
     });
     expect(reloaded.getAdbPath()).toBe('/opt/adb');
@@ -90,6 +92,7 @@ describe('PreferencesService', () => {
       'mirror',
       'navigationBar',
       'saveDirectory',
+      'showClicks',
     ]);
   });
 

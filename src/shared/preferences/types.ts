@@ -13,6 +13,8 @@ export type Preferences = {
   /** Back, Home and Recents under the screen. */
   readonly navigationBar: boolean;
   readonly alwaysOnTop: boolean;
+  /** Draws a dot in the mirror window where the mouse touches the screen. */
+  readonly showClicks: boolean;
   readonly captureAction: CaptureAction;
 };
 
@@ -24,5 +26,6 @@ export const DEFAULT_PREFERENCES: Preferences = {
   },
   navigationBar: true,
   alwaysOnTop: false,
+  showClicks: true,
   captureAction: 'preview',
 };
