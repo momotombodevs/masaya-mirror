@@ -32,6 +32,8 @@ function buildDeviceMenu(): MenuItemConstructorOptions {
       { type: 'separator' },
       menuItem('Captura de pantalla', 'CmdOrCtrl+Shift+4', 'capture'),
       menuItem('Grabar', 'CmdOrCtrl+Shift+5', 'record'),
+      { type: 'separator' },
+      menuItem('Ajustes del espejo…', 'CmdOrCtrl+,', 'settings'),
     ],
   };
 }

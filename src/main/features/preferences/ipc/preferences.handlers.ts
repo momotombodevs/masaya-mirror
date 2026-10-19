@@ -3,8 +3,8 @@ import {
   PREFERENCES_CHANNELS,
   type PreferencesResponse,
 } from '../../../../shared/ipc/preferences.contract';
-import { err, ok } from '../../../../shared/ipc/result';
-import { MIRROR_QUALITY_ORDER } from '../../../../shared/mirror/quality';
+import { ok } from '../../../../shared/ipc/result';
+import { parsePreferencesPatch } from '../../../../shared/preferences/parse';
 import type { PreferencesService } from '../preferences.service';
 
 export function registerPreferencesIpcHandlers(preferences: PreferencesService): void {
@@ -15,12 +15,11 @@ export function registerPreferencesIpcHandlers(preferences: PreferencesService):
   ipcMain.handle(
     PREFERENCES_CHANNELS.set,
     async (_event, payload: unknown): Promise<PreferencesResponse> => {
-      const quality = (payload as { quality?: unknown } | null)?.quality;
-      const preset = MIRROR_QUALITY_ORDER.find((candidate) => candidate === quality);
-      if (!preset) {
-        return err('Preferencia inválida.');
+      const patch = parsePreferencesPatch(payload);
+      if (!patch.ok) {
+        return patch;
       }
-      preferences.setQuality(preset);
+      preferences.set(patch.value);
       return ok(preferences.get());
     },
   );

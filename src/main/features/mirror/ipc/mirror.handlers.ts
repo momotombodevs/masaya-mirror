@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron';
 import { MIRROR_CHANNELS, type MirrorStatusResponse } from '../../../../shared/ipc/mirror.contract';
-import { ok } from '../../../../shared/ipc/result';
+import { err, ok } from '../../../../shared/ipc/result';
 import { parseDeviceId } from '../../../../shared/ipc/validators';
 import type { MirrorWindowService } from '../mirror-window.service';
 import type { ScrcpyService } from '../scrcpy.service';
@@ -39,6 +39,12 @@ export function registerMirrorIpcHandlers(
         )
       : layout;
   });
+
+  ownedDevice(MIRROR_CHANNELS.setAlwaysOnTop, ({ deviceId, body }) =>
+    typeof body.enabled === 'boolean'
+      ? mirrorWindowService.setAlwaysOnTop(deviceId, body.enabled)
+      : err('Ajuste inválido.'),
+  );
 
   ownedDevice(MIRROR_CHANNELS.streamReady, ({ deviceId }) =>
     scrcpyService.notifyStreamReady(deviceId),

@@ -11,6 +11,7 @@ export const MIRROR_CHANNELS = {
   port: 'mirror:port',
   streamReady: 'mirror:stream-ready',
   setVideoLayout: 'mirror:set-video-layout',
+  setAlwaysOnTop: 'mirror:set-always-on-top',
 } as const;
 
 export type SetMirrorVideoLayoutRequest = {
@@ -20,6 +21,13 @@ export type SetMirrorVideoLayoutRequest = {
 };
 
 export type SetMirrorVideoLayoutResponse = Result<void>;
+
+export type SetAlwaysOnTopRequest = {
+  readonly deviceId: string;
+  readonly enabled: boolean;
+};
+
+export type SetAlwaysOnTopResponse = Result<void>;
 
 export type MirrorStreamReadyRequest = { readonly deviceId: string };
 

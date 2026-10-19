@@ -3,7 +3,26 @@
 # `adb connect` added to the state file, and fails every command the tests do not use.
 STATE="${FAKE_ADB_STATE:-/tmp/manolo-fake-adb-state}"
 
+# `adb -s <serial> <command>` targets one device; the fake serves every serial the same way.
+if [ "$1" = "-s" ]; then
+  shift 2
+fi
+
 case "$1" in
+  shell)
+    # Only `settings get|put <table> <name> [value]` is understood; values live in files.
+    if [ "$2" = "settings" ]; then
+      file="$STATE-setting-$4"
+      if [ "$3" = "get" ]; then
+        if [ -f "$file" ]; then cat "$file"; else echo "null"; fi
+      else
+        echo "$5" > "$file"
+      fi
+    else
+      echo "fake adb: unsupported shell command: $*" >&2
+      exit 1
+    fi
+    ;;
   version)
     echo "Android Debug Bridge version 1.0.41"
     ;;

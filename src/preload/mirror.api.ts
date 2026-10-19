@@ -14,6 +14,8 @@ import {
   type SetMirrorOptionsResponse,
   type MirrorStreamReadyRequest,
   type MirrorStreamReadyResponse,
+  type SetAlwaysOnTopRequest,
+  type SetAlwaysOnTopResponse,
   type SetMirrorVideoLayoutRequest,
   type SetMirrorVideoLayoutResponse,
 } from '../shared/ipc/mirror.contract';
@@ -64,4 +66,10 @@ export const mirrorApi = {
       videoWidth,
       videoHeight,
     } satisfies SetMirrorVideoLayoutRequest),
+
+  setAlwaysOnTop: (deviceId: string, enabled: boolean): Promise<SetAlwaysOnTopResponse> =>
+    ipcRenderer.invoke(MIRROR_CHANNELS.setAlwaysOnTop, {
+      deviceId,
+      enabled,
+    } satisfies SetAlwaysOnTopRequest),
 };

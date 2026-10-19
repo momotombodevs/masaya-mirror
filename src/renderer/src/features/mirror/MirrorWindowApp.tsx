@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { MirrorView } from './MirrorView';
 import { MirrorToolbar } from './MirrorToolbar';
+import { NavigationBar } from './NavigationBar';
+import { SettingsPanel } from './settings/SettingsPanel';
 import { useMirror } from './useMirror';
-import {
-  applyQualityPreset,
-  qualityPresetOf,
-  type MirrorQualityPreset,
-} from '../../../../shared/mirror/quality';
+import { usePreferences } from './usePreferences';
 import { DEFAULT_MIRROR_OPTIONS } from '../../../../shared/mirror/types';
-import { getManoloApi } from '../../shared/manolo-api';
+import type { MirrorVideoPreferences } from '../../../../shared/preferences/types';
 import { OverlayError } from '../../components/ui/OverlayError';
+import { getManoloApi } from '../../shared/manolo-api';
 
 type MirrorWindowAppProps = {
   readonly deviceId: string;
@@ -19,39 +18,31 @@ type MirrorWindowAppProps = {
 export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps): JSX.Element {
   const mirrorStageRef = useRef<HTMLDivElement>(null);
   const [mirrorCanvas, setMirrorCanvas] = useState<HTMLCanvasElement | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const mirror = useMirror(deviceId);
+  const { preferences, loaded, update } = usePreferences();
   const openMirrorRef = useRef(mirror.openMirror);
   openMirrorRef.current = mirror.openMirror;
+  const startVideoRef = useRef(preferences.mirror);
+  startVideoRef.current = preferences.mirror;
 
-  // Start with the quality the user used last. A missing or failing preference never blocks the mirror.
+  // Start once the saved preferences are known, so the stream opens with the user's video settings.
   useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      const prefs = await getManoloApi()
-        ?.getPreferences()
-        .catch(() => undefined);
-      if (cancelled) {
-        return;
-      }
-      const startOptions = prefs?.ok
-        ? applyQualityPreset(DEFAULT_MIRROR_OPTIONS, prefs.value.quality)
-        : undefined;
-      await openMirrorRef.current(undefined, startOptions);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [deviceId]);
+    if (!loaded) {
+      return;
+    }
+    void openMirrorRef.current(undefined, {
+      ...DEFAULT_MIRROR_OPTIONS,
+      ...startVideoRef.current,
+    });
+  }, [deviceId, loaded]);
 
-  const handleQualityChange = useCallback(
-    async (preset: MirrorQualityPreset): Promise<void> => {
-      const applied = await mirror.applyOptions(applyQualityPreset(mirror.options, preset));
-      if (applied) {
-        void getManoloApi()?.setPreferences({ quality: preset });
-      }
-    },
-    [mirror],
-  );
+  const { alwaysOnTop } = preferences;
+  useEffect(() => {
+    if (loaded) {
+      void getManoloApi()?.setAlwaysOnTop(deviceId, alwaysOnTop);
+    }
+  }, [deviceId, loaded, alwaysOnTop]);
 
   const handleStopMirror = useCallback(async (): Promise<void> => {
     await mirror.closeMirror();
@@ -70,6 +61,23 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
     }
   }, []);
 
+  const { applyOptions, options } = mirror;
+  const handleVideoChange = useCallback(
+    async (patch: Partial<MirrorVideoPreferences>): Promise<void> => {
+      const next = { ...options, ...patch };
+      if (await applyOptions(next)) {
+        update({
+          mirror: {
+            maxSize: next.maxSize,
+            videoBitRate: next.videoBitRate,
+            videoCodec: next.videoCodec,
+          },
+        });
+      }
+    },
+    [applyOptions, options, update],
+  );
+
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-mirror-canvas">
       <MirrorToolbar
@@ -77,8 +85,8 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
         deviceLabel={deviceLabel}
         canvas={mirrorCanvas}
         onFullscreen={handleFullscreen}
-        quality={qualityPresetOf(mirror.options)}
-        onQualityChange={(preset) => void handleQualityChange(preset)}
+        onOpenSettings={() => setSettingsOpen(true)}
+        captureAction={preferences.captureAction}
         disabled={mirror.loading}
       />
 
@@ -96,7 +104,20 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
             onCanvasChange={setMirrorCanvas}
           />
         )}
+        {settingsOpen && (
+          <SettingsPanel
+            deviceId={deviceId}
+            preferences={preferences}
+            options={mirror.options}
+            busy={mirror.loading}
+            onPreferenceChange={update}
+            onVideoChange={(patch) => void handleVideoChange(patch)}
+            onClose={() => setSettingsOpen(false)}
+          />
+        )}
       </div>
+
+      {preferences.navigationBar && <NavigationBar deviceId={deviceId} disabled={mirror.loading} />}
     </div>
   );
 }
