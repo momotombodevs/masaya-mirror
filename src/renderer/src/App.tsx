@@ -4,13 +4,15 @@ import { summarizeDevices } from './features/device/connected-devices';
 import { useDevices } from './features/device/useDevices';
 import { useMirrorStatus } from './features/mirror/useMirrorStatus';
 import { getManoloApi } from './shared/manolo-api';
+import { useMenuActions } from './shared/useMenuAction';
 
 export default function App(): JSX.Element {
   const { devices, loading, error, refresh } = useDevices();
   const [windowError, setWindowError] = useState<string | null>(null);
   const { activeDeviceIds, refreshStatus } = useMirrorStatus();
 
-  const summary = summarizeDevices(devices, activeDeviceIds);
+  const summary = summarizeDevices(devices);
+  useMenuActions({ refresh: () => void refresh() });
 
   const handleStartMirror = useCallback(
     async (deviceId: string): Promise<void> => {
@@ -33,7 +35,7 @@ export default function App(): JSX.Element {
   );
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-6 py-6">
+    <main className="min-h-screen bg-content">
       <DeviceList
         summary={summary}
         loading={loading}

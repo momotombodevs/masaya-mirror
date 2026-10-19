@@ -6,18 +6,21 @@ type PresetValues = Pick<MirrorOptions, 'maxSize' | 'videoBitRate'>;
 
 export const MIRROR_QUALITY_PRESETS: Record<
   MirrorQualityPreset,
-  { readonly label: string; readonly values: PresetValues }
+  { readonly label: string; readonly detail: string; readonly values: PresetValues }
 > = {
   balanced: {
-    label: 'Equilibrado · 1280 px · 8 Mbps',
+    label: 'Equilibrada',
+    detail: '1280 px · 8 Mbps',
     values: { maxSize: 1280, videoBitRate: 8_000_000 },
   },
   high: {
-    label: 'Alta · 1920 px · 16 Mbps',
+    label: 'Alta',
+    detail: '1920 px · 16 Mbps',
     values: { maxSize: 1920, videoBitRate: 16_000_000 },
   },
   max: {
-    label: 'Máxima · 2560 px · 32 Mbps',
+    label: 'Máxima',
+    detail: '2560 px · 32 Mbps',
     values: { maxSize: 2560, videoBitRate: 32_000_000 },
   },
 };

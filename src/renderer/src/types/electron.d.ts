@@ -8,10 +8,12 @@ import type {
   SetMirrorOptionsResponse,
   SetMirrorVideoLayoutResponse,
 } from '../../../shared/ipc/mirror.contract';
+import type { MenuAction } from '../../../shared/ipc/menu.contract';
 import type { QaActionResponse } from '../../../shared/ipc/qa.contract';
 import type { ListDevicesResponse } from '../../../shared/ipc/device.contract';
 import type { MirrorControlMessage, MirrorOptions } from '../../../shared/mirror/types';
 export interface ManoloMirrorApi {
+  onMenuAction(listener: (action: MenuAction) => void): () => void;
   listDevices(): Promise<ListDevicesResponse>;
   openMirrorWindow(deviceId: string, deviceLabel?: string): Promise<OpenMirrorWindowResponse>;
   openMirror(deviceId: string, options?: MirrorOptions): Promise<OpenMirrorResponse>;

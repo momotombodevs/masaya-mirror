@@ -9,13 +9,13 @@ import {
   MIRROR_QUALITY_PRESETS,
   type MirrorQualityPreset,
 } from '../../../../shared/mirror/quality';
+import { useMenuActions } from '../../shared/useMenuAction';
 import { useToolbarStatus } from './useToolbarStatus';
 
 type MirrorToolbarProps = {
   readonly deviceLabel: string;
   readonly canvas: HTMLCanvasElement | null;
   readonly onFullscreen: () => void;
-  readonly onStop: () => void;
   readonly quality: MirrorQualityPreset | null;
   readonly onQualityChange: (preset: MirrorQualityPreset) => void;
   readonly disabled?: boolean;
@@ -25,7 +25,6 @@ export function MirrorToolbar({
   deviceLabel,
   canvas,
   onFullscreen,
-  onStop,
   quality,
   onQualityChange,
   disabled = false,
@@ -33,6 +32,11 @@ export function MirrorToolbar({
   const { statusMessage, showStatus } = useToolbarStatus();
   const capture = useCapture(canvas, showStatus);
   const recorder = useRecording(canvas, showStatus);
+
+  useMenuActions({
+    capture: () => void capture.open(),
+    record: () => void recorder.toggle(),
+  });
 
   return (
     <>
@@ -45,14 +49,15 @@ export function MirrorToolbar({
         <div className="ml-auto flex items-center gap-1">
           <select
             aria-label="Calidad"
-            className="mr-1 h-7 max-w-52 rounded-control border-0 bg-mirror-hover px-2 text-sm text-mirror-text [color-scheme:dark] disabled:opacity-40"
+            title={quality ? MIRROR_QUALITY_PRESETS[quality].detail : undefined}
+            className="mr-1 h-7 rounded-control border-0 bg-mirror-hover px-2 text-sm text-mirror-text [color-scheme:dark] disabled:opacity-40"
             value={quality ?? ''}
             disabled={disabled}
             onChange={(event) => onQualityChange(event.target.value as MirrorQualityPreset)}
           >
             {quality === null && <option value="">Personalizada</option>}
             {MIRROR_QUALITY_ORDER.map((preset) => (
-              <option key={preset} value={preset}>
+              <option key={preset} value={preset} title={MIRROR_QUALITY_PRESETS[preset].detail}>
                 {MIRROR_QUALITY_PRESETS[preset].label}
               </option>
             ))}
@@ -76,9 +81,6 @@ export function MirrorToolbar({
           <ToolbarIconButton label="Pantalla completa" disabled={disabled} onClick={onFullscreen}>
             <FullscreenIcon />
           </ToolbarIconButton>
-          <Button variant="toolbar" className="ml-1" disabled={disabled} onClick={onStop}>
-            Cerrar
-          </Button>
         </div>
       </header>
 

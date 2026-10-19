@@ -44,7 +44,6 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
         deviceLabel={deviceLabel}
         canvas={mirrorCanvas}
         onFullscreen={handleFullscreen}
-        onStop={() => void handleStopMirror()}
         quality={qualityPresetOf(mirror.options)}
         onQualityChange={(preset) =>
           void mirror.applyOptions(applyQualityPreset(mirror.options, preset))
