@@ -40,7 +40,7 @@
   }
 
   body {
-    @apply min-h-screen min-w-[320px] cursor-default select-none bg-window font-sans text-base text-ink;
+    @apply min-h-screen cursor-default select-none bg-window font-sans text-base text-ink;
   }
 
   #root {
