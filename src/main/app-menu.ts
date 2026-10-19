@@ -40,6 +40,21 @@ function buildDeviceMenu(t: Translate): MenuItemConstructorOptions {
   };
 }
 
+function buildEditMenu(t: Translate): MenuItemConstructorOptions {
+  return {
+    label: t('menu.edit'),
+    submenu: [
+      { role: 'undo', label: t('menu.undo') },
+      { role: 'redo', label: t('menu.redo') },
+      { type: 'separator' },
+      { role: 'cut', label: t('menu.cut') },
+      { role: 'copy', label: t('menu.copy') },
+      { role: 'paste', label: t('menu.paste') },
+      { role: 'selectAll', label: t('menu.selectAll') },
+    ],
+  };
+}
+
 function buildViewMenu(t: Translate): MenuItemConstructorOptions {
   return {
     label: t('menu.view'),
@@ -70,18 +85,7 @@ function buildDarwinMenu(t: Translate): MenuItemConstructorOptions[] {
         { role: 'quit', label: t('menu.quit', { app: APP_NAME }) },
       ],
     },
-    {
-      label: t('menu.edit'),
-      submenu: [
-        { role: 'undo', label: t('menu.undo') },
-        { role: 'redo', label: t('menu.redo') },
-        { type: 'separator' },
-        { role: 'cut', label: t('menu.cut') },
-        { role: 'copy', label: t('menu.copy') },
-        { role: 'paste', label: t('menu.paste') },
-        { role: 'selectAll', label: t('menu.selectAll') },
-      ],
-    },
+    buildEditMenu(t),
     buildDeviceMenu(t),
     buildViewMenu(t),
     {
@@ -105,6 +109,7 @@ function buildDefaultMenu(t: Translate): MenuItemConstructorOptions[] {
         { role: 'quit', label: t('menu.quit', { app: APP_NAME }) },
       ],
     },
+    buildEditMenu(t),
     buildDeviceMenu(t),
     buildViewMenu(t),
   ];

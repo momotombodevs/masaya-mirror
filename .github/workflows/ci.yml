@@ -33,7 +33,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14, windows-latest]
+        os: [macos-14, windows-latest, ubuntu-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -42,8 +42,11 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # Compiles main, preload and renderer without packaging, so a broken bundle fails the PR.
-      - run: pnpm build:app
+      # Compiles main, preload and renderer, then packages without an installer, so a broken bundle,
+      # an invalid electron-builder config or a bad fuse setting fails the PR.
+      - run: pnpm pack:dir
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
 
   e2e:
     name: End-to-end (fake adb)

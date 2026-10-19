@@ -29,6 +29,23 @@ pnpm build:win     # en Windows
 Cada comando compila la app y empaqueta solo para esa plataforma. `pnpm build:app` compila sin
 empaquetar. CI también ejecuta `build:app` en macOS y Windows en cada PR.
 
+## Qué entra en el paquete
+
+Todo el código (main, preload y renderer) lo empaqueta Vite, así que las dependencias de la app van en
+`devDependencies`: electron-builder copia `dependencies` a `app.asar` aunque ya estén dentro del bundle. Si
+algún día una dependencia se carga en tiempo de ejecución sin pasar por Vite (un módulo nativo), esa sí va
+en `dependencies`.
+
+`electronFuses` (en `electron-builder.json5`) desactiva `ELECTRON_RUN_AS_NODE`, `NODE_OPTIONS` y
+`--inspect`, y obliga a cargar la app solo desde `app.asar`. La app no se lanza a sí misma como Node; si
+eso cambia, revisa `runAsNode`.
+
+## Materiales de ventana
+
+La ventana principal usa `vibrancy` en macOS y Mica en Windows 11 22H2 o superior
+(`src/main/system-theme.ts`). En Linux y en Windows anterior se ve el color sólido del tema. Son efectos
+del sistema: revísalos a mano en cada plataforma antes de publicar.
+
 ## Firma
 
 El workflow **Release** firma solo cuando existen los secretos del repositorio; sin ellos, el instalador
@@ -43,6 +60,36 @@ sale sin firmar y el resto del proceso no cambia.
 - macOS necesita un certificado **Developer ID Application**. Con los tres `APPLE_*` presentes,
   electron-builder también notariza (`mac.notarize` y el entitlements están en `electron-builder.json5`
   y `build/entitlements.mac.plist`).
+
+### Firmar y notarizar en macOS, paso a paso
+
+Requisitos: una cuenta inscrita en el **Apple Developer Program** (de pago), un Mac y Xcode. Solo el
+Account Holder o un Admin del equipo puede crear el certificado. Los nombres de los menús de Apple pueden
+cambiar; ante la duda, manda lo que diga el portal.
+
+1. **Crear el certificado.** Xcode → Settings → Accounts → tu Apple ID → **Manage Certificates** → **+** →
+   **Developer ID Application** (el de "Apple Distribution" es para la App Store y no sirve aquí).
+2. **Exportarlo.** En Acceso a Llaveros → Mis certificados, busca «Developer ID Application: …», clic
+   derecho → **Exportar** como `.p12` y ponle una contraseña (será `MAC_CSC_KEY_PASSWORD`).
+3. **Pasarlo a base64** (será `MAC_CSC_LINK`):
+
+   ```bash
+   base64 -i certificado.p12 | pbcopy
+   ```
+
+4. **Datos de notarización.**
+   - `APPLE_ID`: el correo de la cuenta de desarrollador.
+   - `APPLE_APP_SPECIFIC_PASSWORD`: se crea en appleid.apple.com → Inicio de sesión y seguridad →
+     Contraseñas específicas de app.
+   - `APPLE_TEAM_ID`: developer.apple.com/account → Membership details (10 caracteres).
+5. **Cargar los cinco secretos** en Settings → Secrets and variables → Actions → New repository secret,
+   con los nombres de la tabla. Nunca subas el `.p12` ni su contraseña al repositorio; borra el archivo
+   local cuando no lo necesites.
+6. **Probar.** Publica una versión (ver «Pasos»), descarga el DMG en un Mac que no sea el tuyo y comprueba
+   que abre sin aviso de Gatekeeper. Si la notarización falla, el motivo está en el log del job de macOS.
+
+No hace falta subir la app a la App Store para distribuirla así.
+
 - Mientras un instalador salga sin firmar:
   - **macOS:** clic derecho → **Abrir**, o permitirla en Ajustes del Sistema → Privacidad y seguridad. En
     Apple Silicon puede hacer falta `xattr -cr "/Applications/Manolo Mirror.app"`.

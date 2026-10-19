@@ -62,7 +62,7 @@ export default function App(): JSX.Element {
   }
 
   return (
-    <main className="min-h-screen bg-window">
+    <main className="min-h-screen">
       <DeviceList
         summary={summary}
         loading={loading}

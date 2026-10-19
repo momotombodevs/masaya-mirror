@@ -24,7 +24,7 @@ describe('WifiConnectDialog', () => {
   });
 
   it('closes with Escape and with Cerrar', () => {
-    fireEvent.keyDown(window, { key: 'Escape' });
+    fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
     fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }));
 
     expect(onClose).toHaveBeenCalledTimes(2);
