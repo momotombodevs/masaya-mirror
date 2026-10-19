@@ -64,9 +64,15 @@ export class MirrorStreamSession {
     }
   }
 
-  close(reason?: string): void {
+  /**
+   * Ends the stream. With `notifyRenderer: false` the renderer is not told, so a
+   * restart with new options keeps the window open and rebinds to the next port.
+   */
+  close(reason?: string, { notifyRenderer = true }: { notifyRenderer?: boolean } = {}): void {
     this.abort.abort();
-    sendMirrorClose(this.port, reason);
+    if (notifyRenderer) {
+      sendMirrorClose(this.port, reason);
+    }
     this.port.close();
   }
 }

@@ -36,4 +36,32 @@ describe('MirrorStreamSession', () => {
     expect(vi.mocked(mirrorStream.sendMirrorInit)).toHaveBeenCalledTimes(2);
     expect(vi.mocked(mirrorStream.pipeMediaStream)).toHaveBeenCalledTimes(1);
   });
+
+  describe('close', () => {
+    const createSession = () =>
+      new MirrorStreamSession({
+        deviceId: 'device1',
+        port: port as never,
+        abort: new AbortController(),
+        metadata: { codec: 1748121140, width: 1080, height: 1920 },
+        audioCodec: null,
+        audioWebCodecId: null,
+        videoStream: videoStream as never,
+        audioStream,
+      });
+
+    it('tells the renderer the stream ended by default', () => {
+      createSession().close('bye');
+
+      expect(vi.mocked(mirrorStream.sendMirrorClose)).toHaveBeenCalledWith(port, 'bye');
+      expect(port.close).toHaveBeenCalledTimes(1);
+    });
+
+    it('closes silently when the renderer must stay open', () => {
+      createSession().close(undefined, { notifyRenderer: false });
+
+      expect(vi.mocked(mirrorStream.sendMirrorClose)).not.toHaveBeenCalled();
+      expect(port.close).toHaveBeenCalledTimes(1);
+    });
+  });
 });

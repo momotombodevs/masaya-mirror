@@ -139,8 +139,11 @@ export class ScrcpyService {
       this.sessions.set(deviceId, session);
       stored = true;
 
+      // A replaced session also exits; only the session still registered may close the device.
       void client.exited.then(() => {
-        void this.closeMirror(deviceId);
+        if (this.sessions.get(deviceId) === session) {
+          void this.closeMirror(deviceId);
+        }
       });
 
       return ok({
@@ -249,17 +252,21 @@ export class ScrcpyService {
     webContents: WebContents,
     options: MirrorOptions,
   ): Promise<Result<OpenMirrorSuccess>> {
-    await this.closeMirror(deviceId);
+    // Restarting must not tell the window the stream ended, or it would close itself.
+    await this.closeMirror(deviceId, { notifyRenderer: false });
     return this.openMirror(deviceId, webContents, options);
   }
 
-  async closeMirror(deviceId: string): Promise<Result<void>> {
+  async closeMirror(
+    deviceId: string,
+    { notifyRenderer = true }: { notifyRenderer?: boolean } = {},
+  ): Promise<Result<void>> {
     const session = this.sessions.get(deviceId);
     if (!session) {
       return ok(undefined);
     }
 
-    session.stream.close();
+    session.stream.close(undefined, { notifyRenderer });
 
     try {
       await session.client.close();
