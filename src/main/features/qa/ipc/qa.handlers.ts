@@ -1,8 +1,10 @@
 import { clipboard, dialog, ipcMain, nativeImage, type FileFilter } from 'electron';
 import { writeFile } from 'node:fs/promises';
+import path from 'node:path';
 import { QA_CHANNELS, type QaActionResponse } from '../../../../shared/ipc/qa.contract';
 import { err, ok, type Result } from '../../../../shared/ipc/result';
 import type { MirrorWindowService } from '../../mirror/mirror-window.service';
+import type { PreferencesService } from '../../preferences/preferences.service';
 
 /** Upper bound for renderer-provided buffers to avoid main-process memory exhaustion. */
 const MAX_CAPTURE_BYTES = 256 * 1024 * 1024;
@@ -28,14 +30,21 @@ function readBuffer(payload: unknown): Result<ArrayBuffer> {
   return ok(payload.data);
 }
 
+/** `2026-10-19_18-45-02`, sortable and safe in file names on every platform. */
+function timestamp(): string {
+  return new Date().toISOString().slice(0, 19).replace('T', '_').replace(/:/g, '-');
+}
+
 async function saveBufferWithDialog(
   config: SaveDialogConfig,
   data: ArrayBuffer,
   fallbackError: string,
+  preferences: PreferencesService,
 ): Promise<QaActionResponse> {
+  const folder = preferences.getSaveDirectory();
   const save = await dialog.showSaveDialog({
     title: config.title,
-    defaultPath: config.defaultPath,
+    defaultPath: folder ? path.join(folder, config.defaultPath) : config.defaultPath,
     filters: [...config.filters],
   });
 
@@ -45,13 +54,17 @@ async function saveBufferWithDialog(
 
   try {
     await writeFile(save.filePath, Buffer.from(data));
+    preferences.setSaveDirectory(path.dirname(save.filePath));
     return ok({ saved: true });
   } catch (error: unknown) {
     return err(error instanceof Error ? error.message : fallbackError);
   }
 }
 
-export function registerQaIpcHandlers(mirrorWindowService: MirrorWindowService): void {
+export function registerQaIpcHandlers(
+  mirrorWindowService: MirrorWindowService,
+  preferences: PreferencesService,
+): void {
   /** Registers a channel that only mirror windows may call, with a validated buffer payload. */
   const handleFromMirrorWindow = (
     channel: string,
@@ -79,11 +92,12 @@ export function registerQaIpcHandlers(mirrorWindowService: MirrorWindowService):
     saveBufferWithDialog(
       {
         title: 'Guardar captura',
-        defaultPath: `manolo-mirror-${Date.now()}.png`,
+        defaultPath: `captura_${timestamp()}.png`,
         filters: [{ name: 'PNG', extensions: ['png'] }],
       },
       data,
       'Unable to save capture.',
+      preferences,
     ),
   );
 
@@ -95,11 +109,12 @@ export function registerQaIpcHandlers(mirrorWindowService: MirrorWindowService):
     return saveBufferWithDialog(
       {
         title: 'Guardar grabación',
-        defaultPath: `recording-${Date.now()}.${extension}`,
+        defaultPath: `grabacion_${timestamp()}.${extension}`,
         filters: [{ name: 'Video', extensions: [extension] }],
       },
       data,
       'Unable to save recording.',
+      preferences,
     );
   });
 }

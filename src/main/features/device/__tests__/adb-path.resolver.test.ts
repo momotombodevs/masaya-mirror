@@ -76,3 +76,31 @@ describe('resolveAdbPath', () => {
     expect(resolved).toBe('/Users/test/Android/sdk/platform-tools/adb');
   });
 });
+
+describe('resolveAdbPath with a custom path', () => {
+  beforeEach(() => {
+    mockedAccess.mockReset();
+  });
+
+  it('checks the user-chosen adb before anything else', async () => {
+    mockedAccess.mockImplementation(async (candidate) => {
+      if (candidate !== '/opt/chosen/adb') {
+        throw new Error('ENOENT');
+      }
+    });
+
+    expect(await resolveAdbPath('/opt/chosen/adb')).toBe('/opt/chosen/adb');
+    expect(mockedAccess.mock.calls[0]?.[0]).toBe('/opt/chosen/adb');
+  });
+
+  it('falls back to the usual locations when the custom path is gone', async () => {
+    mockedAccess.mockImplementation(async (candidate) => {
+      if (candidate !== '/usr/local/bin/adb') {
+        throw new Error('ENOENT');
+      }
+    });
+    process.env.PATH = '/usr/local/bin';
+
+    expect(await resolveAdbPath('/gone/adb')).toBe('/usr/local/bin/adb');
+  });
+});

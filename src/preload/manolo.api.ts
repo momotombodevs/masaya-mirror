@@ -1,12 +1,16 @@
 import { deviceApi } from './device.api';
+import { filesApi } from './files.api';
 import { menuApi } from './menu.api';
 import { mirrorApi } from './mirror.api';
+import { preferencesApi } from './preferences.api';
 import { qaApi } from './qa.api';
 
 export const manoloApi = {
   ...deviceApi,
   ...mirrorApi,
   ...qaApi,
+  ...preferencesApi,
+  ...filesApi,
   ...menuApi,
 };
 
@@ -17,7 +21,17 @@ type ApiName = keyof ManoloApi;
 /** Calls every window may make. The rest is only exposed to the window that needs it. */
 const COMMON_API: readonly ApiName[] = ['getMirrorStatus', 'onMenuAction'];
 
-const MAIN_WINDOW_API: readonly ApiName[] = [...COMMON_API, 'listDevices', 'openMirrorWindow'];
+const MAIN_WINDOW_API: readonly ApiName[] = [
+  ...COMMON_API,
+  'listDevices',
+  'openMirrorWindow',
+  'getAdbStatus',
+  'chooseAdb',
+  'openAdbDownload',
+  'pairWifi',
+  'connectWifi',
+  'disconnectDevice',
+];
 
 const MIRROR_WINDOW_API: readonly ApiName[] = [
   ...COMMON_API,
@@ -30,6 +44,10 @@ const MIRROR_WINDOW_API: readonly ApiName[] = [
   'copyCapture',
   'saveCapture',
   'saveRecording',
+  'installApk',
+  'getPathForFile',
+  'getPreferences',
+  'setPreferences',
 ];
 
 const unavailable = (): Promise<{ ok: false; error: string }> =>

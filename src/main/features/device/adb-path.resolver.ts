@@ -42,7 +42,8 @@ function toAdbExecutable(candidate: string): string {
     : path.join(candidate, 'platform-tools', ADB_EXECUTABLE);
 }
 
-function buildCandidatePaths(): readonly string[] {
+function buildCandidatePaths(customPath?: string | null): readonly string[] {
+  const fromCustom = customPath ? [customPath] : [];
   const fromAdbPath = process.env.ADB_PATH ? [toAdbExecutable(process.env.ADB_PATH)] : [];
   const searchDirs = [
     ...platformToolsDirs(),
@@ -50,7 +51,13 @@ function buildCandidatePaths(): readonly string[] {
     ...systemBinDirs(),
   ].filter(Boolean);
 
-  return [...new Set([...fromAdbPath, ...searchDirs.map((dir) => path.join(dir, ADB_EXECUTABLE))])];
+  return [
+    ...new Set([
+      ...fromCustom,
+      ...fromAdbPath,
+      ...searchDirs.map((dir) => path.join(dir, ADB_EXECUTABLE)),
+    ]),
+  ];
 }
 
 async function isExecutable(filePath: string): Promise<boolean> {
@@ -62,8 +69,9 @@ async function isExecutable(filePath: string): Promise<boolean> {
   }
 }
 
-export async function resolveAdbPath(): Promise<string | null> {
-  for (const candidate of buildCandidatePaths()) {
+/** `customPath` (chosen by the user in the app) wins over `ADB_PATH` and the usual locations. */
+export async function resolveAdbPath(customPath?: string | null): Promise<string | null> {
+  for (const candidate of buildCandidatePaths(customPath)) {
     if (await isExecutable(candidate)) {
       return candidate;
     }
