@@ -1,8 +1,5 @@
 import { useCallback, useState } from 'react';
-import {
-  DEFAULT_MIRROR_OPTIONS,
-  type MirrorOptions,
-} from '../../../../shared/mirror/types';
+import { DEFAULT_MIRROR_OPTIONS, type MirrorOptions } from '../../../../shared/mirror/types';
 import { getManoloApi } from '../../shared/manolo-api';
 import { useMirrorStatus } from './useMirrorStatus';
 import { disposeMirrorStreamClient } from './mirror-stream.client';

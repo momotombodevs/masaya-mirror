@@ -8,7 +8,11 @@ function sendToFocusedWindow(action: MenuAction): void {
   BrowserWindow.getFocusedWindow()?.webContents.send(MENU_ACTION_CHANNEL, action);
 }
 
-function menuItem(label: string, accelerator: string, action: MenuAction): MenuItemConstructorOptions {
+function menuItem(
+  label: string,
+  accelerator: string,
+  action: MenuAction,
+): MenuItemConstructorOptions {
   return { label, accelerator, click: () => sendToFocusedWindow(action) };
 }
 

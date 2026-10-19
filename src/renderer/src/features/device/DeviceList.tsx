@@ -28,7 +28,10 @@ export function DeviceList({
   return (
     <section>
       {error && (
-        <div role="alert" className="flex items-center justify-between gap-3 border-b border-line px-4 py-2.5">
+        <div
+          role="alert"
+          className="flex items-center justify-between gap-3 border-b border-line px-4 py-2.5"
+        >
           <p className="min-w-0 text-danger">{error}</p>
           <Button onClick={onRefresh} disabled={loading}>
             Reintentar
@@ -63,7 +66,9 @@ export function DeviceList({
 
       {unavailable.length > 0 && (
         <>
-          <h2 className="border-b border-line px-4 pb-1.5 pt-4 text-sm font-medium text-ink-2">No disponibles</h2>
+          <h2 className="border-b border-line px-4 pb-1.5 pt-4 text-sm font-medium text-ink-2">
+            No disponibles
+          </h2>
           <ul>
             {unavailable.map((device) => (
               <DeviceRow
@@ -130,7 +135,16 @@ function DeviceRow({ device, showId, status, onOpen }: DeviceRowProps): JSX.Elem
 
 function PhoneIcon({ className }: { readonly className?: string }): JSX.Element {
   return (
-    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
       <rect x="7" y="2.5" width="10" height="19" rx="2.5" />
       <path d="M11 18.5h2" />
     </svg>

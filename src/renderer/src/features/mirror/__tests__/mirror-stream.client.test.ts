@@ -31,22 +31,20 @@ function createMockMessagePort(onStart?: (port: MessagePort) => void): MessagePo
 const notifyMirrorStreamReady = vi.fn().mockResolvedValue({ ok: true });
 
 vi.mock('../mirror-port-delivery', () => ({
-  registerMirrorPortHandler: vi.fn(
-    (_deviceId: string, handler: (port: MessagePort) => void) => {
-      const port = createMockMessagePort(() => {
-        const initMessage: MirrorStreamInitMessage = {
-          kind: 'init',
-          deviceId: 'device1',
-          video: { codec: ScrcpyVideoCodecId.H264, width: 1080, height: 1920 },
-          audioCodec: null,
-          audioWebCodecId: null,
-        };
-        port.postMessage(initMessage);
-      });
-      queueMicrotask(() => handler(port));
-      return () => undefined;
-    },
-  ),
+  registerMirrorPortHandler: vi.fn((_deviceId: string, handler: (port: MessagePort) => void) => {
+    const port = createMockMessagePort(() => {
+      const initMessage: MirrorStreamInitMessage = {
+        kind: 'init',
+        deviceId: 'device1',
+        video: { codec: ScrcpyVideoCodecId.H264, width: 1080, height: 1920 },
+        audioCodec: null,
+        audioWebCodecId: null,
+      };
+      port.postMessage(initMessage);
+    });
+    queueMicrotask(() => handler(port));
+    return () => undefined;
+  }),
   clearPendingMirrorPort: vi.fn(),
 }));
 

@@ -27,11 +27,9 @@ async function isReadable(filePath: string): Promise<boolean> {
 
 export async function resolveScrcpyServerPath(): Promise<string | null> {
   const packaged = getPackagedServerPath();
-  const candidates = [
-    process.env.SCRCPY_SERVER_PATH,
-    getDevServerPath(),
-    packaged,
-  ].filter((value): value is string => typeof value === 'string' && value.length > 0);
+  const candidates = [process.env.SCRCPY_SERVER_PATH, getDevServerPath(), packaged].filter(
+    (value): value is string => typeof value === 'string' && value.length > 0,
+  );
 
   for (const candidate of candidates) {
     if (await isReadable(candidate)) {

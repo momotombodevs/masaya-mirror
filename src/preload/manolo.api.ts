@@ -1,6 +1,6 @@
 import { deviceApi } from './device.api';
-import { mirrorApi } from './mirror.api';
 import { menuApi } from './menu.api';
+import { mirrorApi } from './mirror.api';
 import { qaApi } from './qa.api';
 
 export const manoloApi = {
@@ -10,44 +10,40 @@ export const manoloApi = {
   ...menuApi,
 };
 
-const API_NOT_AVAILABLE_MESSAGE = 'API no disponible en esta ventana.';
+export type ManoloApi = typeof manoloApi;
 
-function unavailableResult<T>(): Promise<T> {
-  return Promise.resolve({ ok: false, error: API_NOT_AVAILABLE_MESSAGE } as T);
+type ApiName = keyof ManoloApi;
+
+/** Calls every window may make. The rest is only exposed to the window that needs it. */
+const COMMON_API: readonly ApiName[] = ['getMirrorStatus', 'onMenuAction'];
+
+const MAIN_WINDOW_API: readonly ApiName[] = [...COMMON_API, 'listDevices', 'openMirrorWindow'];
+
+const MIRROR_WINDOW_API: readonly ApiName[] = [
+  ...COMMON_API,
+  'openMirror',
+  'closeMirror',
+  'sendControl',
+  'setMirrorOptions',
+  'notifyMirrorStreamReady',
+  'setMirrorVideoLayout',
+  'copyCapture',
+  'saveCapture',
+  'saveRecording',
+];
+
+const unavailable = (): Promise<{ ok: false; error: string }> =>
+  Promise.resolve({ ok: false, error: 'API no disponible en esta ventana.' });
+
+/** Keeps the full API shape but replaces calls outside `allowed` with a failing stub. */
+function exposeOnly(allowed: readonly ApiName[]): ManoloApi {
+  const entries = Object.entries(manoloApi).map(([name, call]) => [
+    name,
+    allowed.includes(name as ApiName) ? call : unavailable,
+  ]);
+  return Object.fromEntries(entries) as ManoloApi;
 }
 
-export function createMainWindowApi() {
-  return {
-    onMenuAction: menuApi.onMenuAction,
-    listDevices: deviceApi.listDevices,
-    openMirrorWindow: mirrorApi.openMirrorWindow,
-    getMirrorStatus: mirrorApi.getMirrorStatus,
-    openMirror: () => unavailableResult<ReturnType<typeof mirrorApi.openMirror> extends Promise<infer T> ? T : never>(),
-    closeMirror: () => unavailableResult<ReturnType<typeof mirrorApi.closeMirror> extends Promise<infer T> ? T : never>(),
-    sendControl: () => unavailableResult<ReturnType<typeof mirrorApi.sendControl> extends Promise<infer T> ? T : never>(),
-    setMirrorOptions: () => unavailableResult<ReturnType<typeof mirrorApi.setMirrorOptions> extends Promise<infer T> ? T : never>(),
-    notifyMirrorStreamReady: () => unavailableResult<ReturnType<typeof mirrorApi.notifyMirrorStreamReady> extends Promise<infer T> ? T : never>(),
-    setMirrorVideoLayout: () => unavailableResult<ReturnType<typeof mirrorApi.setMirrorVideoLayout> extends Promise<infer T> ? T : never>(),
-    copyCapture: () => unavailableResult<ReturnType<typeof qaApi.copyCapture> extends Promise<infer T> ? T : never>(),
-    saveCapture: () => unavailableResult<ReturnType<typeof qaApi.saveCapture> extends Promise<infer T> ? T : never>(),
-    saveRecording: () => unavailableResult<ReturnType<typeof qaApi.saveRecording> extends Promise<infer T> ? T : never>(),
-  };
-}
+export const createMainWindowApi = (): ManoloApi => exposeOnly(MAIN_WINDOW_API);
 
-export function createMirrorWindowApi() {
-  return {
-    onMenuAction: menuApi.onMenuAction,
-    listDevices: () => unavailableResult<ReturnType<typeof deviceApi.listDevices> extends Promise<infer T> ? T : never>(),
-    openMirrorWindow: () => unavailableResult<ReturnType<typeof mirrorApi.openMirrorWindow> extends Promise<infer T> ? T : never>(),
-    getMirrorStatus: mirrorApi.getMirrorStatus,
-    openMirror: mirrorApi.openMirror,
-    closeMirror: mirrorApi.closeMirror,
-    sendControl: mirrorApi.sendControl,
-    setMirrorOptions: mirrorApi.setMirrorOptions,
-    notifyMirrorStreamReady: mirrorApi.notifyMirrorStreamReady,
-    setMirrorVideoLayout: mirrorApi.setMirrorVideoLayout,
-    copyCapture: qaApi.copyCapture,
-    saveCapture: qaApi.saveCapture,
-    saveRecording: qaApi.saveRecording,
-  };
-}
+export const createMirrorWindowApi = (): ManoloApi => exposeOnly(MIRROR_WINDOW_API);

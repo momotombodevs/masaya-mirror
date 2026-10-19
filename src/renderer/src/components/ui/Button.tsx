@@ -6,7 +6,8 @@ export type ButtonVariant = 'default' | 'primary' | 'plain' | 'toolbar';
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   default:
     'border border-line bg-fill text-ink shadow-control enabled:hover:bg-hover enabled:active:bg-line',
-  primary: 'border border-transparent bg-accent text-white enabled:hover:opacity-90 enabled:active:opacity-80',
+  primary:
+    'border border-transparent bg-accent text-white enabled:hover:opacity-90 enabled:active:opacity-80',
   plain: 'border border-transparent text-ink-2 enabled:hover:bg-hover enabled:hover:text-ink',
   toolbar:
     'border border-transparent text-mirror-text enabled:hover:bg-mirror-hover enabled:active:bg-mirror-line',

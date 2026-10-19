@@ -1,0 +1,96 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  verify:
+    name: Verify tag and code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - name: Tag matches package.json version
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          if [ "v${version}" != "${GITHUB_REF_NAME}" ]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match package.json version v${version}" >&2
+            exit 1
+          fi
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
+
+  package:
+    name: Package ${{ matrix.name }}
+    needs: verify
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS (arm64 + x64)
+            runner: macos-14
+            command: pnpm build:mac
+            artifact: manolo-mirror-macos
+            files: release/**/*.dmg
+          - name: Windows (x64)
+            runner: windows-latest
+            command: pnpm build:win
+            artifact: manolo-mirror-windows
+            files: release/**/*.exe
+          - name: Linux (x64)
+            runner: ubuntu-latest
+            command: pnpm build:linux
+            artifact: manolo-mirror-linux
+            files: release/**/*.AppImage
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Package
+        run: ${{ matrix.command }}
+        env:
+          # Installers are unsigned until signing certificates are configured (see docs/RELEASING.md).
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.files }}
+          if-no-files-found: error
+
+  publish:
+    name: Publish GitHub Release
+    needs: package
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-artifacts/**/*.dmg
+            release-artifacts/**/*.exe
+            release-artifacts/**/*.AppImage
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          body: |
+            Instaladores para macOS (`.dmg`, Apple Silicon e Intel), Windows (`.exe`) y Linux (`.AppImage`).
+
+            Requiere `adb` instalado. Los instaladores no están firmados: en macOS usa clic derecho → **Abrir**; en Windows, **Más información → Ejecutar de todas formas**.

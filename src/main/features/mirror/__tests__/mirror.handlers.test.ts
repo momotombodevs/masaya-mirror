@@ -60,13 +60,10 @@ describe('registerMirrorIpcHandlers', () => {
       .mocked(ipcMain.handle)
       .mock.calls.find(([channel]) => channel === MIRROR_CHANNELS.control)?.[1];
 
-    const result = await handler?.(
-      { sender: { id: 10 } } as never,
-      {
-        deviceId: 'emulator-5554',
-        message: { type: 'key', action: 0, keyCode: 3, repeat: 0, metaState: 0 },
-      },
-    );
+    const result = await handler?.({ sender: { id: 10 } } as never, {
+      deviceId: 'emulator-5554',
+      message: { type: 'key', action: 0, keyCode: 3, repeat: 0, metaState: 0 },
+    });
 
     expect(result).toEqual({
       ok: false,

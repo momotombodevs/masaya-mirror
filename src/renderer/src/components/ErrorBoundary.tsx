@@ -29,7 +29,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         <div className="p-6">
           <h1 className="mb-2 text-xl font-semibold">Manolo Mirror</h1>
           <p role="alert" className="mb-4 text-danger">
-            Error al cargar la interfaz: {this.state.error.message}
+            Error al cargar: {this.state.error.message}
           </p>
           <Button onClick={() => window.location.reload()}>Recargar</Button>
         </div>

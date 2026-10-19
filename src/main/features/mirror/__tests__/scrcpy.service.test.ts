@@ -1,3 +1,4 @@
+import type { WebContents } from 'electron';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ScrcpyService } from '../scrcpy.service';
 import type { AdbService } from '../../device/adb.service';
@@ -57,7 +58,7 @@ describe('ScrcpyService', () => {
     (service as unknown as { sessions: Map<string, unknown> }).sessions = sessions;
 
     const closeSpy = vi.spyOn(service, 'closeMirror');
-    const webContents = { postMessage: vi.fn() } as unknown as import('electron').WebContents;
+    const webContents = { postMessage: vi.fn() } as unknown as WebContents;
     await service.openMirror('device1', webContents);
 
     expect(closeSpy).toHaveBeenCalledWith('device1');
@@ -78,7 +79,7 @@ describe('ScrcpyService', () => {
       .spyOn(service, 'openMirror')
       .mockResolvedValue({ ok: true, value: {} as never });
 
-    const webContents = { postMessage: vi.fn() } as unknown as import('electron').WebContents;
+    const webContents = { postMessage: vi.fn() } as unknown as WebContents;
     await service.setOptions('device1', webContents, { ...DEFAULT_MIRROR_OPTIONS, maxSize: 2560 });
 
     expect(close).toHaveBeenCalledWith(undefined, { notifyRenderer: false });
@@ -90,7 +91,7 @@ describe('ScrcpyService', () => {
     vi.mocked(resolveScrcpyServerPath).mockResolvedValueOnce(null);
 
     const service = new ScrcpyService(adbService);
-    const webContents = { postMessage: vi.fn() } as unknown as import('electron').WebContents;
+    const webContents = { postMessage: vi.fn() } as unknown as WebContents;
     const result = await service.openMirror('device1', webContents);
     expect(result.ok).toBe(false);
   });

@@ -1,7 +1,9 @@
-import { BrowserWindow, screen } from 'electron';
+import { type BrowserWindow, screen } from 'electron';
 import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { ok, err, type Result } from '../../../shared/ipc/result';
-import { MAIN_DIST, RENDERER_DIST, VITE_DEV_SERVER_URL, createSecureWindow } from '../../app';
+import { createSecureWindow } from '../../app';
+import { RENDERER_DIST, VITE_DEV_SERVER_URL } from '../../paths';
 import type { ScrcpyService } from './scrcpy.service';
 import { computeStageSize, TOOLBAR_CONTENT_HEIGHT } from './mirror-layout';
 
@@ -9,23 +11,12 @@ export type MirrorWindowServiceDeps = {
   readonly scrcpyService: ScrcpyService;
 };
 
-function buildMirrorLoadOptions(
-  deviceId: string,
-  deviceLabel: string,
-): { url: string } | { file: string; query: Record<string, string> } {
-  const query = { deviceId, label: deviceLabel };
-
-  if (VITE_DEV_SERVER_URL) {
-    const url = new URL(VITE_DEV_SERVER_URL);
-    url.searchParams.set('deviceId', deviceId);
-    url.searchParams.set('label', deviceLabel);
-    return { url: url.toString() };
-  }
-
-  return {
-    file: path.join(RENDERER_DIST, 'index.html'),
-    query,
-  };
+/** URL of the renderer entry (dev server or packaged file) targeting one device. */
+function buildMirrorUrl(deviceId: string, deviceLabel: string): string {
+  const url = new URL(VITE_DEV_SERVER_URL ?? pathToFileURL(path.join(RENDERER_DIST, 'index.html')));
+  url.searchParams.set('deviceId', deviceId);
+  url.searchParams.set('label', deviceLabel);
+  return url.toString();
 }
 
 const MIN_CONTENT_WIDTH = 280;
@@ -55,13 +46,6 @@ export class MirrorWindowService {
       title: deviceLabel,
       autoHideMenuBar: true,
       backgroundColor: '#000000',
-      webPreferences: {
-        preload: path.join(MAIN_DIST, 'preload.cjs'),
-        contextIsolation: true,
-        nodeIntegration: false,
-        sandbox: true,
-        webSecurity: true,
-      },
     });
 
     this.windows.set(deviceId, win);
@@ -72,12 +56,7 @@ export class MirrorWindowService {
       void this.deps.scrcpyService.closeMirror(deviceId);
     });
 
-    const loadTarget = buildMirrorLoadOptions(deviceId, deviceLabel);
-    if ('url' in loadTarget) {
-      await win.loadURL(loadTarget.url);
-    } else {
-      await win.loadFile(loadTarget.file, { query: loadTarget.query });
-    }
+    await win.loadURL(buildMirrorUrl(deviceId, deviceLabel));
 
     return ok(undefined);
   }
@@ -116,15 +95,9 @@ export class MirrorWindowService {
     if (!this.layoutApplied.has(deviceId)) {
       this.layoutApplied.add(deviceId);
       const { workAreaSize } = screen.getDisplayMatching(win.getBounds());
-      const stage = computeStageSize(
-        { width: videoWidth, height: videoHeight },
-        workAreaSize,
-      );
+      const stage = computeStageSize({ width: videoWidth, height: videoHeight }, workAreaSize);
       const contentWidth = Math.max(MIN_CONTENT_WIDTH, stage.width);
-      const contentHeight = Math.max(
-        MIN_CONTENT_HEIGHT,
-        stage.height + TOOLBAR_CONTENT_HEIGHT,
-      );
+      const contentHeight = Math.max(MIN_CONTENT_HEIGHT, stage.height + TOOLBAR_CONTENT_HEIGHT);
       win.setContentSize(contentWidth, contentHeight);
     }
 
