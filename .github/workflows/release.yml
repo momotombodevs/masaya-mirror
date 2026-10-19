@@ -64,8 +64,14 @@ jobs:
       - name: Package
         run: ${{ matrix.command }}
         env:
-          # Installers are unsigned until signing certificates are configured (see docs/RELEASING.md).
-          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          # Signed only when the platform's certificate secrets exist; otherwise the installer
+          # stays unsigned (see docs/RELEASING.md).
+          CSC_LINK: ${{ matrix.runner == 'windows-latest' && secrets.WIN_CSC_LINK || matrix.runner == 'macos-14' && secrets.MAC_CSC_LINK || '' }}
+          CSC_KEY_PASSWORD: ${{ matrix.runner == 'windows-latest' && secrets.WIN_CSC_KEY_PASSWORD || matrix.runner == 'macos-14' && secrets.MAC_CSC_KEY_PASSWORD || '' }}
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ (matrix.runner == 'windows-latest' && secrets.WIN_CSC_LINK != '' || matrix.runner == 'macos-14' && secrets.MAC_CSC_LINK != '') && 'true' || 'false' }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
@@ -93,4 +99,4 @@ jobs:
           body: |
             Instaladores para macOS (`.dmg`, Apple Silicon e Intel), Windows (`.exe`) y Linux (`.AppImage`).
 
-            Requiere `adb` instalado. Los instaladores no están firmados: en macOS usa clic derecho → **Abrir**; en Windows, **Más información → Ejecutar de todas formas**.
+            Requiere `adb` instalado. Si ves un aviso de seguridad al abrir, el instalador no está firmado: en macOS usa clic derecho → **Abrir**; en Windows, **Más información → Ejecutar de todas formas**.

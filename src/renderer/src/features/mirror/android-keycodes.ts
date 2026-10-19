@@ -25,8 +25,18 @@ function buildKeyCodeMap(): Record<string, number> {
 
 const KEY_CODE_MAP = buildKeyCodeMap();
 
-/** Android KEYCODE_BACK, used for the right mouse button. */
+/** Android KEYCODE_BACK, also used for the right mouse button. */
 export const ANDROID_KEYCODE_BACK = 4;
+
+/** Hardware and navigation keys offered as toolbar buttons. */
+export const ANDROID_KEYCODE = {
+  home: 3,
+  back: ANDROID_KEYCODE_BACK,
+  volumeUp: 24,
+  volumeDown: 25,
+  power: 26,
+  appSwitch: 187,
+} as const;
 
 export function mapBrowserKeyToAndroid(code: string): number | null {
   return KEY_CODE_MAP[code] ?? null;

@@ -10,9 +10,13 @@ import {
   type MirrorQualityPreset,
 } from '../../../../shared/mirror/quality';
 import { useMenuActions } from '../../shared/useMenuAction';
+import { ANDROID_KEYCODE } from './android-keycodes';
+import { useApkInstall } from './useApkInstall';
+import { useDeviceKeys } from './useDeviceKeys';
 import { useToolbarStatus } from './useToolbarStatus';
 
 type MirrorToolbarProps = {
+  readonly deviceId: string;
   readonly deviceLabel: string;
   readonly canvas: HTMLCanvasElement | null;
   readonly onFullscreen: () => void;
@@ -22,6 +26,7 @@ type MirrorToolbarProps = {
 };
 
 export function MirrorToolbar({
+  deviceId,
   deviceLabel,
   canvas,
   onFullscreen,
@@ -32,6 +37,8 @@ export function MirrorToolbar({
   const { statusMessage, showStatus } = useToolbarStatus();
   const capture = useCapture(canvas, showStatus);
   const recorder = useRecording(canvas, showStatus);
+  const pressKey = useDeviceKeys(deviceId);
+  const apk = useApkInstall(deviceId, showStatus);
 
   useMenuActions({
     capture: () => void capture.open(),
@@ -65,6 +72,57 @@ export function MirrorToolbar({
             ))}
           </select>
 
+          <ToolbarIconButton
+            label="Atrás"
+            disabled={disabled}
+            onClick={() => pressKey(ANDROID_KEYCODE.back)}
+          >
+            <BackIcon />
+          </ToolbarIconButton>
+          <ToolbarIconButton
+            label="Inicio"
+            disabled={disabled}
+            onClick={() => pressKey(ANDROID_KEYCODE.home)}
+          >
+            <HomeIcon />
+          </ToolbarIconButton>
+          <ToolbarIconButton
+            label="Apps recientes"
+            disabled={disabled}
+            onClick={() => pressKey(ANDROID_KEYCODE.appSwitch)}
+          >
+            <RecentsIcon />
+          </ToolbarIconButton>
+          <ToolbarDivider />
+          <ToolbarIconButton
+            label="Subir volumen"
+            disabled={disabled}
+            onClick={() => pressKey(ANDROID_KEYCODE.volumeUp)}
+          >
+            <VolumeIcon level="up" />
+          </ToolbarIconButton>
+          <ToolbarIconButton
+            label="Bajar volumen"
+            disabled={disabled}
+            onClick={() => pressKey(ANDROID_KEYCODE.volumeDown)}
+          >
+            <VolumeIcon level="down" />
+          </ToolbarIconButton>
+          <ToolbarIconButton
+            label="Encender o apagar pantalla"
+            disabled={disabled}
+            onClick={() => pressKey(ANDROID_KEYCODE.power)}
+          >
+            <PowerIcon />
+          </ToolbarIconButton>
+          <ToolbarDivider />
+          <ToolbarIconButton
+            label="Instalar APK"
+            disabled={disabled || apk.installing}
+            onClick={() => void apk.install()}
+          >
+            <InstallIcon />
+          </ToolbarIconButton>
           <ToolbarIconButton
             label="Captura"
             disabled={disabled || !canvas}
@@ -168,6 +226,67 @@ function FullscreenIcon(): JSX.Element {
   return (
     <svg {...ICON_PROPS}>
       <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+    </svg>
+  );
+}
+
+function ToolbarDivider(): JSX.Element {
+  return <span className="mx-1 h-4 w-px bg-mirror-line" aria-hidden />;
+}
+
+function BackIcon(): JSX.Element {
+  return (
+    <svg {...ICON_PROPS}>
+      <path d="M15 5l-7 7 7 7" />
+    </svg>
+  );
+}
+
+function HomeIcon(): JSX.Element {
+  return (
+    <svg {...ICON_PROPS}>
+      <circle cx="12" cy="12" r="7" />
+    </svg>
+  );
+}
+
+function RecentsIcon(): JSX.Element {
+  return (
+    <svg {...ICON_PROPS}>
+      <rect x="6" y="6" width="12" height="12" rx="2" />
+    </svg>
+  );
+}
+
+function VolumeIcon({ level }: { readonly level: 'up' | 'down' }): JSX.Element {
+  return (
+    <svg {...ICON_PROPS}>
+      <path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z" />
+      <path
+        d={
+          level === 'up'
+            ? 'M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11'
+            : 'M15.5 9a4 4 0 0 1 0 6'
+        }
+      />
+    </svg>
+  );
+}
+
+function PowerIcon(): JSX.Element {
+  return (
+    <svg {...ICON_PROPS}>
+      <path d="M12 3v8" />
+      <path d="M6.3 7.2a7.5 7.5 0 1 0 11.4 0" />
+    </svg>
+  );
+}
+
+function InstallIcon(): JSX.Element {
+  return (
+    <svg {...ICON_PROPS}>
+      <path d="M12 4v11m0 0l-4-4m4 4l4-4" />
+      <path d="M5 19h14" />
     </svg>
   );
 }

@@ -1,6 +1,7 @@
+import { ADB_NOT_FOUND_MESSAGE } from '../../../shared/device/adb';
 import { CommandError } from '../../utils/runCommand';
 
-export const ADB_NOT_FOUND_MESSAGE = 'ADB no encontrado. Instala platform-tools o define ADB_PATH.';
+export { ADB_NOT_FOUND_MESSAGE };
 
 const ADB_TIMEOUT_MESSAGE = 'ADB no responde. Revisa el servidor adb.';
 

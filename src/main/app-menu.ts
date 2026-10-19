@@ -28,6 +28,7 @@ function buildDeviceMenu(): MenuItemConstructorOptions {
     label: 'Dispositivo',
     submenu: [
       menuItem('Actualizar lista', 'CmdOrCtrl+R', 'refresh'),
+      menuItem('Conectar por Wi-Fi…', 'CmdOrCtrl+Shift+W', 'wifi'),
       { type: 'separator' },
       menuItem('Captura de pantalla', 'CmdOrCtrl+Shift+4', 'capture'),
       menuItem('Grabar', 'CmdOrCtrl+Shift+5', 'record'),

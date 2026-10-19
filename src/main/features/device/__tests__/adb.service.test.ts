@@ -113,3 +113,116 @@ describe('AdbService', () => {
     expect(result).toEqual({ ok: false, error: 'adb: server version mismatch' });
   });
 });
+
+describe('AdbService wireless and install commands', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const reply = (stdout: string): void => {
+    mockedRunCommand.mockResolvedValue({ stdout, stderr: '' });
+  };
+
+  it('pairs with address and code', async () => {
+    reply('Successfully paired to 192.168.1.20:37099 [guid=adb-ABC]');
+
+    const result = await new AdbService().pair('192.168.1.20:37099', '123456');
+
+    expect(mockedRunCommand).toHaveBeenCalledWith(
+      '/usr/local/bin/adb',
+      ['pair', '192.168.1.20:37099', '123456'],
+      20_000,
+    );
+    expect(result).toEqual({ ok: true, value: 'Dispositivo vinculado.' });
+  });
+
+  it('reports adb failure text when pairing is rejected', async () => {
+    reply('Failed: Wrong password or connection was dropped.');
+
+    const result = await new AdbService().pair('192.168.1.20:37099', '000000');
+
+    expect(result).toEqual({
+      ok: false,
+      error: 'Failed: Wrong password or connection was dropped.',
+    });
+  });
+
+  it('treats "connected" and "already connected" as success', async () => {
+    reply('connected to 192.168.1.20:5555');
+    expect((await new AdbService().connect('192.168.1.20:5555')).ok).toBe(true);
+
+    reply('already connected to 192.168.1.20:5555');
+    expect((await new AdbService().connect('192.168.1.20:5555')).ok).toBe(true);
+  });
+
+  it('treats adb exit-code-0 failures as errors', async () => {
+    reply('failed to connect to 192.168.1.20:5555');
+
+    const result = await new AdbService().connect('192.168.1.20:5555');
+
+    expect(result).toEqual({ ok: false, error: 'failed to connect to 192.168.1.20:5555' });
+  });
+
+  it('disconnects by address', async () => {
+    reply('disconnected 192.168.1.20:5555');
+
+    const result = await new AdbService().disconnect('192.168.1.20:5555');
+
+    expect(mockedRunCommand).toHaveBeenCalledWith(
+      '/usr/local/bin/adb',
+      ['disconnect', '192.168.1.20:5555'],
+      20_000,
+    );
+    expect(result.ok).toBe(true);
+  });
+
+  it('installs an APK on one device and detects success', async () => {
+    reply('Performing Streamed Install\nSuccess');
+
+    const result = await new AdbService().installApk('emulator-5554', '/tmp/app.apk');
+
+    expect(mockedRunCommand).toHaveBeenCalledWith(
+      '/usr/local/bin/adb',
+      ['-s', 'emulator-5554', 'install', '-r', '-t', '/tmp/app.apk'],
+      180_000,
+    );
+    expect(result).toEqual({ ok: true, value: undefined });
+  });
+
+  it('surfaces the install failure reason', async () => {
+    reply(
+      'Performing Streamed Install\nadb: failed to install /tmp/app.apk: Failure [INSTALL_FAILED_OLDER_SDK]',
+    );
+
+    const result = await new AdbService().installApk('emulator-5554', '/tmp/app.apk');
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toContain('INSTALL_FAILED_OLDER_SDK');
+    }
+  });
+
+  it('verifies that a candidate is really adb', async () => {
+    reply('Android Debug Bridge version 1.0.41');
+    expect(await new AdbService().verifyExecutable('/opt/adb')).toBe(true);
+
+    reply('GNU bash, version 5.2');
+    expect(await new AdbService().verifyExecutable('/bin/bash')).toBe(false);
+
+    mockedRunCommand.mockRejectedValue(new Error('spawn ENOENT'));
+    expect(await new AdbService().verifyExecutable('/nope')).toBe(false);
+  });
+
+  it('prefers the custom adb path and forgets the cached one when it changes', async () => {
+    const { resolveAdbPath } = await import('../adb-path.resolver');
+    const service = new AdbService();
+
+    service.setCustomPath('/custom/adb');
+    await service.getExecutablePath();
+    expect(resolveAdbPath).toHaveBeenLastCalledWith('/custom/adb');
+
+    service.setCustomPath(null);
+    await service.getExecutablePath();
+    expect(resolveAdbPath).toHaveBeenLastCalledWith(null);
+  });
+});

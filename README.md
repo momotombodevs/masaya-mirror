@@ -6,7 +6,11 @@ captura de pantalla, grabación de video y control con mouse y teclado, sin inst
 - **Espejo en ventana propia** por dispositivo, con calidad ajustable (Equilibrada, Alta, Máxima).
 - **Control completo:** toques, multitouch, arrastre, rueda, teclado (incluye acentos y símbolos) y
   clic derecho como «Atrás».
+- **Barra de dispositivo:** Atrás, Inicio, Apps recientes, volumen y encendido de pantalla.
+- **Instalar APK** desde la barra o arrastrando el archivo a la ventana del espejo.
+- **Conexión por Wi-Fi** (vinculación y conexión con `adb`) sin cable.
 - **Captura y grabación** desde la barra del espejo o con atajos.
+- **Recuerda** la calidad elegida y la carpeta donde guardas capturas y grabaciones.
 - **Tema claro/oscuro** y color de acento del sistema.
 
 ## Requisitos
@@ -19,8 +23,8 @@ captura de pantalla, grabación de video y control con mouse y teclado, sin inst
 
 En el teléfono: activa las **Opciones de desarrollador** y la **Depuración USB**.
 
-La app busca `adb` en `ADB_PATH`, `ANDROID_HOME`, `ANDROID_SDK_ROOT`, las rutas habituales del SDK y
-el `PATH`.
+La app busca `adb` en el que elijas dentro de la app, `ADB_PATH`, `ANDROID_HOME`, `ANDROID_SDK_ROOT`, las
+rutas habituales del SDK y el `PATH`. Si no lo encuentra, ofrece descargarlo o elegirlo.
 
 ## Empezar
 
@@ -35,6 +39,7 @@ pnpm dev:debug      # igual, con DevTools
 | Comando                                      | Qué hace                                           |
 | -------------------------------------------- | -------------------------------------------------- |
 | `pnpm check`                                 | Typecheck, lint, formato y tests (lo mismo que CI) |
+| `pnpm test:e2e`                              | Compila y prueba la app real con un `adb` simulado |
 | `pnpm typecheck` · `pnpm lint` · `pnpm test` | Cada comprobación por separado                     |
 | `pnpm format`                                | Formatea con Prettier                              |
 | `pnpm build:app`                             | Compila main, preload y renderer (sin empaquetar)  |
@@ -52,6 +57,7 @@ Los instaladores quedan en `release/<versión>/`. Detalles de versionado y firma
 | Actualizar lista de dispositivos | ⌘R                           | Ctrl+R                       |
 | Captura de pantalla              | ⌘⇧4                          | Ctrl+Shift+4                 |
 | Grabar / detener                 | ⌘⇧5                          | Ctrl+Shift+5                 |
+| Conectar por Wi-Fi               | ⌘⇧W                          | Ctrl+Shift+W                 |
 | Abrir espejo                     | Doble clic en el dispositivo | Doble clic en el dispositivo |
 
 En la ventana del espejo, el teclado y el mouse se envían al dispositivo.

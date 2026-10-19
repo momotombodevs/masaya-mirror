@@ -2,7 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { MirrorView } from './MirrorView';
 import { MirrorToolbar } from './MirrorToolbar';
 import { useMirror } from './useMirror';
-import { applyQualityPreset, qualityPresetOf } from '../../../../shared/mirror/quality';
+import {
+  applyQualityPreset,
+  qualityPresetOf,
+  type MirrorQualityPreset,
+} from '../../../../shared/mirror/quality';
+import { DEFAULT_MIRROR_OPTIONS } from '../../../../shared/mirror/types';
+import { getManoloApi } from '../../shared/manolo-api';
 import { OverlayError } from '../../components/ui/OverlayError';
 
 type MirrorWindowAppProps = {
@@ -17,9 +23,35 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
   const openMirrorRef = useRef(mirror.openMirror);
   openMirrorRef.current = mirror.openMirror;
 
+  // Start with the quality the user used last. A missing or failing preference never blocks the mirror.
   useEffect(() => {
-    void openMirrorRef.current();
+    let cancelled = false;
+    void (async () => {
+      const prefs = await getManoloApi()
+        ?.getPreferences()
+        .catch(() => undefined);
+      if (cancelled) {
+        return;
+      }
+      const startOptions = prefs?.ok
+        ? applyQualityPreset(DEFAULT_MIRROR_OPTIONS, prefs.value.quality)
+        : undefined;
+      await openMirrorRef.current(undefined, startOptions);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [deviceId]);
+
+  const handleQualityChange = useCallback(
+    async (preset: MirrorQualityPreset): Promise<void> => {
+      const applied = await mirror.applyOptions(applyQualityPreset(mirror.options, preset));
+      if (applied) {
+        void getManoloApi()?.setPreferences({ quality: preset });
+      }
+    },
+    [mirror],
+  );
 
   const handleStopMirror = useCallback(async (): Promise<void> => {
     await mirror.closeMirror();
@@ -41,13 +73,12 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-mirror-canvas">
       <MirrorToolbar
+        deviceId={deviceId}
         deviceLabel={deviceLabel}
         canvas={mirrorCanvas}
         onFullscreen={handleFullscreen}
         quality={qualityPresetOf(mirror.options)}
-        onQualityChange={(preset) =>
-          void mirror.applyOptions(applyQualityPreset(mirror.options, preset))
-        }
+        onQualityChange={(preset) => void handleQualityChange(preset)}
         disabled={mirror.loading}
       />
 

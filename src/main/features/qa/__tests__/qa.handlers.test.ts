@@ -23,9 +23,14 @@ describe('registerQaIpcHandlers', () => {
     isMirrorWindowSender: vi.fn().mockReturnValue(true),
   };
 
+  const preferences = {
+    getSaveDirectory: vi.fn().mockReturnValue(null),
+    setSaveDirectory: vi.fn(),
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
-    registerQaIpcHandlers(mirrorWindowService as never);
+    registerQaIpcHandlers(mirrorWindowService as never, preferences as never);
   });
 
   it('registers qa ipc channels', () => {
