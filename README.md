@@ -43,7 +43,6 @@ pnpm dev:debug      # igual, con DevTools
 | Comando                                      | Qué hace                                           |
 | -------------------------------------------- | -------------------------------------------------- |
 | `pnpm check`                                 | Typecheck, lint, formato y tests (lo mismo que CI) |
-| `pnpm test:e2e`                              | Compila y prueba la app real con un `adb` simulado |
 | `pnpm typecheck` · `pnpm lint` · `pnpm test` | Cada comprobación por separado                     |
 | `pnpm format`                                | Formatea con Prettier                              |
 | `pnpm build:app`                             | Compila main, preload y renderer (sin empaquetar)  |
@@ -76,7 +75,8 @@ src/
   preload/    Puente seguro: expone a cada ventana solo las llamadas que necesita
   renderer/   Interfaz React + Tailwind: lista de dispositivos y ventana del espejo
   shared/     Tipos y contratos IPC compartidos entre procesos
-docs/         Arquitectura, decisiones (ADR), publicación y deuda técnica
+docs/         Arquitectura, decisiones (ADR) y publicación
+landing/      Sitio estático (inicio y política de privacidad)
 ```
 
 Para el detalle de flujos y decisiones, lee [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

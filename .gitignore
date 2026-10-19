@@ -12,7 +12,6 @@ node_modules
 dist
 dist-electron
 
-.playwright-mcp
 .impeccable
 dist-ssr
 *.local
@@ -31,8 +30,3 @@ dist-ssr
 release
 resources/bin
 resources/.tmp
-
-.agents
-.cursor
-playwright-report
-test-results

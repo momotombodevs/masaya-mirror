@@ -126,5 +126,3 @@ configuración (`setup.handlers.ts`) también rechazan a las ventanas del espejo
 
 - [ADR 0001 — El video viaja por MessagePort y se decodifica en la ventana](adr/0001-video-por-messageport.md)
 - [ADR 0002 — Contratos IPC con validación en el proceso principal](adr/0002-validacion-ipc.md)
-
-La deuda técnica conocida está en [TECH_DEBT.md](TECH_DEBT.md).

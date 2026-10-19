@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Manolo Mirror — Espeja y controla Android desde tu escritorio</title>
+    <meta
+      name="description"
+      content="Manolo Mirror espeja y controla dispositivos Android desde macOS, Windows y Linux. Captura, graba y controla con mouse y teclado. Sin nube, sin cuentas."
+    />
+    <link rel="icon" type="image/svg+xml" href="manolo-logo.svg" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="site">
+      <div class="wrap">
+        <a class="brand" href="./"><img src="manolo-logo.svg" alt="" />Manolo Mirror</a>
+        <nav>
+          <a href="#funciones">Funciones</a>
+          <a href="#empezar">Empezar</a>
+          <a href="#faq">Preguntas</a>
+        </nav>
+      </div>
+    </header>
+
+    <main>
+      <div class="wrap hero">
+        <h1>Espeja y controla tu Android desde el escritorio</h1>
+        <p>
+          Pensada para QA: captura de pantalla, grabación de video y control con mouse y teclado en
+          macOS, Windows y Linux. Todo ocurre en tu equipo.
+        </p>
+        <div class="cta">
+          <a class="btn" href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
+            >Descargar</a
+          >
+          <a class="btn ghost" href="#empezar">Cómo empezar</a>
+        </div>
+        <p class="note">macOS (Apple Silicon e Intel) · Windows x64 · Linux x64 (AppImage)</p>
+      </div>
+
+      <section id="funciones">
+        <div class="wrap">
+          <h2>Lo que necesitas para probar en un dispositivo real</h2>
+          <div class="grid">
+            <div class="card">
+              <h3>Espejo en ventana propia</h3>
+              <p>Una ventana por dispositivo, con calidad ajustable: Equilibrada, Alta o Máxima.</p>
+            </div>
+            <div class="card">
+              <h3>Control completo</h3>
+              <p>
+                Toques, multitouch, arrastre, rueda y teclado con acentos y símbolos. Clic derecho
+                como «Atrás».
+              </p>
+            </div>
+            <div class="card">
+              <h3>Captura y grabación</h3>
+              <p>Un clic o un atajo. Elige la carpeta donde se guardan y qué hacer al capturar.</p>
+            </div>
+            <div class="card">
+              <h3>Wi-Fi sin cable</h3>
+              <p>Escanea un código QR desde el teléfono y conéctate sin USB.</p>
+            </div>
+            <div class="card">
+              <h3>Instalar APK</h3>
+              <p>Desde la barra o arrastrando el archivo a la ventana del espejo.</p>
+            </div>
+            <div class="card">
+              <h3>Claro, oscuro y en español</h3>
+              <p>Sigue el tema y el color de acento del sistema. Disponible en español e inglés.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="empezar">
+        <div class="wrap">
+          <h2>Empieza en tres pasos</h2>
+          <ol class="steps">
+            <li>
+              <strong>Activa la depuración USB</strong> en el teléfono: Ajustes → Opciones de
+              desarrollador → Depuración USB.
+            </li>
+            <li>
+              <strong>Instala Manolo Mirror</strong> y, si hace falta, deja que la app te guíe para
+              descargar <code>adb</code> (Android platform-tools) o elegirlo.
+            </li>
+            <li>
+              <strong>Conecta el teléfono</strong> por USB o con el código QR, y haz doble clic en
+              el dispositivo para abrir el espejo.
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <section id="faq">
+        <div class="wrap">
+          <h2>Preguntas frecuentes</h2>
+          <details>
+            <summary>¿Envía mis datos a algún servidor?</summary>
+            <p>
+              No. Manolo Mirror no tiene cuentas, nube ni telemetría. El video y los archivos
+              permanecen en tu equipo. Consulta la
+              <a href="privacy.html">política de privacidad</a>.
+            </p>
+          </details>
+          <details>
+            <summary>¿Necesito instalar adb?</summary>
+            <p>
+              Sí, la app usa <code>adb</code> para hablar con el dispositivo y no lo incluye. Si no
+              lo encuentra, te indica cómo descargarlo desde Android o elegir uno que ya tengas.
+            </p>
+          </details>
+          <details>
+            <summary>macOS o Windows muestran un aviso al abrirla</summary>
+            <p>
+              Mientras los instaladores no estén firmados, macOS pide abrirla con clic derecho →
+              Abrir, y Windows SmartScreen pide «Más información → Ejecutar de todas formas».
+            </p>
+          </details>
+          <details>
+            <summary>El código QR no encuentra mi teléfono</summary>
+            <p>
+              El teléfono y el equipo deben estar en la misma red Wi-Fi y la red debe permitir mDNS.
+              Algunas redes de oficina lo bloquean; prueba con otra red o usa USB.
+            </p>
+          </details>
+          <details>
+            <summary>¿La imagen va con retraso?</summary>
+            <p>
+              Baja la calidad a «Equilibrada» en Ajustes. El decodificador descarta cuadros antiguos
+              si no da abasto.
+            </p>
+          </details>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site">
+      <div class="wrap">
+        <span>© 2026 Manolo Mirror</span>
+        <span>
+          <a href="privacy.html">Privacidad</a>
+          <a href="https://github.com/donmanueldev/manolo-mirror">GitHub</a>
+        </span>
+      </div>
+    </footer>
+  </body>
+</html>
