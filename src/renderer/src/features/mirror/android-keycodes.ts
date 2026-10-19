@@ -31,3 +31,53 @@ export const ANDROID_KEYCODE_BACK = 4;
 export function mapBrowserKeyToAndroid(code: string): number | null {
   return KEY_CODE_MAP[code] ?? null;
 }
+
+/** Android meta-state bits (KeyEvent.META_*), including the left-side variants. */
+const META_SHIFT = 0x01 | 0x40;
+const META_ALT = 0x02 | 0x10;
+const META_CTRL = 0x1000 | 0x2000;
+const META_META = 0x10000 | 0x20000;
+
+export type KeyModifiers = {
+  readonly shiftKey: boolean;
+  readonly altKey: boolean;
+  readonly ctrlKey: boolean;
+  readonly metaKey: boolean;
+};
+
+export function metaStateOf(modifiers: KeyModifiers): number {
+  let state = 0;
+  if (modifiers.shiftKey) state |= META_SHIFT;
+  if (modifiers.altKey) state |= META_ALT;
+  if (modifiers.ctrlKey) state |= META_CTRL;
+  if (modifiers.metaKey) state |= META_META;
+  return state;
+}
+
+export type KeyInput = KeyModifiers & {
+  readonly key: string;
+  readonly code: string;
+};
+
+export type ResolvedKey =
+  | { readonly kind: 'text'; readonly text: string }
+  | { readonly kind: 'keycode'; readonly keyCode: number; readonly metaState: number };
+
+/**
+ * Decides how a key press reaches the device. Printable characters without a
+ * shortcut modifier are injected as text so any character (accents, symbols)
+ * arrives correctly. Everything else is sent as an Android key code with the
+ * active modifiers.
+ */
+export function resolveKeyInput(input: KeyInput): ResolvedKey | null {
+  const isShortcut = input.ctrlKey || input.altKey || input.metaKey;
+  if (!isShortcut && [...input.key].length === 1) {
+    return { kind: 'text', text: input.key };
+  }
+
+  const keyCode = mapBrowserKeyToAndroid(input.code);
+  if (keyCode === null) {
+    return null;
+  }
+  return { kind: 'keycode', keyCode, metaState: metaStateOf(input) };
+}

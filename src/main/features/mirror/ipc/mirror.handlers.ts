@@ -11,6 +11,7 @@ import { ok, err, type Result } from '../../../../shared/ipc/result';
 import { parseDeviceId } from '../../../../shared/ipc/validators';
 import {
   DEFAULT_MIRROR_OPTIONS,
+  MAX_MIRROR_TEXT_BYTES,
   type MirrorControlMessage,
   type MirrorOptions,
 } from '../../../../shared/mirror/types';
@@ -196,6 +197,16 @@ function parseControlMessage(value: unknown): Result<MirrorControlMessage> {
         repeat: Math.round(repeat.value),
         metaState: Math.round(metaState.value),
       });
+    }
+
+    case 'text': {
+      if (typeof raw.text !== 'string' || raw.text.length === 0) {
+        return err('Invalid text message.');
+      }
+      if (new TextEncoder().encode(raw.text).byteLength > MAX_MIRROR_TEXT_BYTES) {
+        return err('Text message is too long.');
+      }
+      return ok({ type: 'text', text: raw.text });
     }
 
     default:

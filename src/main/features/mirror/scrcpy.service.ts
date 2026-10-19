@@ -36,6 +36,7 @@ type MirrorController = {
   injectKeyCode(
     message: Omit<import('@yume-chan/scrcpy').ScrcpyInjectKeyCodeControlMessage, 'type'>,
   ): Promise<void>;
+  injectText(text: string): Promise<void>;
 };
 
 type MirrorSession = {
@@ -225,6 +226,9 @@ export class ScrcpyService {
             repeat: message.repeat,
             metaState: message.metaState as import('@yume-chan/scrcpy').AndroidKeyEventMeta,
           });
+          break;
+        case 'text':
+          await controller.injectText(message.text);
           break;
         default: {
           const _exhaustive: never = message;

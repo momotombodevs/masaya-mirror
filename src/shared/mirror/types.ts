@@ -93,7 +93,16 @@ export const ANDROID_KEY_EVENT_ACTION = {
   up: 1,
 } as const;
 
+export type MirrorTextControl = {
+  readonly type: 'text';
+  readonly text: string;
+};
+
 export type MirrorControlMessage =
   | MirrorTouchControl
   | MirrorScrollControl
-  | MirrorKeyControl;
+  | MirrorKeyControl
+  | MirrorTextControl;
+
+/** scrcpy rejects text payloads longer than 300 bytes of UTF-8. */
+export const MAX_MIRROR_TEXT_BYTES = 300;
