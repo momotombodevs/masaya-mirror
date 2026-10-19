@@ -35,7 +35,7 @@ export function MirrorView({
 
   return (
     <div
-      className="absolute inset-0 flex items-center justify-center outline-none focus-visible:shadow-[inset_0_0_0_3px_rgba(245,242,234,0.15)]"
+      className="absolute inset-0 flex items-center justify-center outline-none focus-visible:shadow-[inset_0_0_0_3px_rgba(255,255,255,0.15)]"
       tabIndex={0}
       onKeyDown={input.onKeyDown}
       onKeyUp={input.onKeyUp}
@@ -54,7 +54,7 @@ export function MirrorView({
         onContextMenu={input.onContextMenu}
       />
       {showLoading && (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm text-mirror-muted">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-base text-mirror-muted">
           Conectando…
         </div>
       )}

@@ -1,29 +1,48 @@
-import { app, Menu, type MenuItemConstructorOptions } from 'electron';
+import { app, BrowserWindow, Menu, type MenuItemConstructorOptions } from 'electron';
+import { MENU_ACTION_CHANNEL, type MenuAction } from '../shared/ipc/menu.contract';
 
 const APP_NAME = 'Manolo Mirror';
 
-/**
- * Reload and DevTools roles are only exposed in development builds; packaged
- * builds should not let users open DevTools or force a reload.
- */
-function buildViewSubmenu(): MenuItemConstructorOptions[] {
-  const devItems: MenuItemConstructorOptions[] = app.isPackaged
-    ? []
-    : [
-        { role: 'reload' },
-        { role: 'forceReload' },
-        { role: 'toggleDevTools' },
-        { type: 'separator' },
-      ];
+/** Sends a menu command to the focused window, which decides whether it applies. */
+function sendToFocusedWindow(action: MenuAction): void {
+  BrowserWindow.getFocusedWindow()?.webContents.send(MENU_ACTION_CHANNEL, action);
+}
 
-  return [
-    ...devItems,
-    { role: 'resetZoom' },
-    { role: 'zoomIn' },
-    { role: 'zoomOut' },
-    { type: 'separator' },
-    { role: 'togglefullscreen' },
-  ];
+function menuItem(label: string, accelerator: string, action: MenuAction): MenuItemConstructorOptions {
+  return { label, accelerator, click: () => sendToFocusedWindow(action) };
+}
+
+/** Developer-only entries; packaged builds must not expose DevTools or forced reloads. */
+function buildDevItems(): MenuItemConstructorOptions[] {
+  return app.isPackaged
+    ? []
+    : [{ role: 'forceReload' }, { role: 'toggleDevTools' }, { type: 'separator' }];
+}
+
+function buildDeviceMenu(): MenuItemConstructorOptions {
+  return {
+    label: 'Dispositivo',
+    submenu: [
+      menuItem('Actualizar lista', 'CmdOrCtrl+R', 'refresh'),
+      { type: 'separator' },
+      menuItem('Captura de pantalla', 'CmdOrCtrl+Shift+4', 'capture'),
+      menuItem('Grabar', 'CmdOrCtrl+Shift+5', 'record'),
+    ],
+  };
+}
+
+function buildViewMenu(): MenuItemConstructorOptions {
+  return {
+    label: 'Ver',
+    submenu: [
+      ...buildDevItems(),
+      { role: 'resetZoom', label: 'Tamaño real' },
+      { role: 'zoomIn', label: 'Acercar' },
+      { role: 'zoomOut', label: 'Alejar' },
+      { type: 'separator' },
+      { role: 'togglefullscreen', label: 'Pantalla completa' },
+    ],
+  };
 }
 
 function buildDarwinMenu(): MenuItemConstructorOptions[] {
@@ -31,36 +50,39 @@ function buildDarwinMenu(): MenuItemConstructorOptions[] {
     {
       label: APP_NAME,
       submenu: [
-        { role: 'about', label: `About ${APP_NAME}` },
+        { role: 'about', label: `Acerca de ${APP_NAME}` },
         { type: 'separator' },
-        { role: 'services' },
+        { role: 'services', label: 'Servicios' },
         { type: 'separator' },
-        { role: 'hide', label: `Hide ${APP_NAME}` },
-        { role: 'hideOthers' },
-        { role: 'unhide' },
+        { role: 'hide', label: `Ocultar ${APP_NAME}` },
+        { role: 'hideOthers', label: 'Ocultar otros' },
+        { role: 'unhide', label: 'Mostrar todo' },
         { type: 'separator' },
-        { role: 'quit', label: `Quit ${APP_NAME}` },
+        { role: 'quit', label: `Salir de ${APP_NAME}` },
       ],
     },
     {
-      label: 'Edit',
+      label: 'Edición',
       submenu: [
-        { role: 'undo' },
-        { role: 'redo' },
+        { role: 'undo', label: 'Deshacer' },
+        { role: 'redo', label: 'Rehacer' },
         { type: 'separator' },
-        { role: 'cut' },
-        { role: 'copy' },
-        { role: 'paste' },
-        { role: 'selectAll' },
+        { role: 'cut', label: 'Cortar' },
+        { role: 'copy', label: 'Copiar' },
+        { role: 'paste', label: 'Pegar' },
+        { role: 'selectAll', label: 'Seleccionar todo' },
       ],
     },
+    buildDeviceMenu(),
+    buildViewMenu(),
     {
-      label: 'View',
-      submenu: buildViewSubmenu(),
-    },
-    {
-      label: 'Window',
-      submenu: [{ role: 'minimize' }, { role: 'zoom' }, { type: 'separator' }, { role: 'front' }],
+      label: 'Ventana',
+      submenu: [
+        { role: 'minimize', label: 'Minimizar' },
+        { role: 'close', label: 'Cerrar' },
+        { type: 'separator' },
+        { role: 'front', label: 'Traer todo al frente' },
+      ],
     },
   ];
 }
@@ -68,13 +90,14 @@ function buildDarwinMenu(): MenuItemConstructorOptions[] {
 function buildDefaultMenu(): MenuItemConstructorOptions[] {
   return [
     {
-      label: 'File',
-      submenu: [{ role: 'quit', label: `Exit ${APP_NAME}` }],
+      label: 'Archivo',
+      submenu: [
+        { role: 'close', label: 'Cerrar ventana' },
+        { role: 'quit', label: `Salir de ${APP_NAME}` },
+      ],
     },
-    {
-      label: 'View',
-      submenu: buildViewSubmenu(),
-    },
+    buildDeviceMenu(),
+    buildViewMenu(),
   ];
 }
 

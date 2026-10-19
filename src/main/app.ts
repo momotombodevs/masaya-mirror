@@ -1,4 +1,4 @@
-import { app, BrowserWindow, session, type BrowserWindowConstructorOptions } from 'electron';
+import { app, BrowserWindow, nativeTheme, session, systemPreferences, type BrowserWindowConstructorOptions } from 'electron';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -121,17 +121,42 @@ function attachWindowSecurity(window: BrowserWindow): void {
   });
 }
 
+/** Converts the OS accent color (RRGGBBAA) to the space-separated channels the theme expects. */
+function getSystemAccentChannels(): string | null {
+  if (process.platform !== 'darwin' && process.platform !== 'win32') {
+    return null;
+  }
+  const hex = systemPreferences.getAccentColor();
+  if (!/^[0-9a-f]{6}([0-9a-f]{2})?$/i.test(hex)) {
+    return null;
+  }
+  return [0, 2, 4].map((start) => parseInt(hex.slice(start, start + 2), 16)).join(' ');
+}
+
+function applySystemAccent(window: BrowserWindow): void {
+  window.webContents.on('did-finish-load', () => {
+    const channels = getSystemAccentChannels();
+    if (channels) {
+      void window.webContents.insertCSS(`:root { --accent: ${channels}; }`);
+    }
+  });
+}
+
 export function createSecureWindow(options: BrowserWindowConstructorOptions): BrowserWindow {
   const window = new BrowserWindow(options);
   attachWindowSecurity(window);
+  applySystemAccent(window);
   return window;
 }
 
 export function createWindow(): BrowserWindow {
   mainWindow = createSecureWindow({
-    width: 960,
-    height: 640,
+    width: 720,
+    height: 560,
+    minWidth: 480,
+    minHeight: 360,
     title: 'Manolo Mirror',
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#1e1e1e' : '#f6f6f6',
     icon: path.join(process.env.VITE_PUBLIC ?? RENDERER_DIST, 'manolo-logo.svg'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),

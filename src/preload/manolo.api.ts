@@ -1,11 +1,13 @@
 import { deviceApi } from './device.api';
 import { mirrorApi } from './mirror.api';
+import { menuApi } from './menu.api';
 import { qaApi } from './qa.api';
 
 export const manoloApi = {
   ...deviceApi,
   ...mirrorApi,
   ...qaApi,
+  ...menuApi,
 };
 
 const API_NOT_AVAILABLE_MESSAGE = 'API no disponible en esta ventana.';
@@ -16,6 +18,7 @@ function unavailableResult<T>(): Promise<T> {
 
 export function createMainWindowApi() {
   return {
+    onMenuAction: menuApi.onMenuAction,
     listDevices: deviceApi.listDevices,
     openMirrorWindow: mirrorApi.openMirrorWindow,
     getMirrorStatus: mirrorApi.getMirrorStatus,
@@ -33,6 +36,7 @@ export function createMainWindowApi() {
 
 export function createMirrorWindowApi() {
   return {
+    onMenuAction: menuApi.onMenuAction,
     listDevices: () => unavailableResult<ReturnType<typeof deviceApi.listDevices> extends Promise<infer T> ? T : never>(),
     openMirrorWindow: () => unavailableResult<ReturnType<typeof mirrorApi.openMirrorWindow> extends Promise<infer T> ? T : never>(),
     getMirrorStatus: mirrorApi.getMirrorStatus,
