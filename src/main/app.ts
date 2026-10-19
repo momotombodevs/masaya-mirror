@@ -1,4 +1,4 @@
-import { app, BrowserWindow, session, type BrowserWindowConstructorOptions } from 'electron';
+import { app, BrowserWindow, nativeTheme, session, type BrowserWindowConstructorOptions } from 'electron';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
@@ -129,9 +129,12 @@ export function createSecureWindow(options: BrowserWindowConstructorOptions): Br
 
 export function createWindow(): BrowserWindow {
   mainWindow = createSecureWindow({
-    width: 960,
-    height: 640,
+    width: 720,
+    height: 560,
+    minWidth: 480,
+    minHeight: 360,
     title: 'Manolo Mirror',
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#1e1e1e' : '#f6f6f6',
     icon: path.join(process.env.VITE_PUBLIC ?? RENDERER_DIST, 'manolo-logo.svg'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),

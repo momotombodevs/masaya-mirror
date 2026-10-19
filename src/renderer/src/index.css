@@ -4,14 +4,43 @@
 
 @layer base {
   :root {
-    color-scheme: light;
+    color-scheme: light dark;
+    --window: 246 246 246;
+    --content: 255 255 255;
+    --hover: 238 238 240;
+    --line: 226 226 229;
+    --ink: 28 28 30;
+    --ink-2: 99 99 102;
+    --ink-3: 142 142 147;
+    --accent: 0 122 255;
+    --fill: 255 255 255;
+    --success: 40 167 69;
+    --warning: 217 119 6;
+    --danger: 255 59 48;
+
     font-synthesis: none;
-    text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
   }
 
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --window: 30 30 30;
+      --content: 44 44 46;
+      --hover: 58 58 60;
+      --line: 66 66 69;
+      --ink: 245 245 247;
+      --ink-2: 174 174 178;
+      --ink-3: 130 130 135;
+      --accent: 10 132 255;
+      --fill: 72 72 74;
+      --success: 48 209 88;
+      --warning: 255 159 10;
+      --danger: 255 69 58;
+    }
+  }
+
   body {
-    @apply min-h-screen min-w-[320px] bg-canvas font-sans text-base leading-normal text-ink;
+    @apply min-h-screen min-w-[320px] cursor-default select-none bg-window font-sans text-base text-ink;
   }
 
   #root {
@@ -26,17 +55,6 @@
   button:focus-visible,
   select:focus-visible,
   [tabindex]:focus-visible {
-    @apply outline outline-2 outline-offset-[3px] outline-action/80;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
+    @apply outline outline-2 outline-offset-1 outline-accent/70;
   }
 }

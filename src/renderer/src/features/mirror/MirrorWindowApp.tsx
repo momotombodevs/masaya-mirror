@@ -54,7 +54,7 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
 
       <div ref={mirrorStageRef} className="relative min-h-0 flex-1 bg-mirror-canvas">
         {mirror.loading && (
-          <p className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center text-sm text-mirror-muted">
+          <p className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center text-base text-mirror-muted">
             Conectando…
           </p>
         )}

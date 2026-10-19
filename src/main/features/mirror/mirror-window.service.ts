@@ -54,7 +54,7 @@ export class MirrorWindowService {
       minHeight: MIN_CONTENT_HEIGHT,
       title: deviceLabel,
       autoHideMenuBar: true,
-      backgroundColor: '#09090b',
+      backgroundColor: '#000000',
       webPreferences: {
         preload: path.join(MAIN_DIST, 'preload.cjs'),
         contextIsolation: true,
