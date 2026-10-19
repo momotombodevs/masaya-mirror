@@ -93,6 +93,7 @@ export function SettingsPanel({
     onPreferenceChange({
       navigationBar: DEFAULT_PREFERENCES.navigationBar,
       alwaysOnTop: DEFAULT_PREFERENCES.alwaysOnTop,
+      showClicks: DEFAULT_PREFERENCES.showClicks,
       captureAction: DEFAULT_PREFERENCES.captureAction,
     });
     onVideoChange(DEFAULT_PREFERENCES.mirror);
@@ -127,6 +128,16 @@ export function SettingsPanel({
                 label="Siempre visible"
                 checked={preferences.alwaysOnTop}
                 onChange={(alwaysOnTop) => onPreferenceChange({ alwaysOnTop })}
+              />
+            </SettingRow>
+            <SettingRow
+              label="Mostrar clics en el espejo"
+              hint="Dibuja un círculo donde tocas, para que quien mira la ventana lo vea."
+            >
+              <Toggle
+                label="Mostrar clics en el espejo"
+                checked={preferences.showClicks}
+                onChange={(showClicks) => onPreferenceChange({ showClicks })}
               />
             </SettingRow>
             <SettingRow label="Al tomar una captura">

@@ -48,6 +48,7 @@ const FIELD_PARSERS: {
   mirror: parseMirror,
   navigationBar: parseBoolean,
   alwaysOnTop: parseBoolean,
+  showClicks: parseBoolean,
   captureAction: parseCaptureAction,
 };
 
@@ -91,6 +92,7 @@ export function readPreferences(raw: unknown): Preferences {
     mirror: parseMirror(raw.mirror) ?? legacyMirror(raw) ?? DEFAULT_PREFERENCES.mirror,
     navigationBar: field('navigationBar'),
     alwaysOnTop: field('alwaysOnTop'),
+    showClicks: field('showClicks'),
     captureAction: field('captureAction'),
   };
 }

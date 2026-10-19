@@ -100,6 +100,7 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
         {mirror.isMirrorActive && (
           <MirrorView
             deviceId={deviceId}
+            showClicks={preferences.showClicks}
             onClose={() => void handleStopMirror()}
             onCanvasChange={setMirrorCanvas}
           />

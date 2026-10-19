@@ -50,8 +50,8 @@ export class PreferencesService {
   }
 
   get(): Preferences {
-    const { mirror, navigationBar, alwaysOnTop, captureAction } = this.settings;
-    return { mirror, navigationBar, alwaysOnTop, captureAction };
+    const { mirror, navigationBar, alwaysOnTop, showClicks, captureAction } = this.settings;
+    return { mirror, navigationBar, alwaysOnTop, showClicks, captureAction };
   }
 
   /** Applies a patch already validated by `parsePreferencesPatch`. */

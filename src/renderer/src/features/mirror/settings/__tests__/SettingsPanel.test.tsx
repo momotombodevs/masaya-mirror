@@ -180,6 +180,7 @@ describe('SettingsPanel', () => {
     expect(onPreferenceChange).toHaveBeenCalledWith({
       navigationBar: true,
       alwaysOnTop: false,
+      showClicks: true,
       captureAction: 'preview',
     });
     expect(onVideoChange).toHaveBeenCalledWith(DEFAULT_PREFERENCES.mirror);
