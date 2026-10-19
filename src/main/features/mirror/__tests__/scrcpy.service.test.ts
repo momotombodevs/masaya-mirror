@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ScrcpyService } from '../scrcpy.service';
 import type { AdbService } from '../../device/adb.service';
+import { DEFAULT_MIRROR_OPTIONS } from '../../../../shared/mirror/types';
 
 vi.mock('@yume-chan/adb', () => ({
   AdbServerClient: vi.fn(),
@@ -61,6 +62,27 @@ describe('ScrcpyService', () => {
 
     expect(closeSpy).toHaveBeenCalledWith('device1');
     expect(sessions.has('device1')).toBe(false);
+  });
+
+  it('setOptions closes the old session without telling the renderer it ended', async () => {
+    const service = new ScrcpyService(adbService);
+    const close = vi.fn();
+    const sessions = new Map<string, unknown>();
+    sessions.set('device1', {
+      deviceId: 'device1',
+      stream: { close },
+      client: { close: vi.fn().mockResolvedValue(undefined) },
+    });
+    (service as unknown as { sessions: Map<string, unknown> }).sessions = sessions;
+    const openSpy = vi
+      .spyOn(service, 'openMirror')
+      .mockResolvedValue({ ok: true, value: {} as never });
+
+    const webContents = { postMessage: vi.fn() } as unknown as import('electron').WebContents;
+    await service.setOptions('device1', webContents, { ...DEFAULT_MIRROR_OPTIONS, maxSize: 2560 });
+
+    expect(close).toHaveBeenCalledWith(undefined, { notifyRenderer: false });
+    expect(openSpy).toHaveBeenCalledTimes(1);
   });
 
   it('returns error when server jar is missing', async () => {
