@@ -22,11 +22,15 @@ export function createPacketQueue(maxPending = MAX_PENDING_VIDEO_PACKETS): Packe
   let closed = false;
   let waitingForKeyframe = false;
 
-  const dropStaleDataPackets = (): void => {
+  /** Drops queued data packets, keeping configuration and, if given, the newest keyframe. */
+  const dropStaleDataPackets = (keyframe?: ScrcpyMediaStreamPacket): void => {
     const kept = items.filter((packet) => packet.type === 'configuration');
     items.length = 0;
     items.push(...kept);
-    waitingForKeyframe = true;
+    if (keyframe) {
+      items.push(keyframe);
+    }
+    waitingForKeyframe = keyframe === undefined;
   };
 
   return {
@@ -48,10 +52,11 @@ export function createPacketQueue(maxPending = MAX_PENDING_VIDEO_PACKETS): Packe
         return;
       }
 
-      items.push(packet);
-      if (items.length > maxPending) {
-        dropStaleDataPackets();
+      if (packet.type === 'data' && items.length >= maxPending) {
+        dropStaleDataPackets(packet.keyframe ? packet : undefined);
+        return;
       }
+      items.push(packet);
     },
     next() {
       const packet = items.shift();
