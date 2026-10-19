@@ -1,5 +1,24 @@
 // Tabs, scroll-spy for the docs sidebar and copy buttons. The page works without it.
 (function () {
+  // Show the visitor's OS on the main download buttons; the ghost button of that OS becomes macOS.
+  var ua = navigator.userAgent;
+  var os = /Windows/.test(ua) ? 'Windows' : /Linux/.test(ua) && !/Android/.test(ua) ? 'Linux' : '';
+  if (os) {
+    var icon = os === 'Windows' ? '#i-win' : null;
+    document.querySelectorAll('[data-dl]').forEach(function (a) {
+      a.lastChild.textContent = 'Descargar para ' + os;
+      var svg = a.querySelector('svg');
+      if (icon) svg.firstElementChild.setAttribute('href', icon);
+      else svg.style.display = 'none';
+    });
+    document.querySelectorAll('.cta .btn-ghost').forEach(function (a) {
+      if (a.textContent.trim() !== os) return;
+      a.lastChild.textContent = 'macOS';
+      var svg = a.querySelector('svg');
+      if (svg) svg.firstElementChild.setAttribute('href', '#i-apple');
+    });
+  }
+
   var tabs = document.querySelectorAll('.tab');
   function select(tab) {
     tabs.forEach(function (t) {

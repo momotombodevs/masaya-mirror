@@ -8,15 +8,7 @@
       name="description"
       content="Manolo Mirror espeja y controla dispositivos Android en macOS, Windows y Linux. Captura, graba y conecta por Wi-Fi con un QR. Sin cuentas ni anuncios."
     />
-    <meta name="theme-color" content="#0f3d3e" />
     <link rel="icon" type="image/svg+xml" href="manolo-logo.svg" />
-    <link
-      rel="preload"
-      href="fonts/schibsted.woff2"
-      as="font"
-      type="font/woff2"
-      crossorigin
-    />
     <link rel="stylesheet" href="style.css?v=4" />
   </head>
   <body>
@@ -230,25 +222,32 @@
         <div>
           <h1>Espeja y controla tu Android desde el escritorio</h1>
           <p class="lead">
-            Mouse, teclado, captura y grabación. Por USB o <span style="white-space: nowrap">Wi-Fi</span> con un QR. Sin cuentas ni anuncios.
+            Mouse, teclado, captura y grabación. Por USB o Wi-Fi con un QR. Sin cuentas ni anuncios.
           </p>
           <div class="cta">
             <a
               class="btn btn-primary"
+              data-dl
               href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
               ><svg><use href="#i-apple" /></svg>Descargar para macOS</a
             >
             <a
-              class="link-light"
+              class="btn btn-ghost"
               href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
               ><svg><use href="#i-win" /></svg>Windows</a
             >
             <a
-              class="link-light"
+              class="btn btn-ghost"
               href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
               >Linux</a
             >
           </div>
+          <ul class="trust" aria-label="Ventajas">
+            <li>Sin cuentas</li>
+            <li>Sin anuncios</li>
+            <li>Sin telemetría</li>
+            <li>Wi-Fi incluido</li>
+          </ul>
           <p class="platforms">
             Apple Silicon e Intel · <a href="#vysor">Mejor que Vysor: compáralos</a>
           </p>
@@ -304,12 +303,299 @@
       </div>
     </section>
 
+    <div class="landing">
+      <section class="band" id="funciones">
+        <h2>Todo lo que necesitas para trabajar con tu Android</h2>
+        <ul class="feats">
+          <li>
+            <span class="ico"
+              ><svg aria-hidden="true"><use href="#i-screen" /></svg
+            ></span>
+            <strong>Una ventana por dispositivo.</strong>
+            <span>Con barra de navegación bajo la pantalla.</span>
+          </li>
+          <li>
+            <span class="ico"
+              ><svg aria-hidden="true"><use href="#i-touch" /></svg
+            ></span>
+            <strong>Control completo.</strong>
+            <span>Toques, multitouch, arrastre, rueda y teclado con acentos.</span>
+          </li>
+          <li>
+            <span class="ico"
+              ><svg aria-hidden="true"><use href="#i-camera" /></svg
+            ></span>
+            <strong>Captura y grabación.</strong>
+            <span>Desde la barra o con atajos. Graba a 16 Mbps.</span>
+          </li>
+          <li>
+            <span class="ico"
+              ><svg aria-hidden="true"><use href="#i-wifi" /></svg
+            ></span>
+            <strong>Wi-Fi con QR.</strong>
+            <span>Sin cable ni direcciones IP.</span>
+          </li>
+          <li>
+            <span class="ico"
+              ><svg aria-hidden="true"><use href="#i-apk" /></svg
+            ></span>
+            <strong>Instalar APK.</strong>
+            <span>Arrastra el archivo a la ventana.</span>
+          </li>
+          <li>
+            <span class="ico"
+              ><svg aria-hidden="true"><use href="#i-sliders" /></svg
+            ></span>
+            <strong>Calidad ajustable.</strong>
+            <span>Preajustes, resolución, velocidad de datos y códec.</span>
+          </li>
+          <li>
+            <span class="ico"
+              ><svg aria-hidden="true"><use href="#i-moon" /></svg
+            ></span>
+            <strong>Claro y oscuro.</strong>
+            <span>Sigue el tema del sistema. Español e inglés.</span>
+          </li>
+          <li>
+            <span class="ico"
+              ><svg aria-hidden="true"><use href="#i-shield" /></svg
+            ></span>
+            <strong>Privado.</strong>
+            <span>Sin cuenta, sin nube, sin telemetría.</span>
+          </li>
+        </ul>
+      </section>
+
+      <section class="band" id="vysor">
+        <h2>Manolo Mirror frente a Vysor</h2>
+        <div class="tbl">
+          <table>
+            <thead>
+              <tr>
+                <th></th>
+                <th class="us">Manolo Mirror</th>
+                <th>Vysor gratis</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">Wi-Fi</th>
+                <td class="us"><span class="ok">✓</span> Incluido</td>
+                <td><span class="bad">✕</span> Solo en Pro</td>
+              </tr>
+              <tr>
+                <th scope="row">Calidad</th>
+                <td class="us"><span class="ok">✓</span> Ajustable, hasta Máxima</td>
+                <td><span class="bad">✕</span> Limitada; HD en Pro</td>
+              </tr>
+              <tr>
+                <th scope="row">Anuncios</th>
+                <td class="us"><span class="ok">✓</span> Ninguno</td>
+                <td><span class="bad">✕</span> Sí; se quitan con Pro</td>
+              </tr>
+              <tr>
+                <th scope="row">Planes</th>
+                <td class="us"><span class="ok">✓</span> Sin funciones bloqueadas</td>
+                <td><span class="bad">✕</span> Pro de pago</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="fine">
+          Según la información pública de Vysor en octubre de 2026. Confirma sus planes en
+          <a href="https://www.vysor.io/#pricing" rel="noopener">vysor.io</a>.
+        </p>
+      </section>
+
+      <section class="band" id="capturas">
+        <h2>Así se ve</h2>
+        <div class="shots">
+          <div class="tabs" role="tablist" aria-label="Pantallas de la app">
+            <button
+              class="tab"
+              role="tab"
+              id="t-espejo"
+              aria-controls="p-espejo"
+              aria-selected="true"
+            >
+              Espejo
+            </button>
+            <button
+              class="tab"
+              role="tab"
+              id="t-lista"
+              aria-controls="p-lista"
+              aria-selected="false"
+              tabindex="-1"
+            >
+              Dispositivos
+            </button>
+            <button
+              class="tab"
+              role="tab"
+              id="t-qr"
+              aria-controls="p-qr"
+              aria-selected="false"
+              tabindex="-1"
+            >
+              Wi-Fi por QR
+            </button>
+            <button
+              class="tab"
+              role="tab"
+              id="t-ajustes"
+              aria-controls="p-ajustes"
+              aria-selected="false"
+              tabindex="-1"
+            >
+              Ajustes
+            </button>
+          </div>
+          <div class="stage">
+            <div class="panel" id="p-espejo" role="tabpanel" aria-labelledby="t-espejo">
+              <div class="win" style="max-width: 300px">
+                <div class="win-bar">
+                  <i></i><i></i><i></i>
+                  <span class="win-title">Pixel 8</span>
+                  <span class="win-tools" aria-hidden="true">
+                    <b
+                      ><svg><use href="#i-vol" /></svg
+                    ></b>
+                    <b
+                      ><svg><use href="#i-power" /></svg
+                    ></b>
+                    <b
+                      ><svg><use href="#i-camera" /></svg
+                    ></b>
+                    <b class="rec"
+                      ><svg><use href="#i-rec" /></svg
+                    ></b>
+                    <b
+                      ><svg><use href="#i-full" /></svg
+                    ></b>
+                  </span>
+                </div>
+                <div class="win-body">
+                  <div class="scr" style="max-height: 340px">
+                    <div class="scr-top">Tu app<small>Pedido 2481</small></div>
+                    <div class="scr-row"><i></i>Café<span>$4</span></div>
+                    <div class="scr-row"><i></i>Pan<span>$2</span></div>
+                    <div class="scr-row"><i></i>Jugo<span>$3</span></div>
+                    <div class="scr-btn">
+                      <span class="idle">Pagar</span><span class="ok">Listo</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="win-nav" aria-hidden="true"><i></i><i></i><i></i></div>
+              </div>
+            </div>
+
+            <div class="panel" id="p-lista" role="tabpanel" aria-labelledby="t-lista" hidden>
+              <div class="app">
+                <div class="win-bar">
+                  <i></i><i></i><i></i><span class="win-title">Manolo Mirror</span>
+                </div>
+                <div class="app-body">
+                  <div class="grp">Conectados</div>
+                  <div class="dev">
+                    <div class="thumb"></div>
+                    <div><strong>Pixel 8</strong><small>Android 15 · USB</small></div>
+                    <span class="st">Listo</span>
+                  </div>
+                  <div class="dev">
+                    <div class="thumb b"></div>
+                    <div><strong>Galaxy A54</strong><small>Android 14 · Wi-Fi</small></div>
+                    <span class="st">Listo</span>
+                  </div>
+                  <div class="dev">
+                    <div class="thumb"></div>
+                    <div><strong>Moto G</strong><small>Android 13 · USB</small></div>
+                    <span class="st off">Sin autorizar</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel" id="p-qr" role="tabpanel" aria-labelledby="t-qr" hidden>
+              <div class="app" style="max-width: 380px">
+                <div class="win-bar">
+                  <i></i><i></i><i></i><span class="win-title">Conectar por Wi-Fi</span>
+                </div>
+                <div class="app-body center">
+                  <div class="qr">
+                    <svg
+                      viewBox="0 0 21 21"
+                      shape-rendering="crispEdges"
+                      fill="#0d1224"
+                      aria-hidden="true"
+                    >
+                      <path d="M0 0h7v7H0zM14 0h7v7h-7zM0 14h7v7H0z" />
+                      <path fill="#fff" d="M1 1h5v5H1zM15 1h5v5h-5zM1 15h5v5H1z" />
+                      <path
+                        d="M2 2h3v3H2zM16 2h3v3h-3zM2 16h3v3H2zM9 0h2v2H9zM8 3h2v2H8zM11 4h2v3h-2zM9 7h3v2H9zM0 9h2v2H0zM3 9h3v2H3zM8 10h2v3H8zM12 9h3v2h-3zM16 9h2v3h-2zM19 10h2v2h-2zM9 14h2v2H9zM12 13h2v3h-2zM15 14h3v2h-3zM19 14h2v3h-2zM10 17h3v2h-3zM14 18h2v3h-2zM18 18h3v2h-3zM8 19h2v2H8z"
+                      />
+                    </svg>
+                  </div>
+                  <strong>Escanea desde el teléfono</strong>
+                  <p style="margin: 6px 0 0; color: #6e6e73">
+                    Ajustes → Opciones de desarrollador → Depuración inalámbrica → Vincular con
+                    código QR
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel" id="p-ajustes" role="tabpanel" aria-labelledby="t-ajustes" hidden>
+              <div class="app">
+                <div class="win-bar">
+                  <i></i><i></i><i></i><span class="win-title">Ajustes</span>
+                </div>
+                <div class="app-body">
+                  <div class="grp">Ventana</div>
+                  <div class="field">
+                    <span>Barra de navegación</span><span class="switch on"></span>
+                  </div>
+                  <div class="field"><span>Siempre visible</span><span class="switch"></span></div>
+                  <div class="field"><span>Mostrar clics</span><span class="switch on"></span></div>
+                  <div class="grp">Calidad de imagen</div>
+                  <div class="field"><span>Preajuste</span><span>Alta</span></div>
+                  <div class="field"><span>Velocidad de datos</span><span>16 Mbps</span></div>
+                  <div class="field"><span>Códec</span><span>H.264</span></div>
+                  <div class="grp">Dispositivo</div>
+                  <div class="field">
+                    <span>Mostrar toques</span><span class="switch on"></span>
+                  </div>
+                  <div class="field">
+                    <span>Mantener pantalla encendida</span><span class="switch on"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="shot-cap">Ilustraciones de la interfaz; los datos son de ejemplo.</p>
+        </div>
+      </section>
+    </div>
+
+    <section class="cta-band" aria-labelledby="cta-h">
+      <div class="cta-in">
+        <h2 id="cta-h">Prueba Manolo Mirror en un minuto</h2>
+        <p>Descárgalo, conecta tu teléfono y listo. Gratis, sin cuentas.</p>
+        <div class="cta">
+          <a
+            class="btn btn-primary"
+            data-dl
+            href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
+            ><svg><use href="#i-apple" /></svg>Descargar para macOS</a
+          >
+          <a class="link-light" href="#empezar">Ver la guía de inicio</a>
+        </div>
+      </div>
+    </section>
+
     <div class="docs">
       <aside class="side" aria-label="Contenido">
         <ul>
-          <li><a href="#funciones">Funciones</a></li>
-          <li><a href="#vysor">Vs. Vysor</a></li>
-          <li><a href="#capturas">Capturas</a></li>
           <li><a href="#instalar">Instalar</a></li>
           <li><a href="#empezar">Primeros pasos</a></li>
           <li><a href="#wifi">Wi-Fi</a></li>
@@ -319,245 +605,6 @@
       </aside>
 
       <main id="contenido">
-        <section class="doc" id="funciones">
-          <h2>Funciones</h2>
-          <ul class="feats">
-            <li>
-              <strong>Una ventana por dispositivo.</strong>
-              <span>Con barra de navegación bajo la pantalla.</span>
-            </li>
-            <li>
-              <strong>Control completo.</strong>
-              <span>Toques, multitouch, arrastre, rueda y teclado con acentos.</span>
-            </li>
-            <li>
-              <strong>Captura y grabación.</strong>
-              <span>Desde la barra o con atajos. Graba a 16 Mbps.</span>
-            </li>
-            <li><strong>Wi-Fi con QR.</strong> <span>Sin cable ni direcciones IP.</span></li>
-            <li><strong>Instalar APK.</strong> <span>Arrastra el archivo a la ventana.</span></li>
-            <li>
-              <strong>Calidad ajustable.</strong>
-              <span>Preajustes, resolución, velocidad de datos y códec.</span>
-            </li>
-            <li>
-              <strong>Claro y oscuro.</strong>
-              <span>Sigue el tema del sistema. Español e inglés.</span>
-            </li>
-            <li><strong>Privado.</strong> <span>Sin cuenta, sin nube, sin telemetría.</span></li>
-          </ul>
-        </section>
-
-        <section class="doc" id="vysor">
-          <h2>Manolo Mirror frente a Vysor</h2>
-          <div class="tbl">
-            <table>
-              <thead>
-                <tr>
-                  <th><span class="sr">Característica</span></th>
-                  <th class="us">Manolo Mirror</th>
-                  <th>Vysor gratis</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <th scope="row">Wi-Fi</th>
-                  <td class="us"><span class="ok">✓</span> Incluido</td>
-                  <td><span class="bad">✕</span> Solo en Pro</td>
-                </tr>
-                <tr>
-                  <th scope="row">Calidad</th>
-                  <td class="us"><span class="ok">✓</span> Ajustable, hasta Máxima</td>
-                  <td><span class="bad">✕</span> Limitada; HD en Pro</td>
-                </tr>
-                <tr>
-                  <th scope="row">Anuncios</th>
-                  <td class="us"><span class="ok">✓</span> Ninguno</td>
-                  <td><span class="bad">✕</span> Sí; se quitan con Pro</td>
-                </tr>
-                <tr>
-                  <th scope="row">Planes</th>
-                  <td class="us"><span class="ok">✓</span> Sin funciones bloqueadas</td>
-                  <td><span class="bad">✕</span> Pro de pago</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <section class="doc" id="capturas">
-          <h2>Capturas</h2>
-          <div class="shots">
-            <div class="tabs" role="tablist" aria-label="Pantallas de la app">
-              <button
-                class="tab"
-                role="tab"
-                id="t-espejo"
-                aria-controls="p-espejo"
-                aria-selected="true"
-              >
-                Espejo
-              </button>
-              <button
-                class="tab"
-                role="tab"
-                id="t-lista"
-                aria-controls="p-lista"
-                aria-selected="false"
-                tabindex="-1"
-              >
-                Dispositivos
-              </button>
-              <button
-                class="tab"
-                role="tab"
-                id="t-qr"
-                aria-controls="p-qr"
-                aria-selected="false"
-                tabindex="-1"
-              >
-                Wi-Fi por QR
-              </button>
-              <button
-                class="tab"
-                role="tab"
-                id="t-ajustes"
-                aria-controls="p-ajustes"
-                aria-selected="false"
-                tabindex="-1"
-              >
-                Ajustes
-              </button>
-            </div>
-            <div class="stage">
-              <div class="panel" id="p-espejo" role="tabpanel" aria-labelledby="t-espejo">
-                <div class="win" style="max-width: 300px">
-                  <div class="win-bar">
-                    <i></i><i></i><i></i>
-                    <span class="win-title">Pixel 8</span>
-                    <span class="win-tools" aria-hidden="true">
-                      <b
-                        ><svg><use href="#i-vol" /></svg
-                      ></b>
-                      <b
-                        ><svg><use href="#i-power" /></svg
-                      ></b>
-                      <b
-                        ><svg><use href="#i-camera" /></svg
-                      ></b>
-                      <b class="rec"
-                        ><svg><use href="#i-rec" /></svg
-                      ></b>
-                      <b
-                        ><svg><use href="#i-full" /></svg
-                      ></b>
-                    </span>
-                  </div>
-                  <div class="win-body">
-                    <div class="scr" style="max-height: 340px">
-                      <div class="scr-top">Tu app<small>Pedido 2481</small></div>
-                      <div class="scr-row"><i></i>Café<span>$4</span></div>
-                      <div class="scr-row"><i></i>Pan<span>$2</span></div>
-                      <div class="scr-row"><i></i>Jugo<span>$3</span></div>
-                      <div class="scr-btn">
-                        <span class="idle">Pagar</span><span class="ok">Listo</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="win-nav" aria-hidden="true"><i></i><i></i><i></i></div>
-                </div>
-              </div>
-
-              <div class="panel" id="p-lista" role="tabpanel" aria-labelledby="t-lista" hidden>
-                <div class="app">
-                  <div class="win-bar">
-                    <i></i><i></i><i></i><span class="win-title">Manolo Mirror</span>
-                  </div>
-                  <div class="app-body">
-                    <div class="grp">Conectados</div>
-                    <div class="dev">
-                      <div class="thumb"></div>
-                      <div><strong>Pixel 8</strong><small>Android 15 · USB</small></div>
-                      <span class="st">Listo</span>
-                    </div>
-                    <div class="dev">
-                      <div class="thumb b"></div>
-                      <div><strong>Galaxy A54</strong><small>Android 14 · Wi-Fi</small></div>
-                      <span class="st">Listo</span>
-                    </div>
-                    <div class="dev">
-                      <div class="thumb"></div>
-                      <div><strong>Moto G</strong><small>Android 13 · USB</small></div>
-                      <span class="st off">Sin autorizar</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="panel" id="p-qr" role="tabpanel" aria-labelledby="t-qr" hidden>
-                <div class="app" style="max-width: 380px">
-                  <div class="win-bar">
-                    <i></i><i></i><i></i><span class="win-title">Conectar por Wi-Fi</span>
-                  </div>
-                  <div class="app-body center">
-                    <div class="qr">
-                      <svg
-                        viewBox="0 0 21 21"
-                        shape-rendering="crispEdges"
-                        fill="#0d1224"
-                        aria-hidden="true"
-                      >
-                        <path d="M0 0h7v7H0zM14 0h7v7h-7zM0 14h7v7H0z" />
-                        <path fill="#fff" d="M1 1h5v5H1zM15 1h5v5h-5zM1 15h5v5H1z" />
-                        <path
-                          d="M2 2h3v3H2zM16 2h3v3h-3zM2 16h3v3H2zM9 0h2v2H9zM8 3h2v2H8zM11 4h2v3h-2zM9 7h3v2H9zM0 9h2v2H0zM3 9h3v2H3zM8 10h2v3H8zM12 9h3v2h-3zM16 9h2v3h-2zM19 10h2v2h-2zM9 14h2v2H9zM12 13h2v3h-2zM15 14h3v2h-3zM19 14h2v3h-2zM10 17h3v2h-3zM14 18h2v3h-2zM18 18h3v2h-3zM8 19h2v2H8z"
-                        />
-                      </svg>
-                    </div>
-                    <strong>Escanea desde el teléfono</strong>
-                    <p style="margin: 6px 0 0; color: #6e6e73">
-                      Ajustes → Opciones de desarrollador → Depuración inalámbrica → Vincular con
-                      código QR
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <div class="panel" id="p-ajustes" role="tabpanel" aria-labelledby="t-ajustes" hidden>
-                <div class="app">
-                  <div class="win-bar">
-                    <i></i><i></i><i></i><span class="win-title">Ajustes</span>
-                  </div>
-                  <div class="app-body">
-                    <div class="grp">Ventana</div>
-                    <div class="field">
-                      <span>Barra de navegación</span><span class="switch on"></span>
-                    </div>
-                    <div class="field">
-                      <span>Siempre visible</span><span class="switch"></span>
-                    </div>
-                    <div class="field">
-                      <span>Mostrar clics</span><span class="switch on"></span>
-                    </div>
-                    <div class="grp">Calidad de imagen</div>
-                    <div class="field"><span>Preajuste</span><span>Alta</span></div>
-                    <div class="field"><span>Velocidad de datos</span><span>16 Mbps</span></div>
-                    <div class="field"><span>Códec</span><span>H.264</span></div>
-                    <div class="grp">Dispositivo</div>
-                    <div class="field">
-                      <span>Mostrar toques</span><span class="switch on"></span>
-                    </div>
-                    <div class="field">
-                      <span>Mantener pantalla encendida</span><span class="switch on"></span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <p class="shot-cap">Ilustraciones de la interfaz; los datos son de ejemplo.</p>
-          </div>
-        </section>
-
         <section class="doc" id="instalar">
           <h2>Instalar</h2>
           <p>
@@ -714,6 +761,6 @@
       </div>
     </footer>
 
-    <script src="site.js?v=4" defer></script>
+    <script src="site.js?v=4"></script>
   </body>
 </html>
