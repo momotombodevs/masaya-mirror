@@ -976,7 +976,7 @@ footer.site .bottom {
 .tab:hover {
   color: var(--text);
 }
-\ .stage {
+.stage {
   background: var(--soft);
   border-radius: 16px;
   padding: 36px 16px;
