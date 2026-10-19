@@ -9,9 +9,13 @@ export function SettingsSection({
   readonly children: ReactNode;
 }): JSX.Element {
   return (
-    <section className="rounded-panel border border-line bg-content">
-      <h3 className="px-4 pb-1 pt-3 text-lg font-semibold">{title}</h3>
-      <div className="divide-y divide-line px-4">{children}</div>
+    <section>
+      <h3 className="px-4 pb-1.5 text-sm font-medium uppercase tracking-wide text-ink-3">
+        {title}
+      </h3>
+      <div className="divide-y divide-line rounded-panel border border-line bg-content px-4 shadow-control">
+        {children}
+      </div>
     </section>
   );
 }
