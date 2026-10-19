@@ -85,7 +85,6 @@ export function useMirror(deviceId: string | null): UseMirrorResult {
       if (!api || !deviceId) {
         return false;
       }
-      setOptions(nextOptions);
       setLoading(true);
       setError(null);
 
@@ -93,6 +92,7 @@ export function useMirror(deviceId: string | null): UseMirrorResult {
       setLoading(false);
 
       if (result.ok) {
+        setOptions(nextOptions);
         await refreshStatus();
         return true;
       }
