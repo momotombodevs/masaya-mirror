@@ -25,6 +25,9 @@ function buildKeyCodeMap(): Record<string, number> {
 
 const KEY_CODE_MAP = buildKeyCodeMap();
 
+/** Android KEYCODE_BACK, used for the right mouse button. */
+export const ANDROID_KEYCODE_BACK = 4;
+
 export function mapBrowserKeyToAndroid(code: string): number | null {
   return KEY_CODE_MAP[code] ?? null;
 }
