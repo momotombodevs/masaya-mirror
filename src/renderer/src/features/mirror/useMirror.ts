@@ -10,7 +10,7 @@ export type UseMirrorResult = {
   readonly loading: boolean;
   readonly error: string | null;
   readonly options: MirrorOptions;
-  readonly openMirror: (targetDeviceId?: string) => Promise<boolean>;
+  readonly openMirror: (targetDeviceId?: string, startOptions?: MirrorOptions) => Promise<boolean>;
   readonly closeMirror: () => Promise<boolean>;
   readonly applyOptions: (nextOptions: MirrorOptions) => Promise<boolean>;
   readonly refreshStatus: () => Promise<void>;
@@ -25,7 +25,7 @@ export function useMirror(deviceId: string | null): UseMirrorResult {
   const isMirrorActive = deviceId !== null && activeDeviceIds.includes(deviceId);
 
   const openMirror = useCallback(
-    async (targetDeviceId?: string): Promise<boolean> => {
+    async (targetDeviceId?: string, startOptions?: MirrorOptions): Promise<boolean> => {
       const api = getManoloApi();
       if (!api) {
         setError('API de Manolo Mirror no disponible.');
@@ -37,13 +37,15 @@ export function useMirror(deviceId: string | null): UseMirrorResult {
         return false;
       }
 
+      const openWith = startOptions ?? options;
       setLoading(true);
       setError(null);
 
-      const result = await api.openMirror(id, options);
+      const result = await api.openMirror(id, openWith);
       setLoading(false);
 
       if (result.ok) {
+        setOptions(openWith);
         await refreshStatus();
         return true;
       }

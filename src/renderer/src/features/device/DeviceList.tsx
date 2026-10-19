@@ -3,6 +3,7 @@ import type { AndroidDevice } from '../../../../shared/device/types';
 import { Button } from '../../components/ui/Button';
 import { StatusDot } from '../../components/ui/StatusDot';
 import type { DeviceSummary } from './connected-devices';
+import { isWifiDeviceId } from '../../../../shared/ipc/validators';
 import { DEVICE_STATUS_LABELS } from './device.ui';
 
 type DeviceListProps = {
@@ -12,6 +13,8 @@ type DeviceListProps = {
   readonly activeMirrorIds: readonly string[];
   readonly onRefresh: () => void;
   readonly onStartMirror: (deviceId: string) => void;
+  readonly onConnectWifi: () => void;
+  readonly onDisconnect: (deviceId: string) => void;
 };
 
 export function DeviceList({
@@ -21,6 +24,8 @@ export function DeviceList({
   activeMirrorIds,
   onRefresh,
   onStartMirror,
+  onConnectWifi,
+  onDisconnect,
 }: DeviceListProps): JSX.Element {
   const { connected, unavailable } = summary;
   const modelCounts = countModels([...connected, ...unavailable]);
@@ -43,7 +48,8 @@ export function DeviceList({
         <div className="flex min-h-[60vh] flex-col items-center justify-center gap-2 px-6 text-center">
           <PhoneIcon className="size-8 text-ink-3" />
           <p className="font-medium">Sin dispositivos</p>
-          <p className="text-ink-2">Conecta un teléfono por USB.</p>
+          <p className="text-ink-2">Conecta un teléfono por USB o por Wi-Fi.</p>
+          <Button onClick={onConnectWifi}>Conectar por Wi-Fi…</Button>
         </div>
       )}
 
@@ -58,6 +64,7 @@ export function DeviceList({
                 showId={isAmbiguous(device, modelCounts)}
                 status={isMirroring ? <StatusDot tone="success" label="En espejo" /> : null}
                 onOpen={() => onStartMirror(device.id)}
+                onDisconnect={isWifiDeviceId(device.id) ? () => onDisconnect(device.id) : undefined}
               />
             );
           })}
@@ -76,10 +83,19 @@ export function DeviceList({
                 device={device}
                 showId={isAmbiguous(device, modelCounts)}
                 status={<StatusDot tone="warning" label={DEVICE_STATUS_LABELS[device.status]} />}
+                onDisconnect={isWifiDeviceId(device.id) ? () => onDisconnect(device.id) : undefined}
               />
             ))}
           </ul>
         </>
+      )}
+
+      {(connected.length > 0 || unavailable.length > 0) && (
+        <div className="px-4 py-2.5">
+          <Button variant="plain" onClick={onConnectWifi}>
+            Conectar por Wi-Fi…
+          </Button>
+        </div>
       )}
     </section>
   );
@@ -104,9 +120,10 @@ type DeviceRowProps = {
   readonly showId: boolean;
   readonly status: ReactNode;
   readonly onOpen?: () => void;
+  readonly onDisconnect?: (() => void) | undefined;
 };
 
-function DeviceRow({ device, showId, status, onOpen }: DeviceRowProps): JSX.Element {
+function DeviceRow({ device, showId, status, onOpen, onDisconnect }: DeviceRowProps): JSX.Element {
   const name = device.model ?? device.id;
 
   return (
@@ -120,6 +137,16 @@ function DeviceRow({ device, showId, status, onOpen }: DeviceRowProps): JSX.Elem
         {showId && <p className="truncate text-sm text-ink-3">{device.id}</p>}
       </div>
       {status}
+      {onDisconnect && (
+        <Button
+          variant="plain"
+          className="opacity-0 focus-visible:opacity-100 group-hover:opacity-100"
+          aria-label={`Desconectar ${name}`}
+          onClick={onDisconnect}
+        >
+          Desconectar
+        </Button>
+      )}
       {onOpen && (
         <Button
           className="opacity-0 focus-visible:opacity-100 group-hover:opacity-100"

@@ -54,6 +54,7 @@ export default defineConfig({
   ],
   test: {
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    // Hook and component tests opt in to jsdom with `// @vitest-environment jsdom`.
+    include: ['src/**/*.test.{ts,tsx}'],
   },
 });
