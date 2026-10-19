@@ -278,3 +278,67 @@ describe('AdbService mDNS', () => {
     expect(result.ok).toBe(false);
   });
 });
+
+describe('AdbService device settings', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  const answer = (touches: string, stayAwake: string): void => {
+    mockedRunCommand.mockImplementation(async (_adb, args) => ({
+      stdout: args.includes('show_touches') ? touches : stayAwake,
+      stderr: '',
+    }));
+  };
+
+  it('reads show touches and stay awake from the phone', async () => {
+    answer('1\n', '7\n');
+
+    const result = await new AdbService().getDeviceSettings('emulator-5554');
+
+    expect(result).toEqual({ ok: true, value: { showTouches: true, stayAwake: true } });
+    expect(mockedRunCommand).toHaveBeenCalledWith(
+      '/usr/local/bin/adb',
+      ['-s', 'emulator-5554', 'shell', 'settings', 'get', 'system', 'show_touches'],
+      20_000,
+    );
+  });
+
+  it('treats 0 and null as off', async () => {
+    answer('0\n', 'null\n');
+
+    expect(await new AdbService().getDeviceSettings('emulator-5554')).toEqual({
+      ok: true,
+      value: { showTouches: false, stayAwake: false },
+    });
+  });
+
+  it('passes through the adb error when the phone cannot be read', async () => {
+    mockedRunCommand.mockRejectedValue(
+      new CommandError('error: device offline', { stderr: 'error: device offline' }),
+    );
+
+    expect(await new AdbService().getDeviceSettings('emulator-5554')).toEqual({
+      ok: false,
+      error: 'error: device offline',
+    });
+  });
+
+  it.each([
+    ['showTouches', true, ['system', 'show_touches', '1']],
+    ['showTouches', false, ['system', 'show_touches', '0']],
+    ['stayAwake', true, ['global', 'stay_on_while_plugged_in', '7']],
+    ['stayAwake', false, ['global', 'stay_on_while_plugged_in', '0']],
+  ] as const)('writes %s=%s with the right adb arguments', async (key, enabled, tail) => {
+    mockedRunCommand.mockResolvedValue({ stdout: '', stderr: '' });
+
+    const result = await new AdbService().setDeviceSetting('emulator-5554', key, enabled);
+
+    expect(result.ok).toBe(true);
+    expect(mockedRunCommand).toHaveBeenCalledWith(
+      '/usr/local/bin/adb',
+      ['-s', 'emulator-5554', 'shell', 'settings', 'put', ...tail],
+      20_000,
+    );
+  });
+});

@@ -1,4 +1,9 @@
-import type { AndroidDevice, DeviceStatus } from '../../../shared/device/types';
+import type {
+  AndroidDevice,
+  DeviceSettingKey,
+  DeviceSettings,
+  DeviceStatus,
+} from '../../../shared/device/types';
 import { err, ok, type Result } from '../../../shared/ipc/result';
 import { runCommand } from '../../utils/runCommand';
 import { ADB_NOT_FOUND_MESSAGE, mapCommandError } from './adb-error';
@@ -194,6 +199,49 @@ export class AdbService {
   async disconnect(address: string): Promise<Result<string>> {
     const result = await this.run(['disconnect', address]);
     return result.ok ? ok(`Desconectado de ${address}.`) : result;
+  }
+
+  /** Reads the developer options the settings screen shows. Both are plain `settings get` calls. */
+  async getDeviceSettings(deviceId: string): Promise<Result<DeviceSettings>> {
+    const get = (table: string, name: string): Promise<Result<string>> =>
+      this.run(['-s', deviceId, 'shell', 'settings', 'get', table, name]);
+    const [touches, awake] = await Promise.all([
+      get('system', 'show_touches'),
+      get('global', 'stay_on_while_plugged_in'),
+    ]);
+    if (!touches.ok) {
+      return touches;
+    }
+    if (!awake.ok) {
+      return awake;
+    }
+    return ok({
+      showTouches: touches.value.trim() === '1',
+      // 0 is off; any other bitmask (USB, AC, wireless) keeps the screen on while charging.
+      stayAwake: !['', '0', 'null'].includes(awake.value.trim()),
+    });
+  }
+
+  async setDeviceSetting(
+    deviceId: string,
+    key: DeviceSettingKey,
+    enabled: boolean,
+  ): Promise<Result<void>> {
+    const [table, name, on] =
+      key === 'showTouches'
+        ? (['system', 'show_touches', '1'] as const)
+        : (['global', 'stay_on_while_plugged_in', '7'] as const);
+    const result = await this.run([
+      '-s',
+      deviceId,
+      'shell',
+      'settings',
+      'put',
+      table,
+      name,
+      enabled ? on : '0',
+    ]);
+    return result.ok ? ok(undefined) : result;
   }
 
   async installApk(deviceId: string, apkPath: string): Promise<Result<void>> {

@@ -1,18 +1,12 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { MIRROR_QUALITY_ORDER } from '../../../shared/mirror/quality';
-import { DEFAULT_PREFERENCES, type Preferences } from '../../../shared/preferences/types';
+import { readPreferences } from '../../../shared/preferences/parse';
+import type { Preferences } from '../../../shared/preferences/types';
 
-/** Stored next to the preferences. Not shared with the renderer. */
+/** What is saved on disk: the preferences shared with windows, plus main-process-only settings. */
 type StoredSettings = Preferences & {
   readonly adbPath: string | null;
   readonly saveDirectory: string | null;
-};
-
-const DEFAULT_SETTINGS: StoredSettings = {
-  ...DEFAULT_PREFERENCES,
-  adbPath: null,
-  saveDirectory: null,
 };
 
 function nonEmptyString(value: unknown): string | null {
@@ -22,9 +16,8 @@ function nonEmptyString(value: unknown): string | null {
 /** Keeps only valid, known fields, so a hand-edited or corrupt file cannot break the app. */
 function sanitize(value: unknown): StoredSettings {
   const raw = typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {};
-  const quality = MIRROR_QUALITY_ORDER.find((preset) => preset === raw.quality);
   return {
-    quality: quality ?? DEFAULT_SETTINGS.quality,
+    ...readPreferences(raw),
     adbPath: nonEmptyString(raw.adbPath),
     saveDirectory: nonEmptyString(raw.saveDirectory),
   };
@@ -42,7 +35,7 @@ export class PreferencesService {
     try {
       return sanitize(JSON.parse(readFileSync(this.filePath, 'utf8')));
     } catch {
-      return DEFAULT_SETTINGS;
+      return sanitize(null);
     }
   }
 
@@ -57,11 +50,13 @@ export class PreferencesService {
   }
 
   get(): Preferences {
-    return { quality: this.settings.quality };
+    const { mirror, navigationBar, alwaysOnTop, captureAction } = this.settings;
+    return { mirror, navigationBar, alwaysOnTop, captureAction };
   }
 
-  setQuality(quality: Preferences['quality']): void {
-    this.update({ quality });
+  /** Applies a patch already validated by `parsePreferencesPatch`. */
+  set(patch: Partial<Preferences>): void {
+    this.update(patch);
   }
 
   getAdbPath(): string | null {

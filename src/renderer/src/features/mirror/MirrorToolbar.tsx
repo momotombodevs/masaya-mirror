@@ -1,14 +1,11 @@
 import { type ReactNode } from 'react';
+import type { CaptureAction } from '../../../../shared/preferences/types';
 import { Button } from '../../components/ui/Button';
+import { Menu } from '../../components/ui/Menu';
 import { cx } from '../../components/ui/cx';
 import { CapturePreviewDialog } from './CapturePreviewDialog';
 import { useCapture } from './useCapture';
 import { useRecording } from './useRecording';
-import {
-  MIRROR_QUALITY_ORDER,
-  MIRROR_QUALITY_PRESETS,
-  type MirrorQualityPreset,
-} from '../../../../shared/mirror/quality';
 import { useMenuActions } from '../../shared/useMenuAction';
 import { ANDROID_KEYCODE } from './android-keycodes';
 import { useApkInstall } from './useApkInstall';
@@ -20,8 +17,8 @@ type MirrorToolbarProps = {
   readonly deviceLabel: string;
   readonly canvas: HTMLCanvasElement | null;
   readonly onFullscreen: () => void;
-  readonly quality: MirrorQualityPreset | null;
-  readonly onQualityChange: (preset: MirrorQualityPreset) => void;
+  readonly onOpenSettings: () => void;
+  readonly captureAction: CaptureAction;
   readonly disabled?: boolean;
 };
 
@@ -30,12 +27,12 @@ export function MirrorToolbar({
   deviceLabel,
   canvas,
   onFullscreen,
-  quality,
-  onQualityChange,
+  onOpenSettings,
+  captureAction,
   disabled = false,
 }: MirrorToolbarProps): JSX.Element {
   const { statusMessage, showStatus } = useToolbarStatus();
-  const capture = useCapture(canvas, showStatus);
+  const capture = useCapture(canvas, showStatus, captureAction);
   const recorder = useRecording(canvas, showStatus);
   const pressKey = useDeviceKeys(deviceId);
   const apk = useApkInstall(deviceId, showStatus);
@@ -43,6 +40,7 @@ export function MirrorToolbar({
   useMenuActions({
     capture: () => void capture.open(),
     record: () => void recorder.toggle(),
+    settings: onOpenSettings,
   });
 
   return (
@@ -56,73 +54,6 @@ export function MirrorToolbar({
         </div>
 
         <div className="ml-auto flex items-center gap-1">
-          <select
-            aria-label="Calidad"
-            title={quality ? MIRROR_QUALITY_PRESETS[quality].detail : undefined}
-            className="mr-1 h-7 rounded-control border-0 bg-mirror-hover px-2 text-sm text-mirror-text [color-scheme:dark] disabled:opacity-40"
-            value={quality ?? ''}
-            disabled={disabled}
-            onChange={(event) => onQualityChange(event.target.value as MirrorQualityPreset)}
-          >
-            {quality === null && <option value="">Personalizada</option>}
-            {MIRROR_QUALITY_ORDER.map((preset) => (
-              <option key={preset} value={preset} title={MIRROR_QUALITY_PRESETS[preset].detail}>
-                {MIRROR_QUALITY_PRESETS[preset].label}
-              </option>
-            ))}
-          </select>
-
-          <ToolbarIconButton
-            label="Atrás"
-            disabled={disabled}
-            onClick={() => pressKey(ANDROID_KEYCODE.back)}
-          >
-            <BackIcon />
-          </ToolbarIconButton>
-          <ToolbarIconButton
-            label="Inicio"
-            disabled={disabled}
-            onClick={() => pressKey(ANDROID_KEYCODE.home)}
-          >
-            <HomeIcon />
-          </ToolbarIconButton>
-          <ToolbarIconButton
-            label="Apps recientes"
-            disabled={disabled}
-            onClick={() => pressKey(ANDROID_KEYCODE.appSwitch)}
-          >
-            <RecentsIcon />
-          </ToolbarIconButton>
-          <ToolbarDivider />
-          <ToolbarIconButton
-            label="Subir volumen"
-            disabled={disabled}
-            onClick={() => pressKey(ANDROID_KEYCODE.volumeUp)}
-          >
-            <VolumeIcon level="up" />
-          </ToolbarIconButton>
-          <ToolbarIconButton
-            label="Bajar volumen"
-            disabled={disabled}
-            onClick={() => pressKey(ANDROID_KEYCODE.volumeDown)}
-          >
-            <VolumeIcon level="down" />
-          </ToolbarIconButton>
-          <ToolbarIconButton
-            label="Encender o apagar pantalla"
-            disabled={disabled}
-            onClick={() => pressKey(ANDROID_KEYCODE.power)}
-          >
-            <PowerIcon />
-          </ToolbarIconButton>
-          <ToolbarDivider />
-          <ToolbarIconButton
-            label="Instalar APK"
-            disabled={disabled || apk.installing}
-            onClick={() => void apk.install()}
-          >
-            <InstallIcon />
-          </ToolbarIconButton>
           <ToolbarIconButton
             label="Captura"
             disabled={disabled || !canvas}
@@ -141,6 +72,27 @@ export function MirrorToolbar({
           <ToolbarIconButton label="Pantalla completa" disabled={disabled} onClick={onFullscreen}>
             <FullscreenIcon />
           </ToolbarIconButton>
+          <Menu
+            label="Más opciones"
+            disabled={disabled}
+            items={[
+              { label: 'Subir volumen', onSelect: () => pressKey(ANDROID_KEYCODE.volumeUp) },
+              { label: 'Bajar volumen', onSelect: () => pressKey(ANDROID_KEYCODE.volumeDown) },
+              {
+                label: 'Encender o apagar pantalla',
+                onSelect: () => pressKey(ANDROID_KEYCODE.power),
+              },
+              {
+                label: 'Instalar APK…',
+                onSelect: () => void apk.install(),
+                disabled: apk.installing,
+                separatorBefore: true,
+              },
+              { label: 'Ajustes…', onSelect: onOpenSettings, separatorBefore: true },
+            ]}
+          >
+            <MoreIcon />
+          </Menu>
         </div>
       </header>
 
@@ -230,63 +182,12 @@ function FullscreenIcon(): JSX.Element {
   );
 }
 
-function ToolbarDivider(): JSX.Element {
-  return <span className="mx-1 h-4 w-px bg-mirror-line" aria-hidden />;
-}
-
-function BackIcon(): JSX.Element {
+function MoreIcon(): JSX.Element {
   return (
     <svg {...ICON_PROPS}>
-      <path d="M15 5l-7 7 7 7" />
-    </svg>
-  );
-}
-
-function HomeIcon(): JSX.Element {
-  return (
-    <svg {...ICON_PROPS}>
-      <circle cx="12" cy="12" r="7" />
-    </svg>
-  );
-}
-
-function RecentsIcon(): JSX.Element {
-  return (
-    <svg {...ICON_PROPS}>
-      <rect x="6" y="6" width="12" height="12" rx="2" />
-    </svg>
-  );
-}
-
-function VolumeIcon({ level }: { readonly level: 'up' | 'down' }): JSX.Element {
-  return (
-    <svg {...ICON_PROPS}>
-      <path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z" />
-      <path
-        d={
-          level === 'up'
-            ? 'M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11'
-            : 'M15.5 9a4 4 0 0 1 0 6'
-        }
-      />
-    </svg>
-  );
-}
-
-function PowerIcon(): JSX.Element {
-  return (
-    <svg {...ICON_PROPS}>
-      <path d="M12 3v8" />
-      <path d="M6.3 7.2a7.5 7.5 0 1 0 11.4 0" />
-    </svg>
-  );
-}
-
-function InstallIcon(): JSX.Element {
-  return (
-    <svg {...ICON_PROPS}>
-      <path d="M12 4v11m0 0l-4-4m4 4l4-4" />
-      <path d="M5 19h14" />
+      <circle cx="5" cy="12" r="1" />
+      <circle cx="12" cy="12" r="1" />
+      <circle cx="19" cy="12" r="1" />
     </svg>
   );
 }

@@ -31,19 +31,6 @@ test.describe('with adb available', () => {
     await window.getByRole('button', { name: 'Cancelar' }).click();
     await expect(window.getByRole('button', { name: 'Mostrar código QR' })).toBeVisible();
   });
-
-  test('opens a mirror window with the device controls', async () => {
-    const { app, window } = launched;
-    const opened = app.waitForEvent('window');
-
-    await window.getByRole('listitem').filter({ hasText: 'Pixel_Fake' }).dblclick();
-    const mirror = await opened;
-    await mirror.waitForLoadState('domcontentloaded');
-
-    for (const name of ['Atrás', 'Inicio', 'Apps recientes', 'Subir volumen', 'Instalar APK']) {
-      await expect(mirror.getByRole('button', { name })).toBeVisible();
-    }
-  });
 });
 
 test.describe('without adb', () => {

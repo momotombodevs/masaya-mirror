@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getManoloApi } from '../../shared/manolo-api';
+import type { CaptureAction } from '../../../../shared/preferences/types';
 import { captureCanvasPng } from './capture-canvas';
 
 export type CapturePreview = {
@@ -16,10 +17,32 @@ export type UseCaptureResult = {
   readonly close: () => void;
 };
 
+/** Copies or saves a capture without showing the preview. */
+async function deliver(
+  action: Exclude<CaptureAction, 'preview'>,
+  buffer: ArrayBuffer,
+  showStatus: (message: string) => void,
+): Promise<void> {
+  const api = getManoloApi();
+  if (!api) {
+    return;
+  }
+  const result = await (action === 'copy' ? api.copyCapture(buffer) : api.saveCapture(buffer));
+  if (!result.ok) {
+    showStatus(result.error);
+  } else if (action === 'copy') {
+    showStatus('Copiado al portapapeles');
+  } else {
+    showStatus(result.value.saved ? 'Captura guardada' : 'Guardado cancelado');
+  }
+}
+
 /** Captures the mirror canvas to a PNG and exposes copy/save actions via the main process. */
 export function useCapture(
   canvas: HTMLCanvasElement | null,
   showStatus: (message: string) => void,
+  /** What to do with a new capture: show the preview dialog, or copy or save it right away. */
+  action: CaptureAction = 'preview',
 ): UseCaptureResult {
   const [preview, setPreview] = useState<CapturePreview | null>(null);
   const [busy, setBusy] = useState(false);
@@ -53,6 +76,11 @@ export function useCapture(
       return;
     }
 
+    if (action !== 'preview') {
+      await deliver(action, buffer, showStatus);
+      return;
+    }
+
     const url = URL.createObjectURL(new Blob([buffer], { type: 'image/png' }));
     setPreview((current) => {
       if (current) {
@@ -60,7 +88,7 @@ export function useCapture(
       }
       return { url, buffer };
     });
-  }, [canvas, showStatus]);
+  }, [canvas, showStatus, action]);
 
   const copy = useCallback(async (): Promise<void> => {
     const api = getManoloApi();

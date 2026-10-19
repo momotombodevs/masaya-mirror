@@ -19,6 +19,14 @@ describe('computeStageSize', () => {
     });
   });
 
+  it('leaves room for the navigation bar when it is shown', () => {
+    // 2160 * 0.9 - 52 - 40 = 1852
+    expect(computeStageSize({ width: 1200, height: 2400 }, workArea, 40)).toEqual({
+      width: 926,
+      height: 1852,
+    });
+  });
+
   it('fits wide videos by width', () => {
     expect(computeStageSize({ width: 5000, height: 1000 }, { width: 1000, height: 2000 })).toEqual({
       width: 900,

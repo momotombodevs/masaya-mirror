@@ -60,11 +60,23 @@ escanearlo, el teléfono anuncia por mDNS un servicio `_adb-tls-pairing` con ese
 `adb mdns services`, empareja solo con el servicio cuyo nombre coincide y después conecta con el servicio
 `_adb-tls-connect` de la misma IP. Si `adb mdns check` falla (red o adb sin mDNS) se avisa y se sugiere otra red o USB. Solo hay una vinculación activa; cerrar el diálogo la cancela.
 
-### Preferencias
+### Preferencias y Ajustes
 
-`PreferencesService` guarda `settings.json` en la carpeta de datos del usuario: calidad del espejo, ruta de
-`adb` y última carpeta de capturas. Se lee una vez al arrancar; un archivo corrupto o con valores
-desconocidos se sustituye por los valores por defecto. El renderer solo ve la calidad (`preferences:get|set`).
+`PreferencesService` guarda `settings.json` en la carpeta de datos del usuario. Los renderers ven solo
+`Preferences` (video del espejo, barra de navegación, siempre visible, acción al capturar); la ruta de `adb` y
+la última carpeta de capturas son solo del proceso principal. `shared/preferences/parse.ts` es la única fuente
+de validación: `parsePreferencesPatch` (estricta, para peticiones de una ventana) y `readPreferences`
+(tolerante, para el archivo: conserva lo válido, usa el valor por defecto en el resto y migra el formato
+antiguo que guardaba solo un preajuste de calidad).
+
+La ventana del espejo tiene una **pantalla de Ajustes** (`SettingsPanel`, ⌘/Ctrl+,) agrupada en _Ventana_,
+_Calidad de imagen_ y _Dispositivo_. Cambiar el video reinicia el stream (`applyOptions`) y guarda el valor
+solo si el cambio se aplicó. «Siempre visible» llama a `setAlwaysOnTop` en el proceso principal. Los ajustes
+del dispositivo (`adb shell settings get|put` de `show_touches` y `stay_on_while_plugged_in`) pasan por
+`device-settings.handlers.ts`, que solo acepta una clave conocida y la ventana dueña del dispositivo.
+
+La ventana arranca con el tamaño que deja sitio a la barra de navegación solo si está activada
+(`isNavigationBarShown`).
 
 ### Abrir un espejo
 

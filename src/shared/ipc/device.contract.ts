@@ -1,4 +1,4 @@
-import type { AndroidDevice } from '../device/types';
+import type { AndroidDevice, DeviceSettingKey, DeviceSettings } from '../device/types';
 import type { Result } from './result';
 
 export const DEVICE_CHANNELS = {
@@ -11,6 +11,8 @@ export const DEVICE_CHANNELS = {
   qrPairWait: 'device:qr-pair-wait',
   qrPairCancel: 'device:qr-pair-cancel',
   installApk: 'device:install-apk',
+  getSettings: 'device:get-settings',
+  setSetting: 'device:set-setting',
 } as const;
 
 export type ListDevicesResponse = Result<readonly AndroidDevice[]>;
@@ -39,3 +41,13 @@ export type InstallApkResponse = Result<{ readonly installed: boolean }>;
 export type QrPairingSession = { readonly sessionId: string };
 
 export type QrPairStartResponse = Result<QrPairingSession & { readonly payload: string }>;
+
+export type GetDeviceSettingsResponse = Result<DeviceSettings>;
+
+export type SetDeviceSettingRequest = {
+  readonly deviceId: string;
+  readonly key: DeviceSettingKey;
+  readonly enabled: boolean;
+};
+
+export type SetDeviceSettingResponse = Result<void>;

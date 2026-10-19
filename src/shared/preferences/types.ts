@@ -1,8 +1,28 @@
-import type { MirrorQualityPreset } from '../mirror/quality';
+import { DEFAULT_MIRROR_OPTIONS, type MirrorOptions } from '../mirror/types';
+
+/** What happens right after taking a screenshot. */
+export type CaptureAction = 'preview' | 'copy' | 'save';
+
+export const CAPTURE_ACTIONS: readonly CaptureAction[] = ['preview', 'copy', 'save'];
+
+/** The video settings a mirror window starts with. Audio is not offered yet. */
+export type MirrorVideoPreferences = Pick<MirrorOptions, 'maxSize' | 'videoBitRate' | 'videoCodec'>;
 
 export type Preferences = {
-  /** Quality new mirror windows start with. */
-  readonly quality: MirrorQualityPreset;
+  readonly mirror: MirrorVideoPreferences;
+  /** Back, Home and Recents under the screen. */
+  readonly navigationBar: boolean;
+  readonly alwaysOnTop: boolean;
+  readonly captureAction: CaptureAction;
 };
 
-export const DEFAULT_PREFERENCES: Preferences = { quality: 'high' };
+export const DEFAULT_PREFERENCES: Preferences = {
+  mirror: {
+    maxSize: DEFAULT_MIRROR_OPTIONS.maxSize,
+    videoBitRate: DEFAULT_MIRROR_OPTIONS.videoBitRate,
+    videoCodec: DEFAULT_MIRROR_OPTIONS.videoCodec,
+  },
+  navigationBar: true,
+  alwaysOnTop: false,
+  captureAction: 'preview',
+};

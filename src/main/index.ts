@@ -6,6 +6,7 @@ import { augmentProcessPath } from './features/device/adb-path.resolver';
 import { AdbService } from './features/device/adb.service';
 import { DeviceService } from './features/device/device.service';
 import { registerApkIpcHandlers } from './features/device/ipc/apk.handlers';
+import { registerDeviceSettingsIpcHandlers } from './features/device/ipc/device-settings.handlers';
 import { registerDeviceIpcHandlers } from './features/device/ipc/device.handlers';
 import { QrPairingService } from './features/device/qr-pairing.service';
 import { registerSetupIpcHandlers } from './features/device/ipc/setup.handlers';
@@ -22,7 +23,12 @@ function bootstrap(): void {
   const adbService = new AdbService();
   const deviceService = new DeviceService(adbService);
   const scrcpyService = new ScrcpyService(adbService);
-  const mirrorWindowService = new MirrorWindowService({ scrcpyService });
+  const preferences = new PreferencesService(path.join(app.getPath('userData'), 'settings.json'));
+  adbService.setCustomPath(preferences.getAdbPath());
+  const mirrorWindowService = new MirrorWindowService({
+    scrcpyService,
+    isNavigationBarShown: () => preferences.get().navigationBar,
+  });
   registerAppLifecycle();
 
   app.on('will-quit', () => {
@@ -31,9 +37,6 @@ function bootstrap(): void {
   });
 
   void app.whenReady().then(() => {
-    const preferences = new PreferencesService(path.join(app.getPath('userData'), 'settings.json'));
-    adbService.setCustomPath(preferences.getAdbPath());
-
     installApplicationMenu();
     registerDeviceIpcHandlers(deviceService);
     registerSetupIpcHandlers(
@@ -43,6 +46,7 @@ function bootstrap(): void {
       new QrPairingService(adbService),
     );
     registerApkIpcHandlers(adbService, mirrorWindowService);
+    registerDeviceSettingsIpcHandlers(adbService, mirrorWindowService);
     registerPreferencesIpcHandlers(preferences);
     registerMirrorIpcHandlers(scrcpyService, mirrorWindowService);
     registerQaIpcHandlers(mirrorWindowService, preferences);

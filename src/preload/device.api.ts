@@ -4,11 +4,14 @@ import {
   type AdbStatusResponse,
   type ChooseAdbResponse,
   type DisconnectRequest,
+  type GetDeviceSettingsResponse,
   type InstallApkRequest,
   type InstallApkResponse,
   type ListDevicesResponse,
   type OpenAdbDownloadResponse,
   type QrPairStartResponse,
+  type SetDeviceSettingRequest,
+  type SetDeviceSettingResponse,
   type QrPairingSession,
   type WifiResponse,
 } from '../shared/ipc/device.contract';
@@ -37,6 +40,20 @@ export const deviceApi = {
 
   cancelQrPairing: (sessionId: string): Promise<Result<void>> =>
     ipcRenderer.invoke(DEVICE_CHANNELS.qrPairCancel, { sessionId } satisfies QrPairingSession),
+
+  getDeviceSettings: (deviceId: string): Promise<GetDeviceSettingsResponse> =>
+    ipcRenderer.invoke(DEVICE_CHANNELS.getSettings, { deviceId }),
+
+  setDeviceSetting: (
+    deviceId: string,
+    key: SetDeviceSettingRequest['key'],
+    enabled: boolean,
+  ): Promise<SetDeviceSettingResponse> =>
+    ipcRenderer.invoke(DEVICE_CHANNELS.setSetting, {
+      deviceId,
+      key,
+      enabled,
+    } satisfies SetDeviceSettingRequest),
 
   /** Installs an APK on the mirrored device. Without `path`, the main process asks for the file. */
   installApk: (deviceId: string, path?: string): Promise<InstallApkResponse> =>

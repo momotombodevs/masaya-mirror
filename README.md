@@ -6,11 +6,15 @@ captura de pantalla, grabación de video y control con mouse y teclado, sin inst
 - **Espejo en ventana propia** por dispositivo, con calidad ajustable (Equilibrada, Alta, Máxima).
 - **Control completo:** toques, multitouch, arrastre, rueda, teclado (incluye acentos y símbolos) y
   clic derecho como «Atrás».
-- **Barra de dispositivo:** Atrás, Inicio, Apps recientes, volumen y encendido de pantalla.
+- **Barra superior** con captura, grabación, pantalla completa y un menú con volumen, encendido de pantalla,
+  instalar APK y Ajustes. **Barra de navegación** (Atrás, Inicio, Recientes) bajo la pantalla.
+- **Pantalla de Ajustes** (⌘/Ctrl+,): ventana (barra de navegación, siempre visible, qué hacer al capturar),
+  calidad de imagen (preajustes, resolución, velocidad de datos, códec) y dispositivo (mostrar toques,
+  mantener pantalla encendida).
 - **Instalar APK** desde la barra o arrastrando el archivo a la ventana del espejo.
 - **Conexión por Wi-Fi sin cable:** escanea un código QR desde el teléfono y listo.
 - **Captura y grabación** desde la barra del espejo o con atajos.
-- **Recuerda** la calidad elegida y la carpeta donde guardas capturas y grabaciones.
+- **Recuerda** tus ajustes y la carpeta donde guardas capturas y grabaciones.
 - **Tema claro/oscuro** y color de acento del sistema.
 
 ## Requisitos
@@ -58,6 +62,7 @@ Los instaladores quedan en `release/<versión>/`. Detalles de versionado y firma
 | Captura de pantalla              | ⌘⇧4                          | Ctrl+Shift+4                 |
 | Grabar / detener                 | ⌘⇧5                          | Ctrl+Shift+5                 |
 | Conectar por Wi-Fi               | ⌘⇧W                          | Ctrl+Shift+W                 |
+| Ajustes del espejo               | ⌘,                           | Ctrl+,                       |
 | Abrir espejo                     | Doble clic en el dispositivo | Doble clic en el dispositivo |
 
 En la ventana del espejo, el teclado y el mouse se envían al dispositivo.
