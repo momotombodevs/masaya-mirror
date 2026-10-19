@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
-import ui from '../../components/ui/primitives.module.css';
-import styles from './CapturePreviewDialog.module.css';
+import { Button } from '../../components/ui/Button';
 
 type CapturePreviewDialogProps = {
   readonly imageUrl: string;
@@ -28,59 +27,54 @@ export function CapturePreviewDialog({
   }, [onClose]);
 
   return (
-    <div className={styles.backdrop} role="presentation" onClick={onClose}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-mirror-canvas/70 p-6 backdrop-blur-sm" role="presentation" onClick={onClose}>
       <div
-        className={styles.dialog}
+        className="flex max-h-[min(90vh,820px)] w-[min(472px,100%)] flex-col overflow-hidden rounded-lg border border-line-subtle bg-surface-1 shadow-dialog"
         role="dialog"
         aria-modal="true"
         aria-labelledby="capture-preview-title"
         onClick={(event) => event.stopPropagation()}
       >
-        <header className={styles.header}>
-          <h2 id="capture-preview-title" className={styles.title}>
+        <header className="flex items-center justify-between border-b border-line-subtle bg-surface-1/80 px-5 py-4">
+          <h2 id="capture-preview-title" className="text-md font-semibold">
             Capture
           </h2>
-          <button
-            type="button"
-            className={`${ui.button} ${ui.buttonGhost} ${ui.iconButton} ${styles.closeBtn}`}
-            onClick={onClose}
-            aria-label="Close"
-          >
+          <Button icon variant="ghost" onClick={onClose} aria-label="Close">
             <CloseIcon />
-          </button>
+          </Button>
         </header>
 
-        <div className={styles.preview}>
-          <img src={imageUrl} alt="Capture preview" className={styles.image} />
+        <div className="flex min-h-0 flex-1 items-center justify-center bg-mirror-canvas p-4">
+          <img src={imageUrl} alt="Capture preview" className="h-auto max-h-[min(60vh,640px)] w-auto max-w-full rounded-sm shadow-[0_16px_44px_rgba(0,0,0,0.28)]" />
         </div>
 
-        <footer className={styles.footer}>
-          <button
-            type="button"
-            className={`${ui.button} ${ui.buttonSecondary} ${styles.dialogButton}`}
+        <footer className="flex justify-end gap-2 border-t border-line-subtle bg-surface-1/80 px-5 py-3">
+          <Button
+            variant="secondary"
+            className="min-h-9 gap-2 px-4"
             onClick={onClose}
             disabled={busy}
           >
             Cancel
-          </button>
-          <button
-            type="button"
-            className={`${ui.button} ${ui.buttonSecondary} ${styles.dialogButton}`}
+          </Button>
+          <Button
+            variant="secondary"
+            className="min-h-9 gap-2 px-4"
             onClick={onCopy}
             disabled={busy}
           >
             <CopyIcon />
             <span>Copy</span>
-          </button>
-          <button
-            type="button"
-            className={`${ui.button} ${ui.buttonPrimary} ${styles.dialogButton}`}
+          </Button>
+          <Button
+            variant="primary"
+            className="min-h-9 gap-2 px-4"
             onClick={onSave}
             disabled={busy}
           >
             <SaveIcon />
             <span>Save…</span>
-          </button>
+          </Button>
         </footer>
       </div>
     </div>
@@ -89,7 +83,7 @@ export function CapturePreviewDialog({
 
 function CloseIcon() {
   return (
-    <svg className={styles.closeIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <svg className="size-4 shrink-0 [stroke-linecap:round] [stroke-linejoin:round]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
       <path d="M18 6 6 18M6 6l12 12" />
     </svg>
   );
@@ -97,7 +91,7 @@ function CloseIcon() {
 
 function CopyIcon() {
   return (
-    <svg className={styles.actionIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <svg className="size-4 shrink-0 [stroke-linecap:round] [stroke-linejoin:round]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
       <rect x="9" y="9" width="11" height="11" rx="2" />
       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
     </svg>
@@ -106,7 +100,7 @@ function CopyIcon() {
 
 function SaveIcon() {
   return (
-    <svg className={styles.actionIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <svg className="size-4 shrink-0 [stroke-linecap:round] [stroke-linejoin:round]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
       <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z" />
       <path d="M17 21v-8H7v8M7 3v5h8" />
     </svg>
