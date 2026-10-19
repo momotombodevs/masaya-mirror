@@ -292,10 +292,8 @@ kbd {
 .link {
   flex: none;
   width: 54px;
-  height: 2px;
-  background: repeating-linear-gradient(90deg, #ff7a3d 0 6px, transparent 6px 12px);
-  background-size: 12px 2px;
-  animation: flow 0.8s linear infinite;
+  height: 0;
+  border-top: 2px dashed #ff7a3d;
   position: relative;
 }
 .link::after {
@@ -427,7 +425,7 @@ kbd {
 }
 .scr-top {
   height: 16%;
-  background: linear-gradient(135deg, #0f3d3e, #1f8a78);
+  background: #0f3d3e;
   color: #fff;
   padding: 9cqw 8cqw 0;
   font: 700 7.5cqw/1 var(--font-display);
@@ -1029,10 +1027,10 @@ footer.site .bottom {
   width: 30px;
   height: 52px;
   border-radius: 7px;
-  background: linear-gradient(160deg, #0f3d3e, #1f8a78);
+  background: #0f3d3e;
 }
 .dev .thumb.b {
-  background: linear-gradient(160deg, #ff7a3d, #ffb36b);
+  background: #ff7a3d;
 }
 .dev strong {
   display: block;
