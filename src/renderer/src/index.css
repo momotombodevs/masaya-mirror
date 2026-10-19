@@ -95,42 +95,12 @@
   --focus-ring: 0 0 0 3px color-mix(in srgb, var(--color-action) 15%, transparent);
   --transition-fast: 0.16s ease;
 
-  /* Legacy aliases kept during migration. */
   --text-xs: var(--font-size-xs);
   --text-sm: var(--font-size-sm);
   --text-md: var(--font-size-md);
   --text-lg: var(--font-size-lg);
-  --surface-radius: var(--radius-xl);
-  --button-radius: var(--radius-full);
   --panel-padding: var(--space-5);
-  --color-bg: var(--color-canvas);
-  --color-bg-strong: #ebe8df;
-  --color-bg-elevated: var(--color-surface-2);
-  --color-surface: var(--color-surface-1);
-  --color-surface-muted: var(--color-surface-3);
-  --color-surface-raised: var(--color-surface-2);
-  --color-text: var(--color-text-primary);
-  --color-text-muted: var(--color-text-secondary);
-  --color-text-soft: var(--color-text-tertiary);
-  --color-accent: var(--color-action);
-  --color-accent-soft: var(--color-action-soft);
-  --color-accent-hover: var(--color-action-hover);
-  --color-success: var(--color-success-text);
-  --color-success-soft: var(--color-success-bg);
-  --color-warning: var(--color-warning-text);
-  --color-warning-soft: var(--color-warning-bg);
-  --color-danger: var(--color-danger-text);
-  --color-danger-soft: var(--color-danger-bg);
-  --color-mirror-bg: var(--color-mirror-canvas);
-  --color-mirror-surface: var(--color-mirror-surface-1);
-  --color-mirror-surface-raised: var(--color-mirror-surface-2);
-  --color-mirror-muted: var(--color-mirror-text-muted);
-  --color-toolbar: var(--color-mirror-surface-1);
   --panel-border: 1px solid var(--color-border-subtle);
-  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
-  --shadow-md: var(--shadow-surface);
-  --shadow-lg: var(--shadow-dialog);
-  --shadow-ring: var(--focus-ring);
 }
 
 * {

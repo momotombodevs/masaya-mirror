@@ -8,9 +8,11 @@ type DevicesState = {
   readonly error: string | null;
 };
 
-export type UseDevicesResult = DevicesState & {
-  readonly refresh: () => Promise<void>;
+type UseDevicesResult = DevicesState & {
+  readonly refresh: (options?: { readonly silent?: boolean }) => Promise<void>;
 };
+
+const AUTO_REFRESH_MS = 5_000;
 
 const initialState: DevicesState = {
   devices: [],
@@ -21,8 +23,10 @@ const initialState: DevicesState = {
 export function useDevices(): UseDevicesResult {
   const [state, setState] = useState<DevicesState>(initialState);
 
-  const refresh = useCallback(async (): Promise<void> => {
-    setState((prev) => ({ ...prev, loading: true, error: null }));
+  const refresh = useCallback(async ({ silent = false } = {}): Promise<void> => {
+    if (!silent) {
+      setState((prev) => ({ ...prev, loading: true }));
+    }
 
     try {
       const api = getManoloApi();
@@ -54,6 +58,19 @@ export function useDevices(): UseDevicesResult {
 
   useEffect(() => {
     void refresh();
+
+    // Keep the list current when devices are plugged in or the window regains focus.
+    const refreshIfVisible = (): void => {
+      if (document.visibilityState === 'visible') {
+        void refresh({ silent: true });
+      }
+    };
+    const timer = window.setInterval(refreshIfVisible, AUTO_REFRESH_MS);
+    window.addEventListener('focus', refreshIfVisible);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refreshIfVisible);
+    };
   }, [refresh]);
 
   return { ...state, refresh };
