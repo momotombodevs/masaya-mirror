@@ -11,6 +11,7 @@ import type {
 } from '../../../../shared/mirror/types';
 import { getManoloApi } from '../../shared/manolo-api';
 import { getMirrorStreamClient, useMirrorStream } from './mirror-stream.client';
+import { createPacketQueue, type PacketQueue } from './packet-queue';
 import type { VideoSize } from './useMirrorInput';
 
 const INIT_TIMEOUT_MS = 15_000;
@@ -39,10 +40,7 @@ export function useMirrorDecoder(
 ): MirrorDecoderState {
   const decoderRef = useRef<WebCodecsVideoDecoder | null>(null);
   const videoSizeRef = useRef<VideoSize>({ width: 0, height: 0 });
-  const streamControllerRef = useRef<{
-    enqueue: (packet: ScrcpyMediaStreamPacket) => void;
-    close: () => void;
-  } | null>(null);
+  const packetQueueRef = useRef<PacketQueue | null>(null);
   const pendingPacketsRef = useRef<ScrcpyMediaStreamPacket[]>([]);
   const onCloseRef = useRef(options.onClose);
   const onSizeChangeRef = useRef(options.onSizeChange);
@@ -86,20 +84,10 @@ export function useMirrorDecoder(
       }
     };
 
-    const flushPendingPackets = (): void => {
-      const controller = streamControllerRef.current;
-      if (!controller) {
-        return;
-      }
-      for (const packet of pendingPacketsRef.current) {
-        controller.enqueue(packet);
-      }
-      pendingPacketsRef.current = [];
-    };
-
     const enqueueVideoPacket = (packet: ScrcpyMediaStreamPacket): void => {
-      if (streamControllerRef.current) {
-        streamControllerRef.current.enqueue(packet);
+      const queue = packetQueueRef.current;
+      if (queue) {
+        queue.push(packet);
         return;
       }
       pendingPacketsRef.current.push(packet);
@@ -116,6 +104,14 @@ export function useMirrorDecoder(
         decoderRef.current = null;
       }
 
+      packetQueueRef.current?.close();
+      const queue = createPacketQueue();
+      packetQueueRef.current = queue;
+      for (const packet of pendingPacketsRef.current) {
+        queue.push(packet);
+      }
+      pendingPacketsRef.current = [];
+
       const renderer = new BitmapVideoFrameRenderer(canvas);
       const decoder = new WebCodecsVideoDecoder({ codec: metadata.codec, renderer });
       decoderRef.current = decoder;
@@ -126,16 +122,16 @@ export function useMirrorDecoder(
         syncVideoLayout(width, height);
       });
 
-      const packetStream = new PushReadableStream<ScrcpyMediaStreamPacket>((controller) => {
-        streamControllerRef.current = {
-          enqueue: (packet) => {
-            void controller.enqueue(packet);
-          },
-          close: () => {
-            controller.close();
-          },
-        };
-        flushPendingPackets();
+      // Pull packets from the bounded queue only as fast as the decoder accepts
+      // them. Backlog is dropped inside the queue, so latency cannot keep growing.
+      const packetStream = new PushReadableStream<ScrcpyMediaStreamPacket>(async (controller) => {
+        for (;;) {
+          const packet = await queue.next();
+          if (!packet) {
+            return;
+          }
+          await controller.enqueue(packet);
+        }
       });
 
       void packetStream.pipeTo(decoder.writable).catch((error: unknown) => {
@@ -170,7 +166,7 @@ export function useMirrorDecoder(
     });
 
     const initTimeout = window.setTimeout(() => {
-      if (!disposed && !streamControllerRef.current) {
+      if (!disposed && !packetQueueRef.current) {
         setStreamError('No video signal. Close and reopen the mirror.');
       }
     }, INIT_TIMEOUT_MS);
@@ -179,8 +175,8 @@ export function useMirrorDecoder(
       disposed = true;
       window.clearTimeout(initTimeout);
       unsubscribe();
-      streamControllerRef.current?.close();
-      streamControllerRef.current = null;
+      packetQueueRef.current?.close();
+      packetQueueRef.current = null;
       pendingPacketsRef.current = [];
       if (decoderRef.current) {
         void decoderRef.current.dispose();
