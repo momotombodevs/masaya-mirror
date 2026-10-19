@@ -8,8 +8,7 @@ captura de pantalla, grabación de video y control con mouse y teclado, sin inst
   clic derecho como «Atrás».
 - **Barra de dispositivo:** Atrás, Inicio, Apps recientes, volumen y encendido de pantalla.
 - **Instalar APK** desde la barra o arrastrando el archivo a la ventana del espejo.
-- **Conexión por Wi-Fi sin cable:** escanea un código QR desde el teléfono; también hay conexión por IP y
-  vinculación por código.
+- **Conexión por Wi-Fi sin cable:** escanea un código QR desde el teléfono y listo.
 - **Captura y grabación** desde la barra del espejo o con atajos.
 - **Recuerda** la calidad elegida y la carpeta donde guardas capturas y grabaciones.
 - **Tema claro/oscuro** y color de acento del sistema.
@@ -86,7 +85,7 @@ de un dispositivo puede controlarlo.
 
 - **«ADB no encontrado»:** instala platform-tools o define `ADB_PATH` con la ruta del ejecutable.
 - **El código QR no encuentra el teléfono:** el teléfono y el equipo deben estar en la misma red Wi-Fi y la
-  red debe permitir mDNS (algunas redes de oficina lo bloquean). Usa «Otras formas de conectar».
+  red debe permitir mDNS (algunas redes de oficina lo bloquean). Prueba con otra red o conéctalo por USB.
 - **El dispositivo aparece «Sin autorizar»:** acepta el diálogo de depuración USB en el teléfono.
 - **La imagen va con retraso:** baja la calidad a «Equilibrada»; el decodificador descarta cuadros
   antiguos cuando no da abasto.

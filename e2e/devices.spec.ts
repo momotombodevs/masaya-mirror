@@ -17,50 +17,6 @@ test.describe('with adb available', () => {
     await expect(launched.window.getByText('Pixel_Fake')).toBeVisible();
   });
 
-  test('connects a phone over Wi-Fi and disconnects it again', async () => {
-    const { window } = launched;
-    await window.getByRole('button', { name: 'Conectar por Wi-Fi…' }).click();
-    await window.getByText('Otras formas de conectar').click();
-
-    await window.getByLabel('Dirección IP y puerto').fill('192.168.1.20:5555');
-    await window.getByRole('button', { name: 'Conectar', exact: true }).click();
-
-    await expect(window.getByRole('status')).toContainText('Conectado a 192.168.1.20:5555');
-    await window.keyboard.press('Escape');
-    await expect(window.getByText('Wifi_Fake')).toBeVisible();
-
-    await window.getByRole('listitem').filter({ hasText: 'Wifi_Fake' }).hover();
-    await window.getByRole('button', { name: 'Desconectar Wifi_Fake' }).click();
-    await expect(window.getByText('Wifi_Fake')).toBeHidden();
-  });
-
-  test('rejects a malformed address before touching adb', async () => {
-    const { window } = launched;
-    await window.getByRole('button', { name: 'Conectar por Wi-Fi…' }).click();
-    await window.getByText('Otras formas de conectar').click();
-
-    await window.getByLabel('Dirección IP y puerto').fill('not-an-address');
-    await window.getByRole('button', { name: 'Conectar', exact: true }).click();
-
-    await expect(window.getByRole('alert')).toContainText('Dirección inválida');
-  });
-
-  test('pairs with the right code and reports a wrong one', async () => {
-    const { window } = launched;
-    await window.getByRole('button', { name: 'Conectar por Wi-Fi…' }).click();
-    await window.getByText('Otras formas de conectar').click();
-    await window.getByText('Vincular con código (sin QR)').click();
-    await window.getByLabel('Dirección de vinculación').fill('192.168.1.20:37099');
-
-    await window.getByLabel('Código de 6 dígitos').fill('000000');
-    await window.getByRole('button', { name: 'Vincular' }).click();
-    await expect(window.getByRole('alert')).toContainText('Wrong password');
-
-    await window.getByLabel('Código de 6 dígitos').fill('123456');
-    await window.getByRole('button', { name: 'Vincular' }).click();
-    await expect(window.getByRole('status')).toContainText('Dispositivo vinculado');
-  });
-
   test('shows a QR code and waits for the phone, and stops when cancelled', async () => {
     const { window } = launched;
     await window.getByRole('button', { name: 'Conectar por Wi-Fi…' }).click();

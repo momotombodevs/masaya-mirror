@@ -3,13 +3,11 @@ import {
   DEVICE_CHANNELS,
   type AdbStatusResponse,
   type ChooseAdbResponse,
-  type ConnectWifiRequest,
   type DisconnectRequest,
   type InstallApkRequest,
   type InstallApkResponse,
   type ListDevicesResponse,
   type OpenAdbDownloadResponse,
-  type PairWifiRequest,
   type QrPairStartResponse,
   type QrPairingSession,
   type WifiResponse,
@@ -25,12 +23,6 @@ export const deviceApi = {
 
   openAdbDownload: (): Promise<OpenAdbDownloadResponse> =>
     ipcRenderer.invoke(DEVICE_CHANNELS.openAdbDownload),
-
-  pairWifi: (address: string, code: string): Promise<WifiResponse> =>
-    ipcRenderer.invoke(DEVICE_CHANNELS.pairWifi, { address, code } satisfies PairWifiRequest),
-
-  connectWifi: (address: string): Promise<WifiResponse> =>
-    ipcRenderer.invoke(DEVICE_CHANNELS.connectWifi, { address } satisfies ConnectWifiRequest),
 
   disconnectDevice: (deviceId: string): Promise<WifiResponse> =>
     ipcRenderer.invoke(DEVICE_CHANNELS.disconnect, { deviceId } satisfies DisconnectRequest),

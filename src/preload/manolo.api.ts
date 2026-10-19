@@ -28,8 +28,6 @@ const MAIN_WINDOW_API: readonly ApiName[] = [
   'getAdbStatus',
   'chooseAdb',
   'openAdbDownload',
-  'pairWifi',
-  'connectWifi',
   'disconnectDevice',
   'startQrPairing',
   'waitQrPairing',

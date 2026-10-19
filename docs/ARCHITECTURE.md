@@ -51,16 +51,14 @@ tipos del espejo.
 error `ADB_NOT_FOUND_MESSAGE` hace que `App` muestre `AdbSetupPanel` (descargar, elegir o reintentar). Elegir
 un archivo lo valida con `adb version` antes de guardarlo.
 
-`WifiConnectDialog` llama a `pairWifi` / `connectWifi` / `disconnectDevice`. `setup.handlers.ts` valida la
-dirección (`parseWifiAddress`), rechaza a las ventanas del espejo y ejecuta `adb pair|connect|disconnect`
-sin shell. adb informa de muchos fallos con código 0, por eso `AdbService` lee el texto de respuesta.
+`WifiConnectDialog` solo ofrece la vinculación por QR; `disconnectDevice` quita un dispositivo Wi-Fi.
+`setup.handlers.ts` rechaza a las ventanas del espejo y ejecuta `adb pair|connect|disconnect` sin shell. adb informa de muchos fallos con código 0, por eso `AdbService` lee el texto de respuesta.
 
 **Vinculación por QR** (`QrPairingService`): el proceso principal genera un nombre y una contraseña
 aleatorios y el renderer dibuja `WIFI:T:ADB;S:<nombre>;P:<contraseña>;;` como QR (`QrPairingPanel`). Al
 escanearlo, el teléfono anuncia por mDNS un servicio `_adb-tls-pairing` con ese nombre; el servicio consulta
 `adb mdns services`, empareja solo con el servicio cuyo nombre coincide y después conecta con el servicio
-`_adb-tls-connect` de la misma IP. Si `adb mdns check` falla (red o adb sin mDNS) se avisa y quedan las
-opciones manuales. Solo hay una vinculación activa; cerrar el diálogo la cancela.
+`_adb-tls-connect` de la misma IP. Si `adb mdns check` falla (red o adb sin mDNS) se avisa y se sugiere otra red o USB. Solo hay una vinculación activa; cerrar el diálogo la cancela.
 
 ### Preferencias
 

@@ -160,7 +160,9 @@ export class AdbService {
     }
     return /mdns daemon version/i.test(result.value) && !/unavailable|error/i.test(result.value)
       ? ok(undefined)
-      : err('Esta red o esta versión de adb no permite buscar el teléfono.');
+      : err(
+          'Esta red o esta versión de adb no permite buscar el teléfono. Prueba con otra red Wi-Fi o conéctalo por USB.',
+        );
   }
 
   async listMdnsServices(): Promise<Result<readonly MdnsService[]>> {

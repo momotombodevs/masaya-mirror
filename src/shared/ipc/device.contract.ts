@@ -6,8 +6,6 @@ export const DEVICE_CHANNELS = {
   adbStatus: 'device:adb-status',
   chooseAdb: 'device:choose-adb',
   openAdbDownload: 'device:open-adb-download',
-  pairWifi: 'device:pair-wifi',
-  connectWifi: 'device:connect-wifi',
   disconnect: 'device:disconnect',
   qrPairStart: 'device:qr-pair-start',
   qrPairWait: 'device:qr-pair-wait',
@@ -24,11 +22,9 @@ export type ChooseAdbResponse = Result<{ readonly path: string | null }>;
 
 export type OpenAdbDownloadResponse = Result<void>;
 
-export type PairWifiRequest = { readonly address: string; readonly code: string };
-export type ConnectWifiRequest = { readonly address: string };
 export type DisconnectRequest = { readonly deviceId: string };
 
-/** Human-readable outcome from adb, e.g. "connected to 192.168.1.5:5555". */
+/** Human-readable outcome from adb, e.g. "Conectado a 192.168.1.5:5555.". */
 export type WifiResponse = Result<{ readonly message: string }>;
 
 export type InstallApkRequest = {

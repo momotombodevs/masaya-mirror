@@ -9,11 +9,7 @@ import {
   type WifiResponse,
 } from '../../../../shared/ipc/device.contract';
 import { err, ok, type Result } from '../../../../shared/ipc/result';
-import {
-  isWifiDeviceId,
-  parsePairingCode,
-  parseWifiAddress,
-} from '../../../../shared/ipc/validators';
+import { isWifiDeviceId } from '../../../../shared/ipc/validators';
 import type { MirrorWindowService } from '../../mirror/mirror-window.service';
 import type { PreferencesService } from '../../preferences/preferences.service';
 import type { AdbService } from '../adb.service';
@@ -87,28 +83,6 @@ export function registerSetupIpcHandlers(
       return ok(undefined);
     },
   );
-
-  handleFromMainWindow(DEVICE_CHANNELS.pairWifi, async (payload): Promise<WifiResponse> => {
-    const address = parseWifiAddress(readField(payload, 'address'));
-    if (!address.ok) {
-      return address;
-    }
-    const code = parsePairingCode(readField(payload, 'code'));
-    if (!code.ok) {
-      return code;
-    }
-    const paired = await adbService.pair(address.value, code.value);
-    return paired.ok ? ok({ message: paired.value }) : paired;
-  });
-
-  handleFromMainWindow(DEVICE_CHANNELS.connectWifi, async (payload): Promise<WifiResponse> => {
-    const address = parseWifiAddress(readField(payload, 'address'));
-    if (!address.ok) {
-      return address;
-    }
-    const connected = await adbService.connect(address.value);
-    return connected.ok ? ok({ message: connected.value }) : connected;
-  });
 
   handleFromMainWindow(DEVICE_CHANNELS.disconnect, async (payload): Promise<WifiResponse> => {
     const deviceId = readField(payload, 'deviceId');
