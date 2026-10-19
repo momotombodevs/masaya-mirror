@@ -851,24 +851,55 @@ details p {
 
 footer.site {
   border-top: 1px solid var(--line);
+  background: var(--surface);
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
 }
 footer.site .in {
   max-width: 1080px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 40px 20px 20px;
+}
+footer.site .cols {
+  display: grid;
+  grid-template-columns: 1.6fr repeat(3, 1fr);
+  gap: 32px;
+}
+footer.site .about p {
+  margin: 10px 0 0;
+  max-width: 28ch;
+}
+footer.site h2 {
+  font: 600 13px/1.4 var(--font-body);
+  color: var(--text);
+  margin: 0 0 10px;
+}
+footer.site nav a {
+  display: block;
+  color: var(--muted);
+  text-decoration: none;
+  padding: 3px 0;
+}
+footer.site nav a:hover {
+  color: var(--text);
+}
+footer.site .bottom {
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px;
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
 }
-footer.site a {
-  color: var(--muted);
-  margin-left: 14px;
-}
-footer.site a:hover {
-  color: var(--text);
+@media (max-width: 720px) {
+  footer.site .cols {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  footer.site .about {
+    grid-column: 1 / -1;
+  }
 }
 
 .prose {
