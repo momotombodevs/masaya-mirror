@@ -3,6 +3,7 @@ import { MirrorView } from './MirrorView';
 import { MirrorToolbar } from './MirrorToolbar';
 import { getMirrorCanvas } from './mirror-canvas';
 import { useMirror } from './useMirror';
+import { applyQualityPreset, qualityPresetOf } from '../../../../shared/mirror/quality';
 import ui from '../../components/ui/primitives.module.css';
 import styles from './MirrorWindowApp.module.css';
 
@@ -57,6 +58,10 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
         canvas={mirrorCanvas}
         onFullscreen={handleFullscreen}
         onStop={() => void handleStopMirror()}
+        quality={qualityPresetOf(mirror.options)}
+        onQualityChange={(preset) =>
+          void mirror.applyOptions(applyQualityPreset(mirror.options, preset))
+        }
         disabled={mirror.loading}
       />
 
