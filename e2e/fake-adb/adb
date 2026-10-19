@@ -24,6 +24,12 @@ case "$1" in
     rm -f "$STATE"
     echo "disconnected $2"
     ;;
+  mdns)
+    case "$2" in
+      check) echo "mdns daemon version [Openscreen discovery 0.0.0]" ;;
+      services) echo "List of discovered mdns services" ;;
+    esac
+    ;;
   pair)
     if [ "$3" = "123456" ]; then
       echo "Successfully paired to $2 [guid=adb-FAKE]"

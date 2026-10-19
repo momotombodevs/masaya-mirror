@@ -6,9 +6,10 @@ export const DEVICE_CHANNELS = {
   adbStatus: 'device:adb-status',
   chooseAdb: 'device:choose-adb',
   openAdbDownload: 'device:open-adb-download',
-  pairWifi: 'device:pair-wifi',
-  connectWifi: 'device:connect-wifi',
   disconnect: 'device:disconnect',
+  qrPairStart: 'device:qr-pair-start',
+  qrPairWait: 'device:qr-pair-wait',
+  qrPairCancel: 'device:qr-pair-cancel',
   installApk: 'device:install-apk',
 } as const;
 
@@ -21,11 +22,9 @@ export type ChooseAdbResponse = Result<{ readonly path: string | null }>;
 
 export type OpenAdbDownloadResponse = Result<void>;
 
-export type PairWifiRequest = { readonly address: string; readonly code: string };
-export type ConnectWifiRequest = { readonly address: string };
 export type DisconnectRequest = { readonly deviceId: string };
 
-/** Human-readable outcome from adb, e.g. "connected to 192.168.1.5:5555". */
+/** Human-readable outcome from adb, e.g. "Conectado a 192.168.1.5:5555.". */
 export type WifiResponse = Result<{ readonly message: string }>;
 
 export type InstallApkRequest = {
@@ -36,3 +35,7 @@ export type InstallApkRequest = {
 
 /** `installed` is false when the user cancelled the file picker. */
 export type InstallApkResponse = Result<{ readonly installed: boolean }>;
+
+export type QrPairingSession = { readonly sessionId: string };
+
+export type QrPairStartResponse = Result<QrPairingSession & { readonly payload: string }>;

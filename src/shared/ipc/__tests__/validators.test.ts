@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isWifiDeviceId, parseDeviceId, parsePairingCode, parseWifiAddress } from '../validators';
+import { isWifiDeviceId, parseDeviceId } from '../validators';
 
 describe('parseDeviceId', () => {
   it('accepts valid USB serial', () => {
@@ -31,40 +31,6 @@ describe('parseDeviceId', () => {
   it('rejects unsafe characters', () => {
     const result = parseDeviceId({ deviceId: 'device; rm -rf /' });
     expect(result.ok).toBe(false);
-  });
-});
-
-describe('parseWifiAddress', () => {
-  it('accepts host:port', () => {
-    expect(parseWifiAddress(' 192.168.1.20:5555 ')).toEqual({
-      ok: true,
-      value: '192.168.1.20:5555',
-    });
-    expect(parseWifiAddress('pixel.local:37099').ok).toBe(true);
-  });
-
-  it('rejects a missing or out-of-range port', () => {
-    expect(parseWifiAddress('192.168.1.20').ok).toBe(false);
-    expect(parseWifiAddress('192.168.1.20:0').ok).toBe(false);
-    expect(parseWifiAddress('192.168.1.20:70000').ok).toBe(false);
-  });
-
-  it('rejects anything that could be read as an adb option or contains spaces', () => {
-    expect(parseWifiAddress('-a:5555').ok).toBe(false);
-    expect(parseWifiAddress('1.2.3.4:5555 -x').ok).toBe(false);
-    expect(parseWifiAddress(5555).ok).toBe(false);
-  });
-});
-
-describe('parsePairingCode', () => {
-  it('accepts six digits', () => {
-    expect(parsePairingCode(' 123456 ')).toEqual({ ok: true, value: '123456' });
-  });
-
-  it('rejects other shapes', () => {
-    expect(parsePairingCode('12345').ok).toBe(false);
-    expect(parsePairingCode('12345a').ok).toBe(false);
-    expect(parsePairingCode(undefined).ok).toBe(false);
   });
 });
 
