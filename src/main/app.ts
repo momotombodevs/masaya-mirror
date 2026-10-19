@@ -19,7 +19,7 @@ if (process.platform === 'win32') {
   app.setAppUserModelId('com.manolo.mirror');
 }
 
-export let mainWindow: BrowserWindow | null = null;
+let mainWindow: BrowserWindow | null = null;
 let securityHeadersRegistered = false;
 
 function getAllowedRendererOrigins(): readonly string[] {

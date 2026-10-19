@@ -1,16 +1,12 @@
-import type { AndroidDevice } from '../../../../shared/device/types';
-import { selectConnectedDevices } from './connected-devices';
+import type { DeviceSummary } from './connected-devices';
 import { DEVICE_STATUS_LABELS } from './device.ui';
 import ui from '../../components/ui/primitives.module.css';
 import styles from './DeviceList.module.css';
 
 type DeviceListProps = {
-  readonly devices: readonly AndroidDevice[];
+  readonly summary: DeviceSummary;
   readonly loading: boolean;
   readonly error: string | null;
-  readonly readyCount: number;
-  readonly liveCount: number;
-  readonly issueCount: number;
   readonly selectedDeviceId: string | null;
   readonly onSelectDevice: (deviceId: string) => void;
   readonly onRefresh: () => void;
@@ -19,20 +15,16 @@ type DeviceListProps = {
 };
 
 export function DeviceList({
-  devices,
+  summary,
   loading,
   error,
-  readyCount,
-  liveCount,
-  issueCount,
   selectedDeviceId,
   onSelectDevice,
   onRefresh,
   onStartMirror,
   activeMirrorIds,
 }: DeviceListProps): JSX.Element {
-  const connected = selectConnectedDevices(devices);
-  const pendingDevices = devices.filter((device) => device.status !== 'device');
+  const { connected, unavailable, liveCount } = summary;
 
   return (
     <section className={styles.section}>
@@ -40,9 +32,9 @@ export function DeviceList({
         <div className={styles.headerLead}>
           <h2 className={styles.title}>Devices</h2>
           <div className={styles.inlineStats} aria-label="Device summary">
-            <span>{readyCount} ready</span>
+            <span>{connected.length} ready</span>
             <span>{liveCount} live</span>
-            <span>{issueCount} issues</span>
+            <span>{unavailable.length} issues</span>
           </div>
         </div>
         <div className={styles.actions}>
@@ -130,11 +122,11 @@ export function DeviceList({
         })}
       </ul>
 
-      {pendingDevices.length > 0 && (
+      {unavailable.length > 0 && (
         <div className={styles.pendingSection}>
           <div className={styles.pendingHeader}>Unavailable</div>
           <ul className={styles.otherList}>
-            {pendingDevices.map((device) => (
+            {unavailable.map((device) => (
               <li key={device.id} className={styles.otherItem}>
                 <span className={styles.deviceIdentity}>
                   <span className={styles.deviceName}>{device.model ?? device.id}</span>

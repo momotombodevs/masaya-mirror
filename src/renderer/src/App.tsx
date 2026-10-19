@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { DeviceList } from './features/device/DeviceList';
-import { selectConnectedDevices } from './features/device/connected-devices';
+import { summarizeDevices } from './features/device/connected-devices';
 import { useDevices } from './features/device/useDevices';
 import { useMirrorStatus } from './features/mirror/useMirrorStatus';
 import { getManoloApi } from './shared/manolo-api';
@@ -12,20 +12,9 @@ export default function App(): JSX.Element {
   const [windowError, setWindowError] = useState<string | null>(null);
   const { activeDeviceIds, refreshStatus } = useMirrorStatus();
 
-  const connectedDevices = selectConnectedDevices(devices);
-  const pendingDevices = devices.filter((device) => device.status !== 'device');
-  const selectedDevice = connectedDevices.find((device) => device.id === selectedDeviceId) ?? null;
-
-  useEffect(() => {
-    if (connectedDevices.length === 0) {
-      setSelectedDeviceId(null);
-      return;
-    }
-    const stillSelected = connectedDevices.some((device) => device.id === selectedDeviceId);
-    if (!stillSelected) {
-      setSelectedDeviceId(connectedDevices[0]?.id ?? null);
-    }
-  }, [connectedDevices, selectedDeviceId]);
+  const { connected, unavailable, liveCount } = summarizeDevices(devices, activeDeviceIds);
+  const selectedDevice =
+    connected.find((device) => device.id === selectedDeviceId) ?? connected[0] ?? null;
 
   const handleStartMirror = useCallback(
     async (deviceId: string): Promise<void> => {
@@ -35,7 +24,7 @@ export default function App(): JSX.Element {
         return;
       }
 
-      const device = connectedDevices.find((d) => d.id === deviceId);
+      const device = connected.find((d) => d.id === deviceId);
       const label = device?.model ?? deviceId;
       setSelectedDeviceId(deviceId);
       setWindowError(null);
@@ -46,16 +35,16 @@ export default function App(): JSX.Element {
       }
       await refreshStatus();
     },
-    [connectedDevices, refreshStatus],
+    [connected, refreshStatus],
   );
 
   const displayError = windowError ?? error;
   const summaryLabel = selectedDevice ? selectedDevice.model ?? selectedDevice.id : 'No device selected';
   const summaryMeta = selectedDevice ? selectedDevice.product ?? selectedDevice.id : 'Connect a device to start mirroring';
   const summaryStats = [
-    { label: 'Ready', value: connectedDevices.length },
-    { label: 'Live', value: activeDeviceIds.length },
-    { label: 'Issues', value: pendingDevices.length },
+    { label: 'Ready', value: connected.length },
+    { label: 'Live', value: liveCount },
+    { label: 'Issues', value: unavailable.length },
   ];
 
   return (
@@ -90,13 +79,10 @@ export default function App(): JSX.Element {
       <main className={styles.main}>
         <div className={styles.panel}>
           <DeviceList
-            devices={devices}
             loading={loading}
             error={displayError}
-            readyCount={connectedDevices.length}
-            liveCount={activeDeviceIds.length}
-            issueCount={pendingDevices.length}
-            selectedDeviceId={selectedDeviceId}
+            summary={{ connected, unavailable, liveCount }}
+            selectedDeviceId={selectedDevice?.id ?? null}
             onSelectDevice={setSelectedDeviceId}
             onRefresh={() => void refresh()}
             onStartMirror={(id) => void handleStartMirror(id)}

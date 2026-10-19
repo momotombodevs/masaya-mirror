@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { MirrorView } from './MirrorView';
 import { MirrorToolbar } from './MirrorToolbar';
-import { getMirrorCanvas } from './mirror-canvas';
 import { useMirror } from './useMirror';
 import { applyQualityPreset, qualityPresetOf } from '../../../../shared/mirror/quality';
 import ui from '../../components/ui/primitives.module.css';
@@ -22,17 +21,6 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
   useEffect(() => {
     void openMirrorRef.current();
   }, [deviceId]);
-
-  useEffect(() => {
-    if (mirror.isMirrorActive) {
-      const timer = window.setInterval(() => {
-        setMirrorCanvas(getMirrorCanvas(mirrorStageRef.current));
-      }, 300);
-      return () => window.clearInterval(timer);
-    }
-    setMirrorCanvas(null);
-    return undefined;
-  }, [mirror.isMirrorActive]);
 
   const handleStopMirror = useCallback(async (): Promise<void> => {
     await mirror.closeMirror();
@@ -73,7 +61,11 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
           </p>
         )}
         {mirror.isMirrorActive && (
-          <MirrorView deviceId={deviceId} onClose={() => void handleStopMirror()} />
+          <MirrorView
+            deviceId={deviceId}
+            onClose={() => void handleStopMirror()}
+            onCanvasChange={setMirrorCanvas}
+          />
         )}
       </div>
     </div>

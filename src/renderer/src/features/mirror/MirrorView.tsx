@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import { useMirrorDecoder } from './useMirrorDecoder';
 import { useMirrorInput } from './useMirrorInput';
 import ui from '../../components/ui/primitives.module.css';
@@ -8,10 +8,23 @@ type MirrorViewProps = {
   readonly deviceId: string;
   readonly onSizeChange?: (width: number, height: number) => void;
   readonly onClose?: () => void;
+  readonly onCanvasChange?: (canvas: HTMLCanvasElement | null) => void;
 };
 
-export function MirrorView({ deviceId, onSizeChange, onClose }: MirrorViewProps): JSX.Element {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+export function MirrorView({
+  deviceId,
+  onSizeChange,
+  onClose,
+  onCanvasChange,
+}: MirrorViewProps): JSX.Element {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const attachCanvas = useCallback(
+    (canvas: HTMLCanvasElement | null): void => {
+      canvasRef.current = canvas;
+      onCanvasChange?.(canvas);
+    },
+    [onCanvasChange],
+  );
   const { ready, streamError, portStatus, videoSizeRef } = useMirrorDecoder(deviceId, canvasRef, {
     onClose,
     onSizeChange,
@@ -28,7 +41,7 @@ export function MirrorView({ deviceId, onSizeChange, onClose }: MirrorViewProps)
       onKeyUp={input.onKeyUp}
     >
       <canvas
-        ref={canvasRef}
+        ref={attachCanvas}
         className={`${styles.canvas} ${ready ? styles.canvasReady : ''}`}
         onPointerDown={input.onPointerDown}
         onPointerMove={input.onPointerMove}
