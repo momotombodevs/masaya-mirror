@@ -35,6 +35,7 @@ export function MirrorView({ deviceId, onSizeChange, onClose }: MirrorViewProps)
         onPointerUp={input.onPointerUp}
         onPointerLeave={input.onPointerUp}
         onWheel={input.onWheel}
+        onContextMenu={input.onContextMenu}
       />
       {showLoading && <div className={styles.loading}>Conectando…</div>}
       {streamError && (

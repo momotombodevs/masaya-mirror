@@ -45,6 +45,8 @@ type MirrorSession = {
   readonly controller: MirrorController | undefined;
   readonly options: MirrorOptions;
   readonly audioEnabled: boolean;
+  /** Tail of the control queue. Each control message waits for the previous one. */
+  controlChain: Promise<unknown>;
 };
 
 export class ScrcpyService {
@@ -131,6 +133,7 @@ export class ScrcpyService {
         controller: client.controller,
         options,
         audioEnabled: options.audioEnabled && audioWebCodecId !== null,
+        controlChain: Promise.resolve(),
       };
       this.sessions.set(deviceId, session);
       stored = true;
@@ -171,6 +174,19 @@ export class ScrcpyService {
       return err('No active mirror exists for this device.');
     }
 
+    // Control messages run strictly in arrival order, one at a time per device.
+    const result = session.controlChain.then(() => this.dispatchControl(session, message));
+    session.controlChain = result.then(
+      () => undefined,
+      () => undefined,
+    );
+    return result;
+  }
+
+  private async dispatchControl(
+    session: MirrorSession,
+    message: MirrorControlMessage,
+  ): Promise<Result<void>> {
     const controller = session.controller;
     if (!controller) {
       return err('Control is not available for this session.');

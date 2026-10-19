@@ -1,5 +1,6 @@
 import {
   useCallback,
+  useMemo,
   type KeyboardEvent,
   type MutableRefObject,
   type PointerEvent,
@@ -11,7 +12,8 @@ import {
   type MirrorControlMessage,
 } from '../../../../shared/mirror/types';
 import { getManoloApi } from '../../shared/manolo-api';
-import { mapBrowserKeyToAndroid } from './android-keycodes';
+import { ANDROID_KEYCODE_BACK, mapBrowserKeyToAndroid } from './android-keycodes';
+import { createControlCoalescer, type ControlCoalescer } from './control-coalescer';
 
 export type VideoSize = { width: number; height: number };
 
@@ -20,9 +22,12 @@ export type MirrorInputHandlers = {
   readonly onPointerMove: (event: PointerEvent<HTMLCanvasElement>) => void;
   readonly onPointerUp: (event: PointerEvent<HTMLCanvasElement>) => void;
   readonly onWheel: (event: WheelEvent<HTMLCanvasElement>) => void;
+  readonly onContextMenu: (event: PointerEvent<HTMLCanvasElement>) => void;
   readonly onKeyDown: (event: KeyboardEvent<HTMLDivElement>) => void;
   readonly onKeyUp: (event: KeyboardEvent<HTMLDivElement>) => void;
 };
+
+const MOUSE_BUTTON_RIGHT = 2;
 
 /** Translates pointer/keyboard events into scrcpy control messages for a device. */
 export function useMirrorInput(
@@ -41,6 +46,17 @@ export function useMirrorInput(
     [deviceId],
   );
 
+  // Moves are coalesced to one message per animation frame. Press and release
+  // flush the pending move first, so the device always receives events in order.
+  const moveCoalescer: ControlCoalescer<MirrorControlMessage> = useMemo(
+    () =>
+      createControlCoalescer(sendControl, {
+        schedule: (callback) => window.requestAnimationFrame(callback),
+        cancel: (handle) => window.cancelAnimationFrame(handle as number),
+      }),
+    [sendControl],
+  );
+
   const mapPointerToDevice = useCallback(
     (clientX: number, clientY: number): { x: number; y: number } | null => {
       const canvas = canvasRef.current;
@@ -56,17 +72,23 @@ export function useMirrorInput(
     [canvasRef, videoSizeRef],
   );
 
-  const injectTouch = useCallback(
-    (action: number, clientX: number, clientY: number, pressure: number): void => {
+  const buildTouch = useCallback(
+    (
+      action: number,
+      pointerId: number,
+      clientX: number,
+      clientY: number,
+      pressure: number,
+    ): MirrorControlMessage | null => {
       const coords = mapPointerToDevice(clientX, clientY);
-      const { width, height } = videoSizeRef.current;
       if (!coords) {
-        return;
+        return null;
       }
-      sendControl({
+      const { width, height } = videoSizeRef.current;
+      return {
         type: 'touch',
         action,
-        pointerId: 0,
+        pointerId,
         pointerX: coords.x,
         pointerY: coords.y,
         videoWidth: width,
@@ -74,17 +96,50 @@ export function useMirrorInput(
         pressure,
         buttons: 0,
         actionButton: 0,
-      });
+      };
     },
-    [mapPointerToDevice, sendControl, videoSizeRef],
+    [mapPointerToDevice, videoSizeRef],
   );
+
+  const sendBack = useCallback((): void => {
+    moveCoalescer.flush();
+    sendControl({
+      type: 'key',
+      action: ANDROID_KEY_EVENT_ACTION.down,
+      keyCode: ANDROID_KEYCODE_BACK,
+      repeat: 0,
+      metaState: 0,
+    });
+    sendControl({
+      type: 'key',
+      action: ANDROID_KEY_EVENT_ACTION.up,
+      keyCode: ANDROID_KEYCODE_BACK,
+      repeat: 0,
+      metaState: 0,
+    });
+  }, [moveCoalescer, sendControl]);
 
   const onPointerDown = useCallback(
     (event: PointerEvent<HTMLCanvasElement>): void => {
+      if (event.button === MOUSE_BUTTON_RIGHT) {
+        event.preventDefault();
+        sendBack();
+        return;
+      }
       event.currentTarget.setPointerCapture(event.pointerId);
-      injectTouch(ANDROID_MOTION_EVENT_ACTION.down, event.clientX, event.clientY, 1);
+      const message = buildTouch(
+        ANDROID_MOTION_EVENT_ACTION.down,
+        event.pointerId,
+        event.clientX,
+        event.clientY,
+        1,
+      );
+      if (message) {
+        moveCoalescer.flush();
+        sendControl(message);
+      }
     },
-    [injectTouch],
+    [buildTouch, moveCoalescer, sendBack, sendControl],
   );
 
   const onPointerMove = useCallback(
@@ -92,20 +147,43 @@ export function useMirrorInput(
       if (!event.currentTarget.hasPointerCapture(event.pointerId)) {
         return;
       }
-      injectTouch(ANDROID_MOTION_EVENT_ACTION.move, event.clientX, event.clientY, 1);
+      const message = buildTouch(
+        ANDROID_MOTION_EVENT_ACTION.move,
+        event.pointerId,
+        event.clientX,
+        event.clientY,
+        1,
+      );
+      if (message) {
+        moveCoalescer.submit(message);
+      }
     },
-    [injectTouch],
+    [buildTouch, moveCoalescer],
   );
 
   const onPointerUp = useCallback(
     (event: PointerEvent<HTMLCanvasElement>): void => {
-      injectTouch(ANDROID_MOTION_EVENT_ACTION.up, event.clientX, event.clientY, 0);
+      const message = buildTouch(
+        ANDROID_MOTION_EVENT_ACTION.up,
+        event.pointerId,
+        event.clientX,
+        event.clientY,
+        0,
+      );
+      if (message) {
+        moveCoalescer.flush();
+        sendControl(message);
+      }
       if (event.currentTarget.hasPointerCapture(event.pointerId)) {
         event.currentTarget.releasePointerCapture(event.pointerId);
       }
     },
-    [injectTouch],
+    [buildTouch, moveCoalescer, sendControl],
   );
+
+  const onContextMenu = useCallback((event: PointerEvent<HTMLCanvasElement>): void => {
+    event.preventDefault();
+  }, []);
 
   const onWheel = useCallback(
     (event: WheelEvent<HTMLCanvasElement>): void => {
@@ -166,5 +244,13 @@ export function useMirrorInput(
     [sendControl],
   );
 
-  return { onPointerDown, onPointerMove, onPointerUp, onWheel, onKeyDown, onKeyUp };
+  return {
+    onPointerDown,
+    onPointerMove,
+    onPointerUp,
+    onWheel,
+    onContextMenu,
+    onKeyDown,
+    onKeyUp,
+  };
 }
