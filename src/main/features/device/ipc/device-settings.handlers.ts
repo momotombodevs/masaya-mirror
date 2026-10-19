@@ -8,6 +8,7 @@ import { err } from '../../../../shared/ipc/result';
 import { handleOwnedDevice } from '../../mirror/ipc/device-handler';
 import type { MirrorWindowService } from '../../mirror/mirror-window.service';
 import type { AdbService } from '../adb.service';
+import { mt } from '../../../i18n';
 
 /** Developer options of the phone shown in a mirror window. Only that window may change them. */
 export function registerDeviceSettingsIpcHandlers(
@@ -26,7 +27,7 @@ export function registerDeviceSettingsIpcHandlers(
     async ({ deviceId, body }): Promise<SetDeviceSettingResponse> => {
       const key = DEVICE_SETTING_KEYS.find((candidate) => candidate === body.key);
       if (!key || typeof body.enabled !== 'boolean') {
-        return err('Ajuste inválido.');
+        return err(mt('main.invalidSetting'));
       }
       return adbService.setDeviceSetting(deviceId, key, body.enabled);
     },

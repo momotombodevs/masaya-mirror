@@ -6,26 +6,25 @@ import { err, ok, type Result } from '../../../../shared/ipc/result';
 import { handleOwnedDevice } from '../../mirror/ipc/device-handler';
 import type { MirrorWindowService } from '../../mirror/mirror-window.service';
 import type { AdbService } from '../adb.service';
-
-const NOT_APK_MESSAGE = 'Solo se pueden instalar archivos .apk.';
+import { mt } from '../../../i18n';
 
 async function validateApkPath(candidate: unknown): Promise<Result<string>> {
   if (typeof candidate !== 'string' || !path.isAbsolute(candidate)) {
-    return err(NOT_APK_MESSAGE);
+    return err(mt('main.notApk'));
   }
   if (path.extname(candidate).toLowerCase() !== '.apk') {
-    return err(NOT_APK_MESSAGE);
+    return err(mt('main.notApk'));
   }
   try {
-    return (await stat(candidate)).isFile() ? ok(candidate) : err(NOT_APK_MESSAGE);
+    return (await stat(candidate)).isFile() ? ok(candidate) : err(mt('main.notApk'));
   } catch {
-    return err('No se encontró el archivo.');
+    return err(mt('main.fileNotFound'));
   }
 }
 
 async function pickApk(sender: Electron.WebContents): Promise<string | null> {
   const options: Electron.OpenDialogOptions = {
-    title: 'Instalar APK',
+    title: mt('main.installApkTitle'),
     properties: ['openFile'],
     filters: [{ name: 'APK', extensions: ['apk'] }],
   };

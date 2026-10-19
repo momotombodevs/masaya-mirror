@@ -6,6 +6,7 @@ import type {
 } from '../../../shared/device/types';
 import { err, ok, type Result } from '../../../shared/ipc/result';
 import { runCommand } from '../../utils/runCommand';
+import { mt } from '../../i18n';
 import { ADB_NOT_FOUND_MESSAGE, mapCommandError } from './adb-error';
 import { resolveAdbPath } from './adb-path.resolver';
 
@@ -165,9 +166,7 @@ export class AdbService {
     }
     return /mdns daemon version/i.test(result.value) && !/unavailable|error/i.test(result.value)
       ? ok(undefined)
-      : err(
-          'Esta red o esta versión de adb no permite buscar el teléfono. Prueba con otra red Wi-Fi o conéctalo por USB.',
-        );
+      : err(mt('main.mdnsUnsupported'));
   }
 
   async listMdnsServices(): Promise<Result<readonly MdnsService[]>> {
@@ -181,8 +180,8 @@ export class AdbService {
       return result;
     }
     return /successfully paired/i.test(result.value)
-      ? ok('Dispositivo vinculado.')
-      : err(lastLine(result.value) || 'No se pudo vincular. Revisa la dirección y el código.');
+      ? ok(mt('main.paired'))
+      : err(lastLine(result.value) || mt('main.pairFailed'));
   }
 
   async connect(address: string): Promise<Result<string>> {
@@ -192,8 +191,8 @@ export class AdbService {
     }
     const verdict = lastLine(result.value);
     return /^(already )?connected/i.test(verdict) && !WIFI_FAILURE_PATTERN.test(verdict)
-      ? ok(`Conectado a ${address}.`)
-      : err(verdict || 'No se pudo conectar.');
+      ? ok(mt('main.connectedTo', { address }))
+      : err(verdict || mt('main.connectFailed'));
   }
 
   async disconnect(address: string): Promise<Result<string>> {
@@ -254,7 +253,7 @@ export class AdbService {
     }
     return /^Success/m.test(result.value)
       ? ok(undefined)
-      : err(lastLine(result.value) || 'No se pudo instalar el APK.');
+      : err(lastLine(result.value) || mt('main.installFailed'));
   }
 
   async listDevices(): Promise<Result<readonly AndroidDevice[]>> {

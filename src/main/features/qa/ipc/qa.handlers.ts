@@ -5,6 +5,7 @@ import { QA_CHANNELS, type QaActionResponse } from '../../../../shared/ipc/qa.co
 import { err, ok, type Result } from '../../../../shared/ipc/result';
 import type { MirrorWindowService } from '../../mirror/mirror-window.service';
 import type { PreferencesService } from '../../preferences/preferences.service';
+import { mt } from '../../../i18n';
 
 /** Upper bound for renderer-provided buffers to avoid main-process memory exhaustion. */
 const MAX_CAPTURE_BYTES = 256 * 1024 * 1024;
@@ -91,7 +92,7 @@ export function registerQaIpcHandlers(
   handleFromMirrorWindow(QA_CHANNELS.saveCapture, (data) =>
     saveBufferWithDialog(
       {
-        title: 'Guardar captura',
+        title: mt('main.saveCaptureTitle'),
         defaultPath: `captura_${timestamp()}.png`,
         filters: [{ name: 'PNG', extensions: ['png'] }],
       },
@@ -108,7 +109,7 @@ export function registerQaIpcHandlers(
     const extension = mimeType.includes('webm') ? 'webm' : 'mp4';
     return saveBufferWithDialog(
       {
-        title: 'Guardar grabación',
+        title: mt('main.saveRecordingTitle'),
         defaultPath: `grabacion_${timestamp()}.${extension}`,
         filters: [{ name: 'Video', extensions: [extension] }],
       },

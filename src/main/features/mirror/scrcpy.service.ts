@@ -12,6 +12,7 @@ import {
   resolveScrcpyServerPath,
 } from './scrcpy-server-path.resolver';
 import { MirrorStreamSession } from './mirror-stream.session';
+import { mt } from '../../i18n';
 import { ADB_NOT_FOUND_MESSAGE } from '../device/adb-error';
 import type { AdbServerClient } from '@yume-chan/adb';
 import type {
@@ -22,8 +23,6 @@ import type {
   ScrcpyControlMessageWriter,
 } from '@yume-chan/scrcpy';
 import type { AdbService } from '../device/adb.service';
-
-const SCRCPY_SERVER_NOT_FOUND = 'Falta scrcpy-server. Ejecuta `pnpm setup:tools`.';
 
 type ScrcpyClientHandle = {
   readonly close: () => Promise<void>;
@@ -83,7 +82,7 @@ export class ScrcpyService {
 
     const serverPath = await resolveScrcpyServerPath();
     if (!serverPath) {
-      return err(`${SCRCPY_SERVER_NOT_FOUND} Ruta: ${getExpectedScrcpyServerPath()}`);
+      return err(mt('main.scrcpyMissing', { path: getExpectedScrcpyServerPath() }));
     }
 
     let startedClient: { close: () => Promise<void> } | null = null;
@@ -145,7 +144,7 @@ export class ScrcpyService {
       if (error instanceof Error) {
         return err(error.message);
       }
-      return err('No se pudo iniciar el espejo.');
+      return err(mt('main.mirrorStartFailed'));
     } finally {
       if (!stored && startedClient) {
         await startedClient.close().catch(() => undefined);

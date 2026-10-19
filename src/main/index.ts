@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
 import { installApplicationMenu } from './app-menu';
+import { setMainLocale } from './i18n';
 import { claimSingleInstance, createWindow, registerAppLifecycle } from './app';
 import { augmentProcessPath } from './features/device/adb-path.resolver';
 import { AdbService } from './features/device/adb.service';
@@ -39,7 +40,10 @@ function bootstrap(): void {
   });
 
   void app.whenReady().then(() => {
-    installApplicationMenu(resolveLocale(preferences.get().language, app.getLocale()));
+    // getLocale is only reliable once the app is ready.
+    const locale = resolveLocale(preferences.get().language, app.getLocale());
+    setMainLocale(locale);
+    installApplicationMenu(locale);
     registerDeviceIpcHandlers(deviceService);
     registerSetupIpcHandlers(
       adbService,
@@ -51,7 +55,9 @@ function bootstrap(): void {
     registerDeviceSettingsIpcHandlers(adbService, mirrorWindowService);
     registerPreferencesIpcHandlers(preferences, {
       onLanguageChange: (language) => {
-        installApplicationMenu(resolveLocale(language, app.getLocale()));
+        const locale = resolveLocale(language, app.getLocale());
+        setMainLocale(locale);
+        installApplicationMenu(locale);
         for (const window of BrowserWindow.getAllWindows()) {
           window.webContents.send(PREFERENCES_CHANNELS.languageChanged, language);
         }
