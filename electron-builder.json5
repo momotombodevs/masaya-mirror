@@ -24,6 +24,13 @@
   mac: {
     category: 'public.app-category.developer-tools',
     target: [{ target: 'dmg', arch: ['arm64', 'x64'] }],
+    // Required for notarization. Signing only happens when a Developer ID certificate is configured.
+    hardenedRuntime: true,
+    gatekeeperAssess: false,
+    entitlements: 'build/entitlements.mac.plist',
+    entitlementsInherit: 'build/entitlements.mac.plist',
+    // Notarizes when APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD and APPLE_TEAM_ID are set.
+    notarize: true,
   },
   win: {
     executableName: 'Manolo Mirror',

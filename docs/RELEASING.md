@@ -29,24 +29,24 @@ pnpm build:win     # en Windows
 Cada comando compila la app y empaqueta solo para esa plataforma. `pnpm build:app` compila sin
 empaquetar. CI también ejecuta `build:app` en macOS y Windows en cada PR.
 
-## Firma (pendiente)
+## Firma
 
-Los instaladores **no están firmados**. Hasta firmarlos:
+El workflow **Release** firma solo cuando existen los secretos del repositorio; sin ellos, el instalador
+sale sin firmar y el resto del proceso no cambia.
 
-- **macOS:** el primer arranque requiere clic derecho → **Abrir**, o permitirla en Ajustes del Sistema →
-  Privacidad y seguridad. En Apple Silicon, las apps sin firma pueden requerir además
-  `xattr -cr "/Applications/Manolo Mirror.app"`.
-- **Windows:** SmartScreen avisa; **Más información → Ejecutar de todas formas**.
+| Plataforma | Secretos del repositorio                                                                           |
+| ---------- | -------------------------------------------------------------------------------------------------- |
+| macOS      | `MAC_CSC_LINK`, `MAC_CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` |
+| Windows    | `WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD`                                                             |
 
-Para firmar:
-
-| Plataforma | Qué necesitas                     | Variables de CI                                                                            |
-| ---------- | --------------------------------- | ------------------------------------------------------------------------------------------ |
-| macOS      | Apple Developer ID + notarización | `CSC_LINK`, `CSC_KEY_PASSWORD`, `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` |
-| Windows    | Certificado de firma de código    | `CSC_LINK`, `CSC_KEY_PASSWORD`                                                             |
-
-Con esas variables, quita `CSC_IDENTITY_AUTO_DISCOVERY: 'false'` del workflow y configura la
-notarización según la [documentación de electron-builder](https://www.electron.build/code-signing).
+- `*_CSC_LINK` es el certificado `.p12`/`.pfx` en base64 (o una URL https).
+- macOS necesita un certificado **Developer ID Application**. Con los tres `APPLE_*` presentes,
+  electron-builder también notariza (`mac.notarize` y el entitlements están en `electron-builder.json5`
+  y `build/entitlements.mac.plist`).
+- Mientras un instalador salga sin firmar:
+  - **macOS:** clic derecho → **Abrir**, o permitirla en Ajustes del Sistema → Privacidad y seguridad. En
+    Apple Silicon puede hacer falta `xattr -cr "/Applications/Manolo Mirror.app"`.
+  - **Windows:** SmartScreen avisa; **Más información → Ejecutar de todas formas**.
 
 ## Icono
 
