@@ -1,62 +1,51 @@
-// @see - https://www.electron.build/configuration/configuration
+// Packaging for macOS and Windows (plus a Linux AppImage). Reference:
+// https://www.electron.build/configuration/configuration
 {
-  "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
-  "appId": "com.manolo.mirror",
-  "asar": true,
-  "productName": "Manolo Mirror",
-  "directories": {
-    "output": "release/${version}"
+  $schema: 'https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json',
+  appId: 'com.manolo.mirror',
+  productName: 'Manolo Mirror',
+  copyright: 'Copyright © 2026 Manolo Mirror',
+  asar: true,
+  directories: {
+    output: 'release/${version}',
+    // build/icon.png (1024×1024) is converted to .icns and .ico automatically.
+    buildResources: 'build',
   },
-  "files": [
-    "dist",
-    "dist-electron"
-  ],
-  "extraResources": [
+  files: ['dist', 'dist-electron'],
+  extraResources: [
     {
-      "from": "resources/scrcpy-server",
-      "to": "scrcpy-server",
-      "filter": ["**/*"]
-    }
-  ],
-  "mac": {
-    "category": "public.app-category.developer-tools",
-    "target": [
-      "dmg"
-    ],
-    "artifactName": "${productName}-Mac-${version}-Installer.${ext}"
-  },
-  "win": {
-    "executableName": "Manolo Mirror",
-    "artifactName": "${productName}-Windows-${version}-${arch}.${ext}",
-    "target": [
-      {
-        "target": "nsis",
-        "arch": [
-          "x64"
-        ]
-      }
-    ]
-  },
-  "nsis": {
-    "oneClick": false,
-    "perMachine": false,
-    "allowToChangeInstallationDirectory": true,
-    "deleteAppDataOnUninstall": false,
-    "createDesktopShortcut": true,
-    "createStartMenuShortcut": true,
-    "shortcutName": "Manolo Mirror",
-    "runAfterFinish": true
-  },
-  "linux": {
-    "category": "Development",
-    "desktop": {
-      "Name": "Manolo Mirror",
-      "Comment": "Android device management, mirroring and QA automation",
-      "Categories": "Development;"
+      from: 'resources/scrcpy-server',
+      to: 'scrcpy-server',
+      filter: ['**/*'],
     },
-    "artifactName": "${productName}-Linux-${version}-${arch}.${ext}",
-    "target": [
-      "AppImage"
-    ]
-  }
+  ],
+  // One name scheme for every platform; the arch keeps the two macOS DMGs from overwriting each other.
+  artifactName: '${name}-${version}-${os}-${arch}.${ext}',
+  mac: {
+    category: 'public.app-category.developer-tools',
+    target: [{ target: 'dmg', arch: ['arm64', 'x64'] }],
+  },
+  win: {
+    executableName: 'Manolo Mirror',
+    target: [{ target: 'nsis', arch: ['x64'] }],
+  },
+  nsis: {
+    oneClick: false,
+    perMachine: false,
+    allowToChangeInstallationDirectory: true,
+    deleteAppDataOnUninstall: false,
+    createDesktopShortcut: true,
+    createStartMenuShortcut: true,
+    shortcutName: 'Manolo Mirror',
+    runAfterFinish: true,
+  },
+  linux: {
+    category: 'Development',
+    target: ['AppImage'],
+    desktop: {
+      Name: 'Manolo Mirror',
+      Comment: 'Android device mirroring and QA workspace',
+      Categories: 'Development;',
+    },
+  },
 }

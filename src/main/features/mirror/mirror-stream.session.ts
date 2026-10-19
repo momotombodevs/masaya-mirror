@@ -40,13 +40,7 @@ export class MirrorStreamSession {
 
   /** Re-sends init on every renderer attach; starts piping only once. */
   onRendererReady(): void {
-    sendMirrorInit(
-      this.port,
-      this.deviceId,
-      this.metadata,
-      this.audioCodec,
-      this.audioWebCodecId,
-    );
+    sendMirrorInit(this.port, this.deviceId, this.metadata, this.audioCodec, this.audioWebCodecId);
 
     if (this.pipingStarted) {
       return;

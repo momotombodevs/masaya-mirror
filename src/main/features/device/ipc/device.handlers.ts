@@ -3,8 +3,7 @@ import { DEVICE_CHANNELS, type ListDevicesResponse } from '../../../../shared/ip
 import type { DeviceService } from '../device.service';
 
 export function registerDeviceIpcHandlers(deviceService: DeviceService): void {
-  ipcMain.handle(
-    DEVICE_CHANNELS.listDevices,
-    async (): Promise<ListDevicesResponse> => deviceService.discoverDevices(),
+  ipcMain.handle(DEVICE_CHANNELS.listDevices, async (): Promise<ListDevicesResponse> =>
+    deviceService.discoverDevices(),
   );
 }

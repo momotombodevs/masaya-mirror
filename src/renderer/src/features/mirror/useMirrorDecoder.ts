@@ -5,10 +5,7 @@ import {
 } from '@yume-chan/scrcpy-decoder-webcodecs';
 import type { ScrcpyMediaStreamPacket } from '@yume-chan/scrcpy';
 import { PushReadableStream } from '@yume-chan/stream-extra';
-import type {
-  MirrorStreamInitMessage,
-  MirrorVideoMetadata,
-} from '../../../../shared/mirror/types';
+import type { MirrorStreamInitMessage, MirrorVideoMetadata } from '../../../../shared/mirror/types';
 import { getManoloApi } from '../../shared/manolo-api';
 import { getMirrorStreamClient, useMirrorStream } from './mirror-stream.client';
 import { createPacketQueue, type PacketQueue } from './packet-queue';
@@ -94,7 +91,7 @@ export function useMirrorDecoder(
 
     const setupDecoder = (metadata: MirrorVideoMetadata): void => {
       if (!WebCodecsVideoDecoder.isSupported) {
-        setStreamError('WebCodecs is not available in this window.');
+        setStreamError('WebCodecs no está disponible en esta ventana.');
         return;
       }
 
@@ -138,7 +135,7 @@ export function useMirrorDecoder(
           return;
         }
         const message =
-          error instanceof Error ? error.message : 'Video decoder error.';
+          error instanceof Error ? error.message : 'Error del decodificador de video.';
         setStreamError(message);
         requestClose();
       });
@@ -166,7 +163,7 @@ export function useMirrorDecoder(
 
     const initTimeout = window.setTimeout(() => {
       if (!disposed && !queueConsumed) {
-        setStreamError('No video signal. Close and reopen the mirror.');
+        setStreamError('Sin señal de video. Cierra y vuelve a abrir el espejo.');
       }
     }, INIT_TIMEOUT_MS);
 

@@ -31,7 +31,9 @@ describe('augmentProcessPath', () => {
 
     augmentProcessPath();
 
-    expect(process.env.PATH).toContain('C:\\Users\\test\\AppData\\Local/Android/Sdk/platform-tools');
+    expect(process.env.PATH).toContain(
+      'C:\\Users\\test\\AppData\\Local/Android/Sdk/platform-tools',
+    );
   });
 });
 

@@ -25,10 +25,7 @@ describe('registerDeviceIpcHandlers', () => {
 
     registerDeviceIpcHandlers(deviceService);
 
-    expect(mockedHandle).toHaveBeenCalledWith(
-      DEVICE_CHANNELS.listDevices,
-      expect.any(Function),
-    );
+    expect(mockedHandle).toHaveBeenCalledWith(DEVICE_CHANNELS.listDevices, expect.any(Function));
   });
 
   it('handler returns discoverDevices result', async () => {

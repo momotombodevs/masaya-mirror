@@ -1,170 +1,41 @@
-import { app, BrowserWindow, nativeTheme, session, systemPreferences, type BrowserWindowConstructorOptions } from 'electron';
+import { app, BrowserWindow, type BrowserWindowConstructorOptions } from 'electron';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { MAIN_DIST, RENDERER_DIST, VITE_DEV_SERVER_URL } from './paths';
+import { applySystemAccent, getWindowBackground } from './system-theme';
+import { attachWindowSecurity, registerDevContentSecurityPolicy } from './window-security';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const APP_NAME = 'Manolo Mirror';
 
-process.env.APP_ROOT = path.join(__dirname, '..');
-
-export const VITE_DEV_SERVER_URL = process.env['VITE_DEV_SERVER_URL'];
-export const MAIN_DIST = path.join(process.env.APP_ROOT, 'dist-electron');
-export const RENDERER_DIST = path.join(process.env.APP_ROOT, 'dist');
-
-process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
-  ? path.join(process.env.APP_ROOT, 'public')
-  : RENDERER_DIST;
-
-app.setName('Manolo Mirror');
+app.setName(APP_NAME);
 if (process.platform === 'win32') {
   app.setAppUserModelId('com.manolo.mirror');
 }
 
-let mainWindow: BrowserWindow | null = null;
-let securityHeadersRegistered = false;
-
-function getAllowedRendererOrigins(): readonly string[] {
-  if (!VITE_DEV_SERVER_URL) {
-    return [];
-  }
-
-  return [new URL(VITE_DEV_SERVER_URL).origin];
-}
-
-function isAllowedNavigation(url: string): boolean {
-  if (url.startsWith('file://')) {
-    const appIndexUrl = pathToFileURL(path.join(RENDERER_DIST, 'index.html')).toString();
-    return url === appIndexUrl || url.startsWith(`${appIndexUrl}?`) || url.startsWith(`${appIndexUrl}#`);
-  }
-
-  return getAllowedRendererOrigins().some((origin) => url === origin || url.startsWith(`${origin}/`));
-}
-
-function getContentSecurityPolicy(): string {
-  if (VITE_DEV_SERVER_URL) {
-    const devUrl = new URL(VITE_DEV_SERVER_URL);
-    const websocketOrigin = `${devUrl.protocol === 'https:' ? 'wss:' : 'ws:'}//${devUrl.host}`;
-
-    return [
-      "default-src 'self'",
-      `script-src 'self' 'unsafe-inline' ${devUrl.origin}`,
-      "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob:",
-      "font-src 'self' data:",
-      `connect-src 'self' ${devUrl.origin} ${websocketOrigin}`,
-      "media-src 'self' blob:",
-      "worker-src 'self' blob:",
-      "object-src 'none'",
-      "base-uri 'self'",
-      "frame-ancestors 'none'",
-    ].join('; ');
-  }
-
-  return [
-    "default-src 'self'",
-    "script-src 'self'",
-    "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob:",
-    "font-src 'self' data:",
-    "connect-src 'self'",
-    "media-src 'self' blob:",
-    "worker-src 'self' blob:",
-    "object-src 'none'",
-    "base-uri 'self'",
-    "frame-ancestors 'none'",
-  ].join('; ');
-}
-
-function registerSecurityHeaders(): void {
-  if (process.platform === 'darwin') {
-    app.setAboutPanelOptions({
-      applicationName: 'Manolo Mirror',
-      applicationVersion: app.getVersion(),
-      version: app.getVersion(),
-      copyright: '© Manolo Mirror',
-      iconPath: path.join(process.env.VITE_PUBLIC ?? RENDERER_DIST, 'manolo-logo.svg'),
-    });
-  }
-
-  if (!VITE_DEV_SERVER_URL || securityHeadersRegistered) {
-    return;
-  }
-
-  securityHeadersRegistered = true;
-  const contentSecurityPolicy = getContentSecurityPolicy();
-  session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
-    if (!isAllowedNavigation(details.url)) {
-      callback({ responseHeaders: details.responseHeaders });
-      return;
-    }
-
-    callback({
-      responseHeaders: {
-        ...details.responseHeaders,
-        'Content-Security-Policy': [contentSecurityPolicy],
-      },
-    });
-  });
-}
-
-
-function attachWindowSecurity(window: BrowserWindow): void {
-  window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
-  window.webContents.on('will-navigate', (event, url) => {
-    if (!isAllowedNavigation(url)) {
-      event.preventDefault();
-    }
-  });
-  window.webContents.on('will-redirect', (event, url) => {
-    if (!isAllowedNavigation(url)) {
-      event.preventDefault();
-    }
-  });
-}
-
-/** Converts the OS accent color (RRGGBBAA) to the space-separated channels the theme expects. */
-function getSystemAccentChannels(): string | null {
-  if (process.platform !== 'darwin' && process.platform !== 'win32') {
-    return null;
-  }
-  const hex = systemPreferences.getAccentColor();
-  if (!/^[0-9a-f]{6}([0-9a-f]{2})?$/i.test(hex)) {
-    return null;
-  }
-  return [0, 2, 4].map((start) => parseInt(hex.slice(start, start + 2), 16)).join(' ');
-}
-
-function applySystemAccent(window: BrowserWindow): void {
-  window.webContents.on('did-finish-load', () => {
-    const channels = getSystemAccentChannels();
-    if (channels) {
-      void window.webContents.insertCSS(`:root { --accent: ${channels}; }`);
-    }
-  });
-}
-
+/** Every window runs sandboxed with context isolation and only the preload bridge. */
 export function createSecureWindow(options: BrowserWindowConstructorOptions): BrowserWindow {
-  const window = new BrowserWindow(options);
+  const window = new BrowserWindow({
+    ...options,
+    webPreferences: {
+      preload: path.join(MAIN_DIST, 'preload.cjs'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+      webSecurity: true,
+    },
+  });
   attachWindowSecurity(window);
   applySystemAccent(window);
   return window;
 }
 
 export function createWindow(): BrowserWindow {
-  mainWindow = createSecureWindow({
+  const mainWindow = createSecureWindow({
     width: 720,
     height: 560,
     minWidth: 480,
     minHeight: 360,
-    title: 'Manolo Mirror',
-    backgroundColor: nativeTheme.shouldUseDarkColors ? '#1e1e1e' : '#f6f6f6',
-    icon: path.join(process.env.VITE_PUBLIC ?? RENDERER_DIST, 'manolo-logo.svg'),
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.cjs'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true,
-      webSecurity: true,
-    },
+    title: APP_NAME,
+    backgroundColor: getWindowBackground(),
   });
 
   if (VITE_DEV_SERVER_URL) {
@@ -173,7 +44,7 @@ export function createWindow(): BrowserWindow {
     void mainWindow.loadFile(path.join(RENDERER_DIST, 'index.html'));
   }
 
-  // DevTools only with `pnpm dev:debug` (MANOLO_OPEN_DEVTOOLS=1). Autofill console noise is from DevTools.
+  // DevTools only with `pnpm dev:debug` (MANOLO_OPEN_DEVTOOLS=1).
   if (VITE_DEV_SERVER_URL && process.env.MANOLO_OPEN_DEVTOOLS === '1') {
     mainWindow.webContents.openDevTools({ mode: 'detach' });
   }
@@ -181,15 +52,41 @@ export function createWindow(): BrowserWindow {
   return mainWindow;
 }
 
+/**
+ * A second instance would fight the first over the adb server and mirror sessions, so it
+ * hands over to the running one. Returns false when this process should quit.
+ */
+export function claimSingleInstance(): boolean {
+  if (!app.requestSingleInstanceLock()) {
+    return false;
+  }
+
+  app.on('second-instance', () => {
+    const [window] = BrowserWindow.getAllWindows();
+    if (window?.isMinimized()) {
+      window.restore();
+    }
+    window?.focus();
+  });
+  return true;
+}
+
 export function registerAppLifecycle(): void {
   void app.whenReady().then(() => {
-    registerSecurityHeaders();
+    registerDevContentSecurityPolicy();
+    if (process.platform === 'darwin') {
+      app.setAboutPanelOptions({
+        applicationName: APP_NAME,
+        applicationVersion: app.getVersion(),
+        version: app.getVersion(),
+        copyright: `© ${APP_NAME}`,
+      });
+    }
   });
 
   app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
       app.quit();
-      mainWindow = null;
     }
   });
 

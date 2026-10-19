@@ -45,9 +45,7 @@ export type MirrorStreamCloseMessage = {
 };
 
 export type MirrorStreamMessage =
-  | MirrorStreamInitMessage
-  | MirrorStreamPacketMessage
-  | MirrorStreamCloseMessage;
+  MirrorStreamInitMessage | MirrorStreamPacketMessage | MirrorStreamCloseMessage;
 
 export type MirrorTouchControl = {
   readonly type: 'touch';
@@ -99,10 +97,7 @@ export type MirrorTextControl = {
 };
 
 export type MirrorControlMessage =
-  | MirrorTouchControl
-  | MirrorScrollControl
-  | MirrorKeyControl
-  | MirrorTextControl;
+  MirrorTouchControl | MirrorScrollControl | MirrorKeyControl | MirrorTextControl;
 
 /** scrcpy rejects text payloads longer than 300 bytes of UTF-8. */
 export const MAX_MIRROR_TEXT_BYTES = 300;

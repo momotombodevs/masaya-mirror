@@ -19,10 +19,7 @@ const root = ReactDOM.createRoot(rootElement);
 if (mirrorParams) {
   root.render(
     <ErrorBoundary>
-      <MirrorWindowApp
-        deviceId={mirrorParams.deviceId}
-        deviceLabel={mirrorParams.deviceLabel}
-      />
+      <MirrorWindowApp deviceId={mirrorParams.deviceId} deviceLabel={mirrorParams.deviceLabel} />
     </ErrorBoundary>,
   );
 } else {

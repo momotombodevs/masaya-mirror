@@ -43,13 +43,13 @@ export function useCapture(
 
   const open = useCallback(async (): Promise<void> => {
     if (!canvas) {
-      showStatus('Mirror not ready');
+      showStatus('Espejo no listo');
       return;
     }
 
     const buffer = await captureCanvasPng(canvas);
     if (!buffer) {
-      showStatus('Capture failed');
+      showStatus('No se pudo capturar');
       return;
     }
 
@@ -71,7 +71,7 @@ export function useCapture(
     const result = await api.copyCapture(preview.buffer);
     setBusy(false);
     if (result.ok && result.value.copied) {
-      showStatus('Copied to clipboard');
+      showStatus('Copiado al portapapeles');
       close();
     } else if (!result.ok) {
       showStatus(result.error);
@@ -87,10 +87,10 @@ export function useCapture(
     const result = await api.saveCapture(preview.buffer);
     setBusy(false);
     if (result.ok && result.value.saved) {
-      showStatus('Capture saved');
+      showStatus('Captura guardada');
       close();
     } else if (result.ok) {
-      showStatus('Save cancelled');
+      showStatus('Guardado cancelado');
     } else {
       showStatus(result.error);
     }

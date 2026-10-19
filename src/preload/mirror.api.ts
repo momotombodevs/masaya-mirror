@@ -20,19 +20,13 @@ import {
 import type { MirrorControlMessage, MirrorOptions } from '../shared/mirror/types';
 
 export const mirrorApi = {
-  openMirrorWindow: (
-    deviceId: string,
-    deviceLabel?: string,
-  ): Promise<OpenMirrorWindowResponse> =>
+  openMirrorWindow: (deviceId: string, deviceLabel?: string): Promise<OpenMirrorWindowResponse> =>
     ipcRenderer.invoke(MIRROR_CHANNELS.openWindow, {
       deviceId,
       deviceLabel,
     } satisfies OpenMirrorWindowRequest),
 
-  openMirror: (
-    deviceId: string,
-    options?: MirrorOptions,
-  ): Promise<OpenMirrorResponse> =>
+  openMirror: (deviceId: string, options?: MirrorOptions): Promise<OpenMirrorResponse> =>
     ipcRenderer.invoke(MIRROR_CHANNELS.open, {
       deviceId,
       options,
@@ -41,22 +35,15 @@ export const mirrorApi = {
   closeMirror: (deviceId: string): Promise<CloseMirrorResponse> =>
     ipcRenderer.invoke(MIRROR_CHANNELS.close, { deviceId } satisfies CloseMirrorRequest),
 
-  getMirrorStatus: (): Promise<MirrorStatusResponse> =>
-    ipcRenderer.invoke(MIRROR_CHANNELS.status),
+  getMirrorStatus: (): Promise<MirrorStatusResponse> => ipcRenderer.invoke(MIRROR_CHANNELS.status),
 
-  sendControl: (
-    deviceId: string,
-    message: MirrorControlMessage,
-  ): Promise<MirrorControlResponse> =>
+  sendControl: (deviceId: string, message: MirrorControlMessage): Promise<MirrorControlResponse> =>
     ipcRenderer.invoke(MIRROR_CHANNELS.control, {
       deviceId,
       message,
     } satisfies MirrorControlRequest),
 
-  setMirrorOptions: (
-    deviceId: string,
-    options: MirrorOptions,
-  ): Promise<SetMirrorOptionsResponse> =>
+  setMirrorOptions: (deviceId: string, options: MirrorOptions): Promise<SetMirrorOptionsResponse> =>
     ipcRenderer.invoke(MIRROR_CHANNELS.setOptions, {
       deviceId,
       options,

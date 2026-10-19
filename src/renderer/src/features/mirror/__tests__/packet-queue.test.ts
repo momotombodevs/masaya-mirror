@@ -9,7 +9,7 @@ const frame = (keyframe: boolean, id: number): ScrcpyMediaStreamPacket =>
   ({ type: 'data', keyframe, data: new Uint8Array([id]) }) as ScrcpyMediaStreamPacket;
 
 const idOf = (packet: ScrcpyMediaStreamPacket | null): number | null =>
-  packet ? packet.data[0] ?? null : null;
+  packet ? (packet.data[0] ?? null) : null;
 
 describe('createPacketQueue', () => {
   it('delivers packets in order', async () => {

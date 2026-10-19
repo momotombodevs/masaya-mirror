@@ -33,14 +33,23 @@ describe('resolveKeyInput', () => {
   });
 
   it('sends shortcuts as key codes with modifier state', () => {
-    expect(
-      resolveKeyInput({ ...none, ctrlKey: true, key: 'c', code: 'KeyC' }),
-    ).toEqual({ kind: 'keycode', keyCode: 31, metaState: 0x3000 });
+    expect(resolveKeyInput({ ...none, ctrlKey: true, key: 'c', code: 'KeyC' })).toEqual({
+      kind: 'keycode',
+      keyCode: 31,
+      metaState: 0x3000,
+    });
   });
 
   it('injects AltGr characters as text', () => {
     expect(
-      resolveKeyInput({ ...none, ctrlKey: true, altKey: true, altGraph: true, key: '@', code: 'Digit2' }),
+      resolveKeyInput({
+        ...none,
+        ctrlKey: true,
+        altKey: true,
+        altGraph: true,
+        key: '@',
+        code: 'Digit2',
+      }),
     ).toEqual({ kind: 'text', text: '@' });
   });
 

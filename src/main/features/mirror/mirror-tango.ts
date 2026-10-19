@@ -7,10 +7,7 @@ import {
   AdbScrcpyOptionsLatest,
   type AdbScrcpyClient as AdbScrcpyClientType,
 } from '@yume-chan/adb-scrcpy';
-import {
-  DefaultServerPath,
-  type ScrcpyMediaStreamPacket,
-} from '@yume-chan/scrcpy';
+import { DefaultServerPath, type ScrcpyMediaStreamPacket } from '@yume-chan/scrcpy';
 import type { ReadableStream } from '@yume-chan/stream-extra';
 import type { MirrorOptions, MirrorVideoMetadata } from '../../../shared/mirror/types';
 import type { Adb } from '@yume-chan/adb';
@@ -33,10 +30,7 @@ export async function createAdbServerClient(): Promise<AdbServerClient> {
   return new AdbServerClient(connector);
 }
 
-export async function createDeviceAdb(
-  client: AdbServerClient,
-  deviceId: string,
-): Promise<Adb> {
+export async function createDeviceAdb(client: AdbServerClient, deviceId: string): Promise<Adb> {
   return client.createAdb({ serial: deviceId });
 }
 

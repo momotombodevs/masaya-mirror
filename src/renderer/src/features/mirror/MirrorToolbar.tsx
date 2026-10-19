@@ -43,7 +43,9 @@ export function MirrorToolbar({
       <header className="relative flex min-h-[52px] shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-mirror-line bg-mirror-bar px-3 py-2 text-mirror-text">
         <div className="flex min-w-0 items-baseline gap-2">
           <span className="truncate text-base font-medium">{deviceLabel}</span>
-          {statusMessage && <span className="whitespace-nowrap text-sm text-mirror-muted">{statusMessage}</span>}
+          {statusMessage && (
+            <span className="whitespace-nowrap text-sm text-mirror-muted">{statusMessage}</span>
+          )}
         </div>
 
         <div className="ml-auto flex items-center gap-1">
@@ -152,7 +154,12 @@ function RecordIcon({ recording }: { readonly recording: boolean }): JSX.Element
   return (
     <svg {...ICON_PROPS}>
       <circle cx="12" cy="12" r="8" />
-      <circle cx="12" cy="12" r="4" className={cx(recording ? 'fill-red-500 stroke-red-500' : 'fill-current stroke-none')} />
+      <circle
+        cx="12"
+        cy="12"
+        r="4"
+        className={cx(recording ? 'fill-red-500 stroke-red-500' : 'fill-current stroke-none')}
+      />
     </svg>
   );
 }

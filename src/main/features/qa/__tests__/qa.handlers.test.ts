@@ -61,7 +61,7 @@ describe('registerQaIpcHandlers', () => {
     const result = await handler?.({ sender: { id: 7 } } as never, { data: oversized });
     expect(result).toEqual({
       ok: false,
-      error: 'Capture exceeds the maximum allowed size.',
+      error: 'Payload exceeds the maximum allowed size.',
     });
   });
 
@@ -72,10 +72,7 @@ describe('registerQaIpcHandlers', () => {
       .mocked(ipcMain.handle)
       .mock.calls.find(([ch]) => ch === QA_CHANNELS.copyCapture)?.[1];
 
-    const result = await handler?.(
-      { sender: { id: 1 } } as never,
-      { data: new ArrayBuffer(8) },
-    );
+    const result = await handler?.({ sender: { id: 1 } } as never, { data: new ArrayBuffer(8) });
 
     expect(result).toEqual({
       ok: false,

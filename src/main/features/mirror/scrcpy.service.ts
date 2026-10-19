@@ -14,36 +14,28 @@ import {
 import { MirrorStreamSession } from './mirror-stream.session';
 import { ADB_NOT_FOUND_MESSAGE } from '../device/adb-error';
 import type { AdbServerClient } from '@yume-chan/adb';
+import type {
+  AndroidKeyCode,
+  AndroidKeyEventAction,
+  AndroidKeyEventMeta,
+  AndroidMotionEventAction,
+  ScrcpyControlMessageWriter,
+} from '@yume-chan/scrcpy';
 import type { AdbService } from '../device/adb.service';
 
-const MIRROR_PORT_CHANNEL = MIRROR_CHANNELS.port;
-
 const SCRCPY_SERVER_NOT_FOUND =
-  'scrcpy-server is not available. Run `pnpm setup:tools` to download it.';
+  'scrcpy-server no está disponible. Ejecuta `pnpm setup:tools` para descargarlo.';
 
 type ScrcpyClientHandle = {
   readonly close: () => Promise<void>;
   readonly exited: Promise<void>;
 };
 
-type MirrorController = {
-  injectTouch(
-    message: Omit<import('@yume-chan/scrcpy').ScrcpyInjectTouchControlMessage, 'type'>,
-  ): Promise<void>;
-  injectScroll(
-    message: Omit<import('@yume-chan/scrcpy').ScrcpyInjectScrollControlMessage, 'type'>,
-  ): Promise<void>;
-  injectKeyCode(
-    message: Omit<import('@yume-chan/scrcpy').ScrcpyInjectKeyCodeControlMessage, 'type'>,
-  ): Promise<void>;
-  injectText(text: string): Promise<void>;
-};
-
 type MirrorSession = {
   readonly deviceId: string;
   readonly stream: MirrorStreamSession;
   readonly client: ScrcpyClientHandle;
-  readonly controller: MirrorController | undefined;
+  readonly controller: ScrcpyControlMessageWriter | undefined;
   readonly options: MirrorOptions;
   readonly audioEnabled: boolean;
   /** Tail of the control queue. Each control message waits for the previous one. */
@@ -111,7 +103,7 @@ export class ScrcpyService {
       const abort = new AbortController();
 
       port1.start();
-      webContents.postMessage(MIRROR_PORT_CHANNEL, { deviceId }, [port2]);
+      webContents.postMessage(MIRROR_CHANNELS.port, { deviceId }, [port2]);
 
       const streamSession = new MirrorStreamSession({
         deviceId,
@@ -154,7 +146,7 @@ export class ScrcpyService {
       if (error instanceof Error) {
         return err(error.message);
       }
-      return err('Unable to start the mirror.');
+      return err('No se pudo iniciar el espejo.');
     } finally {
       if (!stored && startedClient) {
         await startedClient.close().catch(() => undefined);
@@ -200,7 +192,7 @@ export class ScrcpyService {
       switch (message.type) {
         case 'touch':
           await controller.injectTouch({
-            action: message.action as import('@yume-chan/scrcpy').AndroidMotionEventAction,
+            action: message.action as AndroidMotionEventAction,
             pointerId: BigInt(message.pointerId),
             pointerX: message.pointerX,
             pointerY: message.pointerY,
@@ -224,10 +216,10 @@ export class ScrcpyService {
           break;
         case 'key':
           await controller.injectKeyCode({
-            action: message.action as import('@yume-chan/scrcpy').AndroidKeyEventAction,
-            keyCode: message.keyCode as import('@yume-chan/scrcpy').AndroidKeyCode,
+            action: message.action as AndroidKeyEventAction,
+            keyCode: message.keyCode as AndroidKeyCode,
             repeat: message.repeat,
-            metaState: message.metaState as import('@yume-chan/scrcpy').AndroidKeyEventMeta,
+            metaState: message.metaState as AndroidKeyEventMeta,
           });
           break;
         case 'text':
