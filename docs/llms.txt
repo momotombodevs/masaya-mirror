@@ -1,0 +1,28 @@
+# Manolo Mirror
+
+> Aplicación de escritorio gratuita para espejar y controlar un dispositivo Android desde macOS, Windows y Linux. Funciona por USB o por Wi-Fi con un código QR, graba y captura la pantalla, y no usa cuentas, anuncios ni telemetría.
+
+Manolo Mirror muestra la pantalla del teléfono en una ventana del escritorio y permite controlarlo con mouse y teclado. Usa adb (Android platform-tools, que se instala aparte) y el servidor de scrcpy. Es una alternativa gratuita a Vysor.
+
+## Documentación
+
+- [Página principal y guía de inicio](https://donmanueldev.github.io/manolo-mirror/): funciones, comparativa, instalación, primeros pasos, atajos y problemas frecuentes.
+- [Texto completo para LLM](https://donmanueldev.github.io/manolo-mirror/llms-full.txt): el contenido de la página en un solo archivo.
+- [Política de privacidad](https://donmanueldev.github.io/manolo-mirror/privacy.html): qué se procesa y qué conexiones hace la app.
+
+## Descargas y código
+
+- [Última versión](https://github.com/donmanueldev/manolo-mirror/releases/latest): instaladores .dmg (macOS), .exe (Windows), .AppImage y .deb (Linux).
+- [Repositorio en GitHub](https://github.com/donmanueldev/manolo-mirror): código, incidencias y notas de versión.
+
+## Datos clave
+
+- Sistemas: macOS (Apple Silicon e Intel), Windows x64, Linux x64 y arm64.
+- Conexión: USB o Wi-Fi con QR (depuración inalámbrica de Android, requiere mDNS en la red).
+- Funciones: control con mouse y teclado, audio, portapapeles compartido, rotación, captura PNG, grabación MP4 o GIF, instalación de APK, calidad ajustable (H.264 o H.265).
+- Idiomas de la app: español e inglés.
+- Precio: gratis.
+
+## Optional
+
+- [Arquitectura](https://github.com/donmanueldev/manolo-mirror/blob/main/docs/ARCHITECTURE.md): cómo se organizan los procesos y el flujo de video.

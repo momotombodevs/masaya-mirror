@@ -1,0 +1,78 @@
+# Manolo Mirror
+
+> Aplicación de escritorio gratuita para espejar y controlar un dispositivo Android desde macOS, Windows y Linux. Funciona por USB o por Wi-Fi con un código QR, sin cuentas, anuncios ni telemetría.
+
+Sitio: https://donmanueldev.github.io/manolo-mirror/
+Descargas: https://github.com/donmanueldev/manolo-mirror/releases/latest
+Código: https://github.com/donmanueldev/manolo-mirror
+
+## Qué hace
+
+- Una ventana por dispositivo, con barra de navegación bajo la pantalla.
+- Control completo: toques, multitouch, arrastre, rueda y teclado con acentos. La ventana gira con el teléfono.
+- Audio del dispositivo y portapapeles compartido entre el equipo y el teléfono.
+- Captura (PNG) y grabación (video MP4 o GIF animado), desde la barra o con atajos.
+- Wi-Fi con QR, sin cable ni direcciones IP.
+- Instalar APK arrastrando el archivo a la ventana.
+- Calidad ajustable: preajustes, resolución, velocidad de datos y códec (H.264 o H.265).
+- Tema claro y oscuro según el sistema. Español e inglés.
+- Privado: sin cuenta, sin nube, sin telemetría. La app solo consulta GitHub Releases para buscar actualizaciones.
+
+## Manolo Mirror frente a Vysor
+
+Comparación con los planes públicos de Vysor, que cambian con el tiempo; confirma en su sitio.
+
+- Wi-Fi: Manolo Mirror lo incluye; Vysor lo ofrece solo en Pro.
+- Calidad: Manolo Mirror es ajustable hasta Máxima; en Vysor gratis es limitada y HD es de Pro.
+- Anuncios: Manolo Mirror no tiene; Vysor gratis sí, y se quitan con Pro.
+- Planes: Manolo Mirror no bloquea funciones; Vysor tiene un plan Pro de pago.
+
+## Instalar
+
+Descarga el instalador de tu sistema desde la última versión: .dmg para macOS, .exe para Windows, .AppImage o .deb para Linux. Los instaladores aún no están firmados. En macOS usa clic derecho y Abrir; en Windows, Más información y Ejecutar de todas formas.
+
+## Primeros pasos
+
+1. En el teléfono, activa las Opciones de desarrollador y la Depuración USB.
+2. Ten adb (Android platform-tools) instalado. Si la app no lo encuentra, te guía para descargarlo o elegirlo.
+3. Conecta el teléfono y acepta el aviso de depuración. Pasará de Sin autorizar a Listo.
+4. Haz doble clic en el dispositivo para abrir el espejo.
+
+## Conectar por Wi-Fi
+
+Pulsa Cmd+Shift+W (macOS) o Ctrl+Shift+W y escanea el QR desde el teléfono: Opciones de desarrollador, Depuración inalámbrica, Vincular con código QR. Ambos deben estar en la misma red.
+
+## Atajos
+
+| Acción | macOS | Windows y Linux |
+| --- | --- | --- |
+| Actualizar dispositivos | Cmd+R | Ctrl+R |
+| Captura | Cmd+Shift+4 | Ctrl+Shift+4 |
+| Grabar o detener | Cmd+Shift+5 | Ctrl+Shift+5 |
+| Conectar por Wi-Fi | Cmd+Shift+W | Ctrl+Shift+W |
+| Ajustes | Cmd+, | Ctrl+, |
+| Atrás en el teléfono | Clic derecho en la ventana | Clic derecho en la ventana |
+
+## Problemas frecuentes
+
+### «ADB no encontrado»
+Descarga Android platform-tools, o elige desde la app un adb que ya tengas. La app te guía.
+
+### El dispositivo aparece «Sin autorizar»
+Acepta el diálogo de depuración USB en el teléfono.
+
+### El QR no encuentra el teléfono
+Deben estar en la misma red y esta debe permitir mDNS. Prueba con otra red o por USB.
+
+### La imagen va con retraso
+Baja la calidad a «Equilibrada» en Ajustes.
+
+### ¿Manolo Mirror cuesta dinero o pide una cuenta?
+No. Es gratis, sin cuentas, sin anuncios y sin telemetría.
+
+### ¿En qué sistemas funciona?
+En macOS (Apple Silicon e Intel), Windows y Linux (AppImage y deb).
+
+## Privacidad
+
+La app no tiene servidores propios y no envía tus datos a ninguna parte. El video viaja del teléfono al equipo por USB o por la red local. Las capturas y grabaciones se guardan solo en la carpeta que elijas. La única conexión que hace la app es la búsqueda de actualizaciones en GitHub Releases (macOS, Windows y AppImage). Política completa: https://donmanueldev.github.io/manolo-mirror/privacy.html
