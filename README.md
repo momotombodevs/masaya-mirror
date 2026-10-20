@@ -12,6 +12,8 @@ captura de pantalla, grabación de video y control con mouse y teclado, sin inst
   calidad de imagen (preajustes, resolución, velocidad de datos, códec) y dispositivo (mostrar toques,
   mantener pantalla encendida).
 - **Instalar APK** desde la barra o arrastrando el archivo a la ventana del espejo.
+- **Reconexión automática:** si se desconecta el cable o se cae el Wi-Fi, el espejo reintenta durante
+  aproximadamente un minuto y vuelve solo.
 - **Conexión por Wi-Fi sin cable:** escanea un código QR desde el teléfono y listo.
 - **Captura y grabación** desde la barra del espejo o con atajos.
 - **Recuerda** tus ajustes y la carpeta donde guardas capturas y grabaciones.

@@ -75,6 +75,9 @@ const es = {
   'mirror.videoUnsupported': 'Video no compatible con este sistema.',
   'mirror.videoError': 'Error de video.',
   'mirror.noSignal': 'Sin señal de video.',
+  'mirror.reconnecting': 'Conexión perdida. Reconectando…',
+  'mirror.reconnectAttempt': 'Intento {attempt} de {max}',
+  'mirror.reconnectFailed': 'No se pudo reconectar con el dispositivo.',
   'deviceSettings.readFailed': 'No se pudo leer el dispositivo.',
   'deviceSettings.writeFailed': 'No se pudo cambiar el ajuste.',
 
@@ -265,6 +268,9 @@ const en: Record<MessageKey, string> = {
   'mirror.videoUnsupported': 'Video not supported on this system.',
   'mirror.videoError': 'Video error.',
   'mirror.noSignal': 'No video signal.',
+  'mirror.reconnecting': 'Connection lost. Reconnecting…',
+  'mirror.reconnectAttempt': 'Attempt {attempt} of {max}',
+  'mirror.reconnectFailed': 'Could not reconnect to the device.',
   'deviceSettings.readFailed': 'Could not read the device.',
   'deviceSettings.writeFailed': 'Could not change the setting.',
 

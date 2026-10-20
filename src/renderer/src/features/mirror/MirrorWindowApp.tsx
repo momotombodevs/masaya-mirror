@@ -4,9 +4,11 @@ import { MirrorToolbar } from './MirrorToolbar';
 import { NavigationBar } from './NavigationBar';
 import { SettingsPanel } from './settings/SettingsPanel';
 import { useMirror } from './useMirror';
+import { useReconnect } from './useReconnect';
 import { usePreferences } from './usePreferences';
 import { DEFAULT_MIRROR_OPTIONS } from '../../../../shared/mirror/types';
 import type { MirrorVideoPreferences } from '../../../../shared/preferences/types';
+import { Button } from '../../components/ui/Button';
 import { OverlayError } from '../../components/ui/OverlayError';
 import { useI18n } from '../../shared/i18n';
 import { getManoloApi } from '../../shared/manolo-api';
@@ -46,10 +48,29 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
     }
   }, [deviceId, loaded, alwaysOnTop]);
 
+  const stoppingRef = useRef(false);
+  const optionsRef = useRef(mirror.options);
+  optionsRef.current = mirror.options;
+  const reopen = useCallback(
+    (): Promise<boolean> => openMirrorRef.current(undefined, optionsRef.current),
+    [],
+  );
+  const reconnect = useReconnect({ reopen });
+
   const handleStopMirror = useCallback(async (): Promise<void> => {
+    stoppingRef.current = true;
+    reconnect.cancel();
     await mirror.closeMirror();
     window.close();
-  }, [mirror]);
+  }, [mirror, reconnect]);
+
+  // The stream ended on its own (cable pulled, Wi-Fi lost, decoder error): try to bring it back.
+  const { begin: beginReconnect } = reconnect;
+  const handleStreamClosed = useCallback((): void => {
+    if (!stoppingRef.current) {
+      beginReconnect();
+    }
+  }, [beginReconnect]);
 
   const handleFullscreen = useCallback((): void => {
     const el = mirrorStageRef.current;
@@ -98,12 +119,44 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
             {t('mirror.connecting')}
           </p>
         )}
-        {mirror.error && <OverlayError>{mirror.error}</OverlayError>}
+        {mirror.error && reconnect.state.status === 'idle' && (
+          <OverlayError>{mirror.error}</OverlayError>
+        )}
+        {reconnect.state.status !== 'idle' && (
+          <div
+            role="status"
+            className="absolute inset-0 z-[3] flex flex-col items-center justify-center gap-3 bg-black/60 px-6 text-center text-base text-mirror-text"
+          >
+            {reconnect.state.status === 'reconnecting' ? (
+              <>
+                <p>{t('mirror.reconnecting')}</p>
+                <p className="text-sm text-mirror-muted">
+                  {t('mirror.reconnectAttempt', {
+                    attempt: reconnect.state.attempt,
+                    max: reconnect.maxAttempts,
+                  })}
+                </p>
+              </>
+            ) : (
+              <>
+                <p role="alert">{t('mirror.reconnectFailed')}</p>
+                <div className="flex gap-2">
+                  <Button variant="primary" onClick={reconnect.begin}>
+                    {t('common.retry')}
+                  </Button>
+                  <Button variant="toolbar" onClick={() => void handleStopMirror()}>
+                    {t('common.close')}
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
         {mirror.isMirrorActive && (
           <MirrorView
             deviceId={deviceId}
             showClicks={preferences.showClicks}
-            onClose={() => void handleStopMirror()}
+            onClose={handleStreamClosed}
             onCanvasChange={setMirrorCanvas}
           />
         )}
