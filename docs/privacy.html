@@ -73,10 +73,17 @@
 
       <h2>Conexiones de red</h2>
       <p>
-        La app no hace conexiones a servidores propios ni de terceros. La conexión por Wi-Fi usa tu
-        red local (descubrimiento mDNS y <code>adb</code>) entre tu equipo y tu teléfono. Si
-        necesitas descargar <code>adb</code>, la app abre en tu navegador la página oficial de
-        Android (developer.android.com); esa descarga ocurre entre tú y ese sitio.
+        La app no tiene servidores propios y no envía tus datos a ninguna parte. La conexión por
+        Wi-Fi usa tu red local (descubrimiento mDNS y <code>adb</code>) entre tu equipo y tu
+        teléfono. Si necesitas descargar <code>adb</code>, la app abre en tu navegador la página
+        oficial de Android (developer.android.com); esa descarga ocurre entre tú y ese sitio.
+      </p>
+      <p>
+        La única conexión que hace la propia app es la búsqueda de actualizaciones: en macOS,
+        Windows y AppImage consulta las versiones publicadas en GitHub Releases. Es una petición de
+        lectura que no incluye tus archivos, tu pantalla ni información personal; GitHub, como
+        cualquier sitio web, puede registrar la dirección IP de la petición según su propia
+        política.
       </p>
 
       <h2>Contenido en tu pantalla</h2>

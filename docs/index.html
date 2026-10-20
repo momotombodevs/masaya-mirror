@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Manolo Mirror — Espeja y controla Android desde tu escritorio</title>
+    <title>Manolo Mirror: espejo de Android en PC, Mac y Linux (gratis)</title>
     <meta
       name="description"
-      content="Manolo Mirror espeja y controla dispositivos Android en macOS, Windows y Linux. Captura, graba y conecta por Wi-Fi con un QR. Sin cuentas ni anuncios."
+      content="Espeja y controla tu Android desde macOS, Windows y Linux. Por USB o Wi-Fi con QR, captura y graba. Gratis, sin cuentas ni anuncios."
     />
     <meta name="theme-color" content="#0f3d3e" />
     <link rel="icon" type="image/svg+xml" href="manolo-logo.svg" />
@@ -237,11 +237,13 @@
             <a
               class="btn btn-ghost"
               href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
+              aria-label="Descargar para Windows"
               ><svg><use href="#i-win" /></svg>Windows</a
             >
             <a
               class="btn btn-ghost"
               href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
+              aria-label="Descargar para Linux"
               >Linux</a
             >
           </div>
@@ -252,7 +254,8 @@
             <li>Wi-Fi incluido</li>
           </ul>
           <p class="platforms">
-            Apple Silicon e Intel · <a href="#vysor">Mejor que Vysor: compáralos</a>
+            macOS (Apple Silicon e Intel), Windows y Linux ·
+            <a href="#vysor">Alternativa gratis a Vysor: compáralos</a>
           </p>
         </div>
         <div
@@ -322,14 +325,17 @@
               ><svg aria-hidden="true"><use href="#i-touch" /></svg
             ></span>
             <strong>Control completo.</strong>
-            <span>Toques, multitouch, arrastre, rueda y teclado con acentos.</span>
+            <span
+              >Toques, multitouch, arrastre, rueda y teclado con acentos. La ventana gira con el
+              teléfono.</span
+            >
           </li>
           <li>
             <span class="ico"
               ><svg aria-hidden="true"><use href="#i-camera" /></svg
             ></span>
             <strong>Captura y grabación.</strong>
-            <span>Desde la barra o con atajos. Graba a 16 Mbps.</span>
+            <span>Imagen PNG, video MP4 o GIF animado, desde la barra o con atajos.</span>
           </li>
           <li>
             <span class="ico"
@@ -366,11 +372,42 @@
             <strong>Privado.</strong>
             <span>Sin cuenta, sin nube, sin telemetría.</span>
           </li>
+          <li>
+            <span class="ico"
+              ><svg aria-hidden="true"><use href="#i-vol" /></svg
+            ></span>
+            <strong>Audio y portapapeles.</strong>
+            <span>Escucha el sonido del teléfono y copia y pega entre ambos.</span>
+          </li>
+          <li>
+            <span class="ico"
+              ><svg aria-hidden="true"><use href="#i-power" /></svg
+            ></span>
+            <strong>Atajos de teclado.</strong>
+            <span>Captura, grabación y conexión por Wi-Fi sin tocar el ratón.</span>
+          </li>
+          <li>
+            <span class="ico"
+              ><svg aria-hidden="true"><use href="#i-down" /></svg
+            ></span>
+            <strong>Actualizaciones.</strong>
+            <span>Avisa cuando hay una versión nueva en macOS, Windows y AppImage.</span>
+          </li>
+          <li>
+            <span class="ico"
+              ><svg aria-hidden="true"><use href="#i-info" /></svg
+            ></span>
+            <strong>Para tu sistema.</strong>
+            <span>macOS en Apple Silicon e Intel, Windows y Linux (AppImage y deb).</span>
+          </li>
         </ul>
       </section>
 
       <section class="band" id="vysor">
         <h2>Manolo Mirror frente a Vysor</h2>
+        <p class="shot-cap">
+          Comparación con los planes públicos de Vysor. Cambian con el tiempo: confirma en su sitio.
+        </p>
         <div class="tbl">
           <table>
             <thead>
@@ -611,7 +648,7 @@
             <a href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
               >última versión</a
             >: <code>.dmg</code> para macOS, <code>.exe</code> para Windows y
-            <code>.AppImage</code> para Linux.
+            <code>.AppImage</code> o <code>.deb</code> para Linux.
           </p>
           <div class="note">
             <p>
