@@ -55,7 +55,7 @@ pnpm dev:debug      # igual, con DevTools
 | `pnpm build:app`                             | Compila main, preload y renderer (sin empaquetar)  |
 | `pnpm build:mac`                             | DMG para Apple Silicon e Intel (solo en macOS)     |
 | `pnpm build:win`                             | Instalador NSIS x64 (en Windows)                   |
-| `pnpm build:linux`                           | AppImage x64 (en Linux)                            |
+| `pnpm build:linux`                           | AppImage y .deb, x64 y arm64 (en Linux)            |
 | `pnpm pack:dir`                              | Empaqueta sin instalador, para probar la config    |
 
 Los instaladores quedan en `release/<versión>/`. Detalles de versionado y firma en

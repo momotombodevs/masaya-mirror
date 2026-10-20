@@ -73,12 +73,13 @@ jobs:
               release/**/*.exe
               release/**/*.blockmap
               release/**/latest*.yml
-          - name: Linux (x64)
+          - name: Linux (x64 + arm64)
             runner: ubuntu-latest
             command: pnpm build:linux
             artifact: manolo-mirror-linux
             files: |
               release/**/*.AppImage
+              release/**/*.deb
               release/**/latest*.yml
     steps:
       - uses: actions/checkout@v4
@@ -124,12 +125,13 @@ jobs:
             release-artifacts/**/*.dmg
             release-artifacts/**/*.exe
             release-artifacts/**/*.AppImage
+            release-artifacts/**/*.deb
             release-artifacts/**/*.zip
             release-artifacts/**/*.blockmap
             release-artifacts/**/latest*.yml
           generate_release_notes: true
           fail_on_unmatched_files: true
           body: |
-            Instaladores para macOS (`.dmg`, Apple Silicon e Intel), Windows (`.exe`) y Linux (`.AppImage`).
+            Instaladores para macOS (`.dmg`, Apple Silicon e Intel), Windows (`.exe`) y Linux (`.AppImage` y `.deb`, x64 y arm64).
 
             Requiere `adb` instalado. En Windows, si SmartScreen avisa, usa **Más información → Ejecutar de todas formas**.

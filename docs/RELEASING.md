@@ -7,7 +7,7 @@
 3. Al hacer merge a `main`, el workflow **Release** (`.github/workflows/release.yml`) se dispara solo:
    - si el tag `v<versión>` ya existe, no hace nada (un merge sin subir la versión no publica);
    - ejecuta typecheck, lint y tests;
-   - empaqueta en macOS (DMG `arm64` y `x64`), Windows (NSIS x64) y Linux (AppImage);
+   - empaqueta en macOS (DMG `arm64` y `x64`), Windows (NSIS x64) y Linux (AppImage y `.deb`, `x64` y `arm64`);
    - crea el tag sobre el commit del merge y publica todo en una GitHub Release con notas generadas.
 
 Los nombres siguen `manolo-mirror-<versión>-<os>-<arch>.<ext>`.

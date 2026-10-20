@@ -62,7 +62,13 @@
   },
   linux: {
     category: 'Development',
-    target: ['AppImage'],
+    // The deb requires a maintainer email; this is GitHub's private noreply address.
+    maintainer: 'Manuel Duarte <46093689+donmanueldev@users.noreply.github.com>',
+    // AppImage updates itself; the deb is for apt-based systems and is updated by reinstalling.
+    target: [
+      { target: 'AppImage', arch: ['x64', 'arm64'] },
+      { target: 'deb', arch: ['x64', 'arm64'] },
+    ],
     desktop: {
       entry: {
         Name: 'Manolo Mirror',
