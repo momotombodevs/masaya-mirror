@@ -19,7 +19,8 @@ captura de pantalla, grabación de video y control con mouse y teclado, sin inst
 - **Reconexión automática:** si se desconecta el cable o se cae el Wi-Fi, el espejo reintenta durante
   aproximadamente un minuto y vuelve solo.
 - **Conexión por Wi-Fi sin cable:** escanea un código QR desde el teléfono y listo.
-- **Captura y grabación** desde la barra del espejo o con atajos.
+- **Captura y grabación** desde la barra del espejo o con atajos. El video sale en **MP4 (H.264)** y, si
+  lo prefieres, en **GIF animado** (hasta 30 s, 480 px de ancho); se elige en Ajustes.
 - **Recuerda** tus ajustes y la carpeta donde guardas capturas y grabaciones.
 - **Tema claro/oscuro** y color de acento del sistema.
 

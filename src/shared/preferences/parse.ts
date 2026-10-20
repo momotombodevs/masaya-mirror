@@ -3,6 +3,7 @@ import { err, ok, type Result } from '../ipc/result';
 import { MIRROR_QUALITY_ORDER, MIRROR_QUALITY_PRESETS } from '../mirror/quality';
 import {
   CAPTURE_ACTIONS,
+  RECORDING_FORMATS,
   DEFAULT_PREFERENCES,
   type MirrorVideoPreferences,
   type Preferences,
@@ -42,6 +43,9 @@ const parseBoolean = (value: unknown): boolean | undefined =>
 const parseCaptureAction = (value: unknown): Preferences['captureAction'] | undefined =>
   CAPTURE_ACTIONS.find((action) => action === value);
 
+const parseRecordingFormat = (value: unknown): Preferences['recordingFormat'] | undefined =>
+  RECORDING_FORMATS.find((format) => format === value);
+
 const parseLanguage = (value: unknown): Preferences['language'] | undefined =>
   LANGUAGE_PREFERENCES.find((language) => language === value);
 
@@ -54,6 +58,7 @@ const FIELD_PARSERS: {
   alwaysOnTop: parseBoolean,
   showClicks: parseBoolean,
   captureAction: parseCaptureAction,
+  recordingFormat: parseRecordingFormat,
   audio: parseBoolean,
   clipboardSync: parseBoolean,
   language: parseLanguage,
@@ -101,6 +106,7 @@ export function readPreferences(raw: unknown): Preferences {
     alwaysOnTop: field('alwaysOnTop'),
     showClicks: field('showClicks'),
     captureAction: field('captureAction'),
+    recordingFormat: field('recordingFormat'),
     audio: field('audio'),
     clipboardSync: field('clipboardSync'),
     language: field('language'),

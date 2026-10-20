@@ -31,6 +31,13 @@ function readBuffer(payload: unknown): Result<ArrayBuffer> {
   return ok(payload.data);
 }
 
+function recordingExtension(mimeType: string): 'gif' | 'webm' | 'mp4' {
+  if (mimeType.includes('gif')) {
+    return 'gif';
+  }
+  return mimeType.includes('webm') ? 'webm' : 'mp4';
+}
+
 /** `2026-10-19_18-45-02`, sortable and safe in file names on every platform. */
 function timestamp(): string {
   return new Date().toISOString().slice(0, 19).replace('T', '_').replace(/:/g, '-');
@@ -106,12 +113,12 @@ export function registerQaIpcHandlers(
     if (typeof mimeType !== 'string') {
       return Promise.resolve(err('Invalid recording data.'));
     }
-    const extension = mimeType.includes('webm') ? 'webm' : 'mp4';
+    const extension = recordingExtension(mimeType);
     return saveBufferWithDialog(
       {
         title: mt('main.saveRecordingTitle'),
         defaultPath: `grabacion_${timestamp()}.${extension}`,
-        filters: [{ name: 'Video', extensions: [extension] }],
+        filters: [{ name: extension === 'gif' ? 'GIF' : 'Video', extensions: [extension] }],
       },
       data,
       'Unable to save recording.',

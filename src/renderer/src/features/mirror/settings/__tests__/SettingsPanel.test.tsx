@@ -227,6 +227,7 @@ describe('SettingsPanel', () => {
       alwaysOnTop: false,
       showClicks: true,
       captureAction: 'preview',
+      recordingFormat: 'video',
     });
     expect(onVideoChange).toHaveBeenCalledWith(DEFAULT_PREFERENCES.mirror);
   });

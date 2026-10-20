@@ -1,6 +1,11 @@
 import type { LanguagePreference } from '../i18n/locale';
 import { DEFAULT_MIRROR_OPTIONS, type MirrorOptions } from '../mirror/types';
 
+/** What the record button produces. */
+export type RecordingFormat = 'video' | 'gif';
+
+export const RECORDING_FORMATS: readonly RecordingFormat[] = ['video', 'gif'];
+
 /** What happens right after taking a screenshot. */
 export type CaptureAction = 'preview' | 'copy' | 'save';
 
@@ -17,6 +22,7 @@ export type Preferences = {
   /** Draws a dot in the mirror window where the mouse touches the screen. */
   readonly showClicks: boolean;
   readonly captureAction: CaptureAction;
+  readonly recordingFormat: RecordingFormat;
   /** Plays the device audio in the mirror window (Android 11 or newer). */
   readonly audio: boolean;
   /** Keeps the computer and device clipboards equal. */
@@ -34,6 +40,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   alwaysOnTop: false,
   showClicks: true,
   captureAction: 'preview',
+  recordingFormat: 'video',
   audio: false,
   clipboardSync: true,
   language: 'system',

@@ -2,7 +2,9 @@ import { useEffect } from 'react';
 import {
   CAPTURE_ACTIONS,
   DEFAULT_PREFERENCES,
+  RECORDING_FORMATS,
   type CaptureAction,
+  type RecordingFormat,
   type MirrorVideoPreferences,
   type Preferences,
 } from '../../../../../shared/preferences/types';
@@ -45,6 +47,11 @@ const CAPTURE_ACTION_KEYS: Record<CaptureAction, MessageKey> = {
   preview: 'settings.captureAction.preview',
   copy: 'settings.captureAction.copy',
   save: 'settings.captureAction.save',
+};
+
+const RECORDING_FORMAT_KEYS: Record<RecordingFormat, MessageKey> = {
+  video: 'settings.recordingFormat.video',
+  gif: 'settings.recordingFormat.gif',
 };
 
 const LANGUAGE_KEYS: Record<LanguagePreference, MessageKey> = {
@@ -105,6 +112,9 @@ export function SettingsPanel({
     value,
     label: t(CAPTURE_ACTION_KEYS[value]),
   }));
+  const recordingOptions: readonly SelectOption<RecordingFormat>[] = RECORDING_FORMATS.map(
+    (value) => ({ value, label: t(RECORDING_FORMAT_KEYS[value]) }),
+  );
   const codecOptions: readonly SelectOption<MirrorOptions['videoCodec']>[] = [
     { value: 'h264', label: t('settings.codec.h264') },
     { value: 'h265', label: t('settings.codec.h265') },
@@ -122,6 +132,7 @@ export function SettingsPanel({
       alwaysOnTop: DEFAULT_PREFERENCES.alwaysOnTop,
       showClicks: DEFAULT_PREFERENCES.showClicks,
       captureAction: DEFAULT_PREFERENCES.captureAction,
+      recordingFormat: DEFAULT_PREFERENCES.recordingFormat,
     });
     onVideoChange(DEFAULT_PREFERENCES.mirror);
   };
@@ -193,6 +204,14 @@ export function SettingsPanel({
                 value={preferences.captureAction}
                 options={captureOptions}
                 onChange={(captureAction) => onPreferenceChange({ captureAction })}
+              />
+            </SettingRow>
+            <SettingRow label={t('settings.recordingFormat')} icon={ROW_ICONS.camera} tone="red">
+              <Select
+                label={t('settings.recordingFormat')}
+                value={preferences.recordingFormat}
+                options={recordingOptions}
+                onChange={(recordingFormat) => onPreferenceChange({ recordingFormat })}
               />
             </SettingRow>
             <SettingRow

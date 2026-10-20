@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react';
-import type { CaptureAction } from '../../../../shared/preferences/types';
+import type { CaptureAction, RecordingFormat } from '../../../../shared/preferences/types';
 import { Button } from '../../components/ui/Button';
 import { cx } from '../../components/ui/cx';
 import { CapturePreviewDialog } from './CapturePreviewDialog';
@@ -20,6 +20,7 @@ type MirrorToolbarProps = {
   readonly onFullscreen: () => void;
   readonly onOpenSettings: () => void;
   readonly captureAction: CaptureAction;
+  readonly recordingFormat: RecordingFormat;
   readonly disabled?: boolean;
 };
 
@@ -30,12 +31,13 @@ export function MirrorToolbar({
   onFullscreen,
   onOpenSettings,
   captureAction,
+  recordingFormat,
   disabled = false,
 }: MirrorToolbarProps): JSX.Element {
   const { t } = useI18n();
   const { statusMessage, showStatus } = useToolbarStatus();
   const capture = useCapture(canvas, showStatus, captureAction);
-  const recorder = useRecording(canvas, showStatus);
+  const recorder = useRecording(canvas, showStatus, recordingFormat);
   const pressKey = useDeviceKeys(deviceId);
   const apk = useApkInstall(deviceId, showStatus);
 

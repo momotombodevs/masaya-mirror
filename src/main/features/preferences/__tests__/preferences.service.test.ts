@@ -34,6 +34,7 @@ describe('PreferencesService', () => {
       alwaysOnTop: true,
       showClicks: false,
       captureAction: 'copy',
+      recordingFormat: 'gif',
       audio: true,
       clipboardSync: false,
       language: 'en',
@@ -48,6 +49,7 @@ describe('PreferencesService', () => {
       alwaysOnTop: true,
       showClicks: false,
       captureAction: 'copy',
+      recordingFormat: 'gif',
       audio: true,
       clipboardSync: false,
       language: 'en',
@@ -100,6 +102,7 @@ describe('PreferencesService', () => {
       'language',
       'mirror',
       'navigationBar',
+      'recordingFormat',
       'saveDirectory',
       'showClicks',
     ]);

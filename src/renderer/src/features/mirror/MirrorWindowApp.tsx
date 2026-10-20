@@ -137,6 +137,7 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
         onFullscreen={handleFullscreen}
         onOpenSettings={() => setSettingsOpen(true)}
         captureAction={preferences.captureAction}
+        recordingFormat={preferences.recordingFormat}
         disabled={mirror.loading}
       />
 

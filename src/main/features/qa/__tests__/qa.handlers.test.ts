@@ -57,6 +57,23 @@ describe('registerQaIpcHandlers', () => {
     expect(result).toEqual({ ok: true, value: { saved: true } });
   });
 
+  it.each([
+    ['video/mp4;codecs=avc1', '.mp4'],
+    ['video/webm', '.webm'],
+    ['image/gif', '.gif'],
+  ])('proposes the right file name for %s', async (mimeType, extension) => {
+    vi.mocked(dialog.showSaveDialog).mockResolvedValue({ canceled: true, filePath: '' });
+    const handler = vi
+      .mocked(ipcMain.handle)
+      .mock.calls.find(([ch]) => ch === QA_CHANNELS.saveRecording)?.[1];
+
+    await handler?.({ sender: { id: 7 } } as never, { data: new ArrayBuffer(8), mimeType });
+
+    expect(vi.mocked(dialog.showSaveDialog).mock.lastCall?.[0]).toMatchObject({
+      defaultPath: expect.stringMatching(new RegExp(`grabacion_.*\\${extension}$`)),
+    });
+  });
+
   it('rejects capture buffers over size limit', async () => {
     const handler = vi
       .mocked(ipcMain.handle)
