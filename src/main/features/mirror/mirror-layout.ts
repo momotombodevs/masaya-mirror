@@ -27,3 +27,29 @@ export function computeStageSize(video: Size, workArea: Size, extraChromeHeight 
     height: Math.round(video.height * scale),
   };
 }
+
+export type Orientation = 'portrait' | 'landscape';
+
+/** A square video counts as portrait, the usual phone orientation. */
+export function orientationOf(size: Size): Orientation {
+  return size.width > size.height ? 'landscape' : 'portrait';
+}
+
+/**
+ * Stage for a video whose orientation just changed: keeps the longest edge of the current stage,
+ * so the window turns with the phone instead of snapping back to the default size.
+ */
+export function rotatedStageSize(
+  currentStage: Size,
+  video: Size,
+  workArea: Size,
+  extraChromeHeight = 0,
+): Size {
+  const longEdge = Math.max(currentStage.width, currentStage.height);
+  const scale = longEdge / Math.max(video.width, video.height);
+  return computeStageSize(
+    { width: Math.round(video.width * scale), height: Math.round(video.height * scale) },
+    workArea,
+    extraChromeHeight,
+  );
+}

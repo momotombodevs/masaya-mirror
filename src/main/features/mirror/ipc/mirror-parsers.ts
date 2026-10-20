@@ -114,6 +114,8 @@ export function parseControlMessage(value: unknown): Result<MirrorControlMessage
       const fields = parseNumericFields(value, KEY_RULES, 'Invalid key message.');
       return fields.ok ? ok({ type: 'key', ...fields.value }) : fields;
     }
+    case 'rotate':
+      return ok({ type: 'rotate' });
     case 'text': {
       if (typeof value.text !== 'string' || value.text.length === 0) {
         return err('Invalid text message.');

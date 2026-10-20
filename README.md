@@ -6,6 +6,7 @@ captura de pantalla, grabación de video y control con mouse y teclado, sin inst
 - **Espejo en ventana propia** por dispositivo, con calidad ajustable (Equilibrada, Alta, Máxima).
 - **Control completo:** toques, multitouch, arrastre, rueda, teclado (incluye acentos y símbolos) y
   clic derecho como «Atrás».
+- **Rotación:** la ventana gira con el teléfono y un botón de la barra gira la pantalla del dispositivo.
 - **Barra superior** con captura, grabación, pantalla completa y un menú con volumen, encendido de pantalla,
   instalar APK y Ajustes. **Barra de navegación** (Atrás, Inicio, Recientes) bajo la pantalla.
 - **Pantalla de Ajustes** (⌘/Ctrl+,): ventana (barra de navegación, siempre visible, mostrar clics, qué hacer al capturar),

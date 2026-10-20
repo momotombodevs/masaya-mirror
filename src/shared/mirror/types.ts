@@ -99,8 +99,17 @@ export type MirrorTextControl = {
   readonly text: string;
 };
 
+/** Turns the device screen 90°, like the rotate button of the system navigation. */
+export type MirrorRotateControl = {
+  readonly type: 'rotate';
+};
+
 export type MirrorControlMessage =
-  MirrorTouchControl | MirrorScrollControl | MirrorKeyControl | MirrorTextControl;
+  | MirrorTouchControl
+  | MirrorScrollControl
+  | MirrorKeyControl
+  | MirrorTextControl
+  | MirrorRotateControl;
 
 /** scrcpy rejects text payloads longer than 300 bytes of UTF-8. */
 export const MAX_MIRROR_TEXT_BYTES = 300;

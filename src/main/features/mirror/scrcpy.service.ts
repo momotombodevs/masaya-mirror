@@ -266,6 +266,9 @@ export class ScrcpyService {
         case 'text':
           await controller.injectText(message.text);
           break;
+        case 'rotate':
+          await controller.rotateDevice();
+          break;
         default: {
           const _exhaustive: never = message;
           return err(`Unknown control: ${String(_exhaustive)}`);

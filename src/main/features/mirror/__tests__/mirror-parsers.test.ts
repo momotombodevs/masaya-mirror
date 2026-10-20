@@ -72,6 +72,13 @@ describe('parseControlMessage', () => {
     expect(parseControlMessage({ type: 'text', text: 'é'.repeat(200) }).ok).toBe(false);
   });
 
+  it('accepts a rotate request, which carries no data', () => {
+    expect(parseControlMessage({ type: 'rotate' })).toEqual({
+      ok: true,
+      value: { type: 'rotate' },
+    });
+  });
+
   it('rejects unknown or malformed messages', () => {
     expect(parseControlMessage(null).ok).toBe(false);
     expect(parseControlMessage({ type: 'swipe' }).ok).toBe(false);

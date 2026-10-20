@@ -5,7 +5,14 @@ import { ok, err, type Result } from '../../../shared/ipc/result';
 import { createSecureWindow } from '../../app';
 import { RENDERER_DIST, VITE_DEV_SERVER_URL } from '../../paths';
 import type { ScrcpyService } from './scrcpy.service';
-import { computeStageSize, NAVIGATION_BAR_HEIGHT, TOOLBAR_CONTENT_HEIGHT } from './mirror-layout';
+import {
+  computeStageSize,
+  NAVIGATION_BAR_HEIGHT,
+  orientationOf,
+  rotatedStageSize,
+  TOOLBAR_CONTENT_HEIGHT,
+  type Orientation,
+} from './mirror-layout';
 
 export type MirrorWindowServiceDeps = {
   readonly scrcpyService: ScrcpyService;
@@ -23,10 +30,13 @@ function buildMirrorUrl(deviceId: string, deviceLabel: string): string {
 
 const MIN_CONTENT_WIDTH = 280;
 const MIN_CONTENT_HEIGHT = 480;
+/** A landscape phone is short, so its window may be shorter than a portrait one. */
+const MIN_CONTENT_HEIGHT_LANDSCAPE = 300;
 
 export class MirrorWindowService {
   private readonly windows = new Map<string, BrowserWindow>();
   private readonly layoutApplied = new Set<string>();
+  private readonly orientations = new Map<string, Orientation>();
 
   constructor(private readonly deps: MirrorWindowServiceDeps) {}
 
@@ -58,6 +68,7 @@ export class MirrorWindowService {
     win.on('closed', () => {
       this.windows.delete(deviceId);
       this.layoutApplied.delete(deviceId);
+      this.orientations.delete(deviceId);
       void this.deps.scrcpyService.closeMirror(deviceId);
     });
 
@@ -97,24 +108,48 @@ export class MirrorWindowService {
 
     win.setAspectRatio(0);
 
+    const video = { width: videoWidth, height: videoHeight };
+    const orientation = orientationOf(video);
+    const previousOrientation = this.orientations.get(deviceId);
+    this.orientations.set(deviceId, orientation);
+
+    const navigationBarHeight = this.deps.isNavigationBarShown?.() ? NAVIGATION_BAR_HEIGHT : 0;
+    const chromeHeight = TOOLBAR_CONTENT_HEIGHT + navigationBarHeight;
+    const { workAreaSize } = screen.getDisplayMatching(win.getBounds());
+
     if (!this.layoutApplied.has(deviceId)) {
       this.layoutApplied.add(deviceId);
-      const { workAreaSize } = screen.getDisplayMatching(win.getBounds());
-      const navigationBarHeight = this.deps.isNavigationBarShown?.() ? NAVIGATION_BAR_HEIGHT : 0;
-      const stage = computeStageSize(
-        { width: videoWidth, height: videoHeight },
-        workAreaSize,
-        navigationBarHeight,
-      );
-      const contentWidth = Math.max(MIN_CONTENT_WIDTH, stage.width);
-      const contentHeight = Math.max(
-        MIN_CONTENT_HEIGHT,
-        stage.height + TOOLBAR_CONTENT_HEIGHT + navigationBarHeight,
-      );
-      win.setContentSize(contentWidth, contentHeight);
+      const stage = computeStageSize(video, workAreaSize, navigationBarHeight);
+      this.resizeContent(win, stage, chromeHeight, orientation);
+    } else if (previousOrientation && previousOrientation !== orientation) {
+      // The phone turned: turn the window with it, unless the user has it full screen.
+      if (!win.isFullScreen() && !win.isMaximized()) {
+        const [contentWidth, contentHeight] = win.getContentSize();
+        const currentStage = {
+          width: contentWidth ?? 0,
+          height: Math.max(0, (contentHeight ?? 0) - chromeHeight),
+        };
+        const stage = rotatedStageSize(currentStage, video, workAreaSize, navigationBarHeight);
+        this.resizeContent(win, stage, chromeHeight, orientation);
+      }
     }
 
     return ok(undefined);
+  }
+
+  private resizeContent(
+    win: BrowserWindow,
+    stage: { readonly width: number; readonly height: number },
+    chromeHeight: number,
+    orientation: Orientation,
+  ): void {
+    const minHeight =
+      orientation === 'landscape' ? MIN_CONTENT_HEIGHT_LANDSCAPE : MIN_CONTENT_HEIGHT;
+    win.setMinimumSize(MIN_CONTENT_WIDTH, minHeight);
+    win.setContentSize(
+      Math.max(MIN_CONTENT_WIDTH, stage.width),
+      Math.max(minHeight, stage.height + chromeHeight),
+    );
   }
 
   setAlwaysOnTop(deviceId: string, enabled: boolean): Result<void> {

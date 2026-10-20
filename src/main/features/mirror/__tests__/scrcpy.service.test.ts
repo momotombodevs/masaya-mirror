@@ -182,4 +182,20 @@ describe('ScrcpyService', () => {
       expect(pushToDevice).toHaveBeenCalledTimes(1);
     });
   });
+
+  it('rotates the device when asked', async () => {
+    const rotateDevice = vi.fn().mockResolvedValue(undefined);
+    const service = new ScrcpyService(adbService);
+    (service as unknown as { sessions: Map<string, unknown> }).sessions = new Map([
+      [
+        'device1',
+        { deviceId: 'device1', controller: { rotateDevice }, controlChain: Promise.resolve() },
+      ],
+    ]);
+
+    const result = await service.sendControl('device1', { type: 'rotate' });
+
+    expect(result.ok).toBe(true);
+    expect(rotateDevice).toHaveBeenCalledTimes(1);
+  });
 });

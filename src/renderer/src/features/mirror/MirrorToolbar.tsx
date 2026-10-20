@@ -11,6 +11,7 @@ import { ANDROID_KEYCODE } from './android-keycodes';
 import { useApkInstall } from './useApkInstall';
 import { useDeviceKeys } from './useDeviceKeys';
 import { useToolbarStatus } from './useToolbarStatus';
+import { getManoloApi } from '../../shared/manolo-api';
 
 type MirrorToolbarProps = {
   readonly deviceId: string;
@@ -77,6 +78,13 @@ export function MirrorToolbar({
             <PowerIcon />
           </ToolbarIconButton>
           <ToolbarDivider />
+          <ToolbarIconButton
+            label={t('toolbar.rotate')}
+            disabled={disabled}
+            onClick={() => void getManoloApi()?.sendControl(deviceId, { type: 'rotate' })}
+          >
+            <RotateIcon />
+          </ToolbarIconButton>
           <ToolbarIconButton
             label={t('toolbar.capture')}
             disabled={disabled || !canvas}
@@ -205,6 +213,15 @@ function FullscreenIcon(): JSX.Element {
   return (
     <svg {...ICON_PROPS}>
       <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
+    </svg>
+  );
+}
+
+function RotateIcon(): JSX.Element {
+  return (
+    <svg {...ICON_PROPS}>
+      <rect x="7" y="3" width="10" height="14" rx="2" />
+      <path d="M5 21h8m0 0-2-2m2 2-2 2" />
     </svg>
   );
 }
