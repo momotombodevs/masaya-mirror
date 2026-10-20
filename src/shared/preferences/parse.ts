@@ -1,4 +1,5 @@
 import { LANGUAGE_PREFERENCES } from '../i18n/locale';
+import { isRecord } from '../ipc/is-record';
 import { err, ok, type Result } from '../ipc/result';
 import { MIRROR_QUALITY_ORDER, MIRROR_QUALITY_PRESETS } from '../mirror/quality';
 import {
@@ -9,14 +10,10 @@ import {
   type Preferences,
 } from './types';
 
-const MIN_MAX_SIZE = 256;
-const MAX_MAX_SIZE = 8192;
-const MIN_BIT_RATE = 1_000_000;
-const MAX_BIT_RATE = 100_000_000;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
+export const MIN_MAX_SIZE = 256;
+export const MAX_MAX_SIZE = 8192;
+export const MIN_BIT_RATE = 1_000_000;
+export const MAX_BIT_RATE = 100_000_000;
 
 function integerInRange(value: unknown, min: number, max: number): number | undefined {
   return typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max

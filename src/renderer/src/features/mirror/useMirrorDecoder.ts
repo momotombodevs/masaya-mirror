@@ -16,7 +16,6 @@ const INIT_TIMEOUT_MS = 15_000;
 
 export type MirrorDecoderOptions = {
   readonly onClose?: () => void;
-  readonly onSizeChange?: (width: number, height: number) => void;
 };
 
 export type MirrorDecoderState = {
@@ -40,7 +39,6 @@ export function useMirrorDecoder(
   const videoSizeRef = useRef<VideoSize>({ width: 0, height: 0 });
   const packetQueueRef = useRef<PacketQueue | null>(null);
   const onCloseRef = useRef(options.onClose);
-  const onSizeChangeRef = useRef(options.onSizeChange);
   const [ready, setReady] = useState(false);
   const [streamError, setStreamError] = useState<string | null>(null);
   const streamState = useMirrorStream(deviceId);
@@ -49,7 +47,6 @@ export function useMirrorDecoder(
   tRef.current = t;
 
   onCloseRef.current = options.onClose;
-  onSizeChangeRef.current = options.onSizeChange;
 
   const syncVideoLayout = useCallback(
     (width: number, height: number): void => {
@@ -118,7 +115,6 @@ export function useMirrorDecoder(
 
       decoder.sizeChanged(({ width, height }) => {
         videoSizeRef.current = { width, height };
-        onSizeChangeRef.current?.(width, height);
         syncVideoLayout(width, height);
       });
 

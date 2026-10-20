@@ -134,8 +134,6 @@ function buildDefaultMenu(
 }
 
 export function installApplicationMenu(locale: Locale, onCheckForUpdates?: () => void): void {
-  app.setName(APP_NAME);
-
   const t = createTranslator(locale);
   const template =
     process.platform === 'darwin'

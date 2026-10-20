@@ -2,8 +2,6 @@ import { ADB_NOT_FOUND_MESSAGE } from '../../../shared/device/adb';
 import { mt } from '../../i18n';
 import { CommandError } from '../../utils/runCommand';
 
-export { ADB_NOT_FOUND_MESSAGE };
-
 /** Maps a thrown command error into a user-facing message. */
 export function mapCommandError(error: unknown): string {
   if (error instanceof CommandError) {

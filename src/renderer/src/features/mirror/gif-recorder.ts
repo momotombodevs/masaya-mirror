@@ -1,7 +1,7 @@
 import { fitWidth, type GifFrame, type Size } from './gif-encoder';
 
-export const GIF_MAX_WIDTH = 480;
-export const GIF_FPS = 10;
+const GIF_MAX_WIDTH = 480;
+const GIF_FPS = 10;
 /** 30 s at 10 fps; longer recordings would make files and encoding times unreasonable. */
 export const GIF_MAX_FRAMES = 300;
 

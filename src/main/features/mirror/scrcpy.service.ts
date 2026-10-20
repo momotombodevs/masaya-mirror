@@ -15,7 +15,7 @@ import { ClipboardSync } from './clipboard-sync';
 import { systemClipboard } from './system-clipboard';
 import { MirrorStreamSession } from './mirror-stream.session';
 import { mt } from '../../i18n';
-import { ADB_NOT_FOUND_MESSAGE } from '../device/adb-error';
+import { ADB_NOT_FOUND_MESSAGE } from '../../../shared/device/adb';
 import type { AdbServerClient } from '@yume-chan/adb';
 import type {
   AndroidKeyCode,
@@ -28,15 +28,12 @@ import type { AdbService } from '../device/adb.service';
 
 type ScrcpyClientHandle = {
   readonly close: () => Promise<void>;
-  readonly exited: Promise<void>;
 };
 
 type MirrorSession = {
-  readonly deviceId: string;
   readonly stream: MirrorStreamSession;
   readonly client: ScrcpyClientHandle;
   readonly controller: ScrcpyControlMessageWriter | undefined;
-  readonly options: MirrorOptions;
   readonly audioEnabled: boolean;
   readonly clipboard: ClipboardSync | null;
   /** Tail of the control queue. Each control message waits for the previous one. */
@@ -64,10 +61,6 @@ export class ScrcpyService {
   private adbServerClient: AdbServerClient | null = null;
 
   constructor(private readonly adbService: AdbService) {}
-
-  getActiveMirrors(): readonly string[] {
-    return [...this.sessions.keys()];
-  }
 
   private async getTango() {
     return import('./mirror-tango.js');
@@ -169,14 +162,9 @@ export class ScrcpyService {
           : null;
 
       const session: MirrorSession = {
-        deviceId,
         stream: streamSession,
-        client: {
-          close: () => client.close(),
-          exited: client.exited,
-        },
+        client: { close: () => client.close() },
         controller,
-        options,
         audioEnabled: options.audioEnabled && audioWebCodecId !== null,
         clipboard: clipboardSync,
         controlChain: Promise.resolve(),

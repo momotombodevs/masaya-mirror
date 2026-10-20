@@ -2,6 +2,7 @@ import { clipboard, dialog, ipcMain, nativeImage, type FileFilter } from 'electr
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { QA_CHANNELS, type QaActionResponse } from '../../../../shared/ipc/qa.contract';
+import { isRecord } from '../../../../shared/ipc/is-record';
 import { err, ok, type Result } from '../../../../shared/ipc/result';
 import type { MirrorWindowService } from '../../mirror/mirror-window.service';
 import type { PreferencesService } from '../../preferences/preferences.service';
@@ -15,10 +16,6 @@ type SaveDialogConfig = {
   readonly defaultPath: string;
   readonly filters: readonly FileFilter[];
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
 
 /** Reads a size-limited `data` buffer from an untrusted payload. */
 function readBuffer(payload: unknown): Result<ArrayBuffer> {

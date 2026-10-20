@@ -15,7 +15,6 @@ describe('registerMirrorIpcHandlers', () => {
   const scrcpyService = {
     openMirror: vi.fn(),
     closeMirror: vi.fn(),
-    getActiveMirrors: vi.fn().mockReturnValue([]),
     sendControl: vi.fn(),
     setOptions: vi.fn(),
     notifyStreamReady: vi.fn(),

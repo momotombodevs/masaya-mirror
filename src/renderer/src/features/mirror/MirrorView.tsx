@@ -9,7 +9,6 @@ import { cx } from '../../components/ui/cx';
 type MirrorViewProps = {
   readonly deviceId: string;
   readonly showClicks?: boolean;
-  readonly onSizeChange?: (width: number, height: number) => void;
   readonly onClose?: () => void;
   readonly onCanvasChange?: (canvas: HTMLCanvasElement | null) => void;
 };
@@ -17,7 +16,6 @@ type MirrorViewProps = {
 export function MirrorView({
   deviceId,
   showClicks = false,
-  onSizeChange,
   onClose,
   onCanvasChange,
 }: MirrorViewProps): JSX.Element {
@@ -31,7 +29,6 @@ export function MirrorView({
   );
   const { ready, streamError, portStatus, videoSizeRef } = useMirrorDecoder(deviceId, canvasRef, {
     onClose,
-    onSizeChange,
   });
   useMirrorAudio(deviceId);
   const input = useMirrorInput(deviceId, canvasRef, videoSizeRef);

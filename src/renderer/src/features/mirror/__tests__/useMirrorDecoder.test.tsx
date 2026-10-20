@@ -125,14 +125,12 @@ describe('useMirrorDecoder', () => {
   });
 
   it('follows size changes reported by the decoder', () => {
-    const onSizeChange = vi.fn();
-    const { result } = render({ onSizeChange });
+    const { result } = render();
     act(() => subscriber?.onInit(init(1080, 2400)));
 
     act(() => hoisted.decoders[0]?.emitSize(2400, 1080));
 
     expect(result.current.videoSizeRef.current).toEqual({ width: 2400, height: 1080 });
-    expect(onSizeChange).toHaveBeenCalledWith(2400, 1080);
     expect(setMirrorVideoLayout).toHaveBeenLastCalledWith('device-1', 2400, 1080);
   });
 

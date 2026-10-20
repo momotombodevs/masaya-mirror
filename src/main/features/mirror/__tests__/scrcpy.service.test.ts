@@ -118,12 +118,7 @@ describe('ScrcpyService', () => {
 
     expect(result.ok).toBe(false);
     expect(closeClient).toHaveBeenCalledTimes(1);
-    expect(service.getActiveMirrors()).toEqual([]);
-  });
-
-  it('returns active mirrors from session map', () => {
-    const service = new ScrcpyService(adbService);
-    expect(service.getActiveMirrors()).toEqual([]);
+    expect((service as unknown as { sessions: Map<string, unknown> }).sessions.size).toBe(0);
   });
 
   it('closes existing session before opening a new mirror', async () => {

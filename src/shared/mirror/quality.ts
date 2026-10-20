@@ -27,13 +27,6 @@ export const MIRROR_QUALITY_PRESETS: Record<
 
 export const MIRROR_QUALITY_ORDER: readonly MirrorQualityPreset[] = ['balanced', 'high', 'max'];
 
-export function applyQualityPreset(
-  options: MirrorOptions,
-  preset: MirrorQualityPreset,
-): MirrorOptions {
-  return { ...options, ...MIRROR_QUALITY_PRESETS[preset].values };
-}
-
 /** Returns the preset that matches the options, or null for custom values. */
 export function qualityPresetOf(options: MirrorOptions): MirrorQualityPreset | null {
   for (const preset of MIRROR_QUALITY_ORDER) {

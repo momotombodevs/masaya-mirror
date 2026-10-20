@@ -7,7 +7,8 @@ import type {
 import { err, ok, type Result } from '../../../shared/ipc/result';
 import { runCommand } from '../../utils/runCommand';
 import { mt } from '../../i18n';
-import { ADB_NOT_FOUND_MESSAGE, mapCommandError } from './adb-error';
+import { ADB_NOT_FOUND_MESSAGE } from '../../../shared/device/adb';
+import { mapCommandError } from './adb-error';
 import { resolveAdbPath } from './adb-path.resolver';
 
 const DEVICE_LIST_HEADER = 'List of devices attached';

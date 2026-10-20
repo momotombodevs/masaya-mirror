@@ -14,7 +14,7 @@ export type UseReconnectOptions = {
   readonly stableAfterMs?: number;
 };
 
-export const RECONNECT_DELAYS_MS: readonly number[] = [
+const RECONNECT_DELAYS_MS: readonly number[] = [
   1000, 2000, 3000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000, 5000,
 ];
 const STABLE_AFTER_MS = 10_000;

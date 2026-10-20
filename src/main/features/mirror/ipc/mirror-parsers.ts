@@ -1,3 +1,4 @@
+import { isRecord } from '../../../../shared/ipc/is-record';
 import { err, ok, type Result } from '../../../../shared/ipc/result';
 import {
   DEFAULT_MIRROR_OPTIONS,
@@ -5,6 +6,12 @@ import {
   type MirrorControlMessage,
   type MirrorOptions,
 } from '../../../../shared/mirror/types';
+import {
+  MAX_BIT_RATE,
+  MAX_MAX_SIZE,
+  MIN_BIT_RATE,
+  MIN_MAX_SIZE,
+} from '../../../../shared/preferences/parse';
 import { parseNumericFields, type NumericRules } from './numeric-fields';
 
 const MAX_VIDEO_DIMENSION = 10_000;
@@ -44,17 +51,13 @@ const KEY_RULES = {
 } satisfies NumericRules;
 
 const OPTION_RULES = {
-  maxSize: { min: 256, max: 8192, fallback: DEFAULT_MIRROR_OPTIONS.maxSize },
+  maxSize: { min: MIN_MAX_SIZE, max: MAX_MAX_SIZE, fallback: DEFAULT_MIRROR_OPTIONS.maxSize },
   videoBitRate: {
-    min: 1_000_000,
-    max: 100_000_000,
+    min: MIN_BIT_RATE,
+    max: MAX_BIT_RATE,
     fallback: DEFAULT_MIRROR_OPTIONS.videoBitRate,
   },
 } satisfies NumericRules;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
 
 export function parseMirrorOptions(value: unknown): Result<MirrorOptions> {
   if (value === undefined || value === null) {
