@@ -59,6 +59,8 @@ function isPasteShortcut(message: MirrorControlMessage): boolean {
 
 export class ScrcpyService {
   private readonly sessions = new Map<string, MirrorSession>();
+  /** Tail of the open/restart queue per device, so two starts never interleave. */
+  private readonly startChains = new Map<string, Promise<unknown>>();
   private adbServerClient: AdbServerClient | null = null;
 
   constructor(private readonly adbService: AdbService) {}
@@ -88,10 +90,33 @@ export class ScrcpyService {
     return this.adbServerClient;
   }
 
-  async openMirror(
+  private enqueueStart<T>(deviceId: string, task: () => Promise<T>): Promise<T> {
+    const run = (this.startChains.get(deviceId) ?? Promise.resolve()).then(task);
+    const tail = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    this.startChains.set(deviceId, tail);
+    void tail.then(() => {
+      if (this.startChains.get(deviceId) === tail) {
+        this.startChains.delete(deviceId);
+      }
+    });
+    return run;
+  }
+
+  openMirror(
     deviceId: string,
     webContents: WebContents,
     options: MirrorOptions = DEFAULT_MIRROR_OPTIONS,
+  ): Promise<Result<OpenMirrorSuccess>> {
+    return this.enqueueStart(deviceId, () => this.startMirror(deviceId, webContents, options));
+  }
+
+  private async startMirror(
+    deviceId: string,
+    webContents: WebContents,
+    options: MirrorOptions,
   ): Promise<Result<OpenMirrorSuccess>> {
     if (this.sessions.has(deviceId)) {
       await this.closeMirror(deviceId);
@@ -156,17 +181,24 @@ export class ScrcpyService {
         clipboard: clipboardSync,
         controlChain: Promise.resolve(),
       };
+      // The window may have closed during startup; nobody would ever close this session.
+      if (webContents.isDestroyed()) {
+        clipboardSync?.stop();
+        streamSession.close(undefined, { notifyRenderer: false });
+        return err(mt('main.mirrorStartFailed'));
+      }
       this.sessions.set(deviceId, session);
       stored = true;
       clipboardSync?.start();
       void clipboardSync?.pushToDevice();
 
       // A replaced session also exits; only the session still registered may close the device.
-      void client.exited.then(() => {
+      const onExited = (): void => {
         if (this.sessions.get(deviceId) === session) {
           void this.closeMirror(deviceId);
         }
-      });
+      };
+      client.exited.then(onExited, onExited);
 
       return ok({
         metadata,
@@ -283,14 +315,16 @@ export class ScrcpyService {
     }
   }
 
-  async setOptions(
+  setOptions(
     deviceId: string,
     webContents: WebContents,
     options: MirrorOptions,
   ): Promise<Result<OpenMirrorSuccess>> {
-    // Restarting must not tell the window the stream ended, or it would close itself.
-    await this.closeMirror(deviceId, { notifyRenderer: false });
-    return this.openMirror(deviceId, webContents, options);
+    return this.enqueueStart(deviceId, async () => {
+      // Restarting must not tell the window the stream ended, or it would close itself.
+      await this.closeMirror(deviceId, { notifyRenderer: false });
+      return this.startMirror(deviceId, webContents, options);
+    });
   }
 
   async closeMirror(

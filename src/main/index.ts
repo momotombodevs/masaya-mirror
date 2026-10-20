@@ -35,9 +35,18 @@ function bootstrap(): void {
   });
   registerAppLifecycle();
 
-  app.on('will-quit', () => {
+  let sessionsClosed = false;
+  app.on('will-quit', (event) => {
     mirrorWindowService.closeAll();
-    void scrcpyService.closeAll();
+    if (sessionsClosed) {
+      return;
+    }
+    // Let scrcpy servers and adb sockets release before the process exits.
+    event.preventDefault();
+    void scrcpyService.closeAll().finally(() => {
+      sessionsClosed = true;
+      app.quit();
+    });
   });
 
   void app.whenReady().then(() => {

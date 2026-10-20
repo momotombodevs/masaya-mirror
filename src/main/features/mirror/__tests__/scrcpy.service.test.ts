@@ -29,6 +29,29 @@ vi.mock('../scrcpy-server-path.resolver', () => ({
   getExpectedScrcpyServerPath: vi.fn().mockReturnValue('/tmp/scrcpy-server.jar'),
 }));
 
+vi.mock('electron', () => ({
+  MessageChannelMain: class {
+    port1 = {};
+    port2 = {};
+  },
+}));
+
+const streamSessionClose = vi.fn();
+vi.mock('../mirror-stream.session', () => ({
+  MirrorStreamSession: class {
+    close = streamSessionClose;
+    onRendererReady = vi.fn();
+  },
+}));
+
+const tango = vi.hoisted(() => ({
+  createAdbServerClient: vi.fn(),
+  createDeviceAdb: vi.fn(),
+  pushScrcpyServer: vi.fn(),
+  startScrcpyClient: vi.fn(),
+}));
+vi.mock('../mirror-tango.js', () => tango);
+
 vi.mock('node:fs/promises', () => ({
   readFile: vi.fn().mockResolvedValue(Buffer.from('server')),
 }));
@@ -40,6 +63,62 @@ describe('ScrcpyService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    tango.createAdbServerClient.mockResolvedValue({});
+    tango.createDeviceAdb.mockRejectedValue(new Error('no device'));
+    tango.pushScrcpyServer.mockResolvedValue(undefined);
+  });
+
+  function startedClient() {
+    const close = vi.fn().mockResolvedValue(undefined);
+    tango.startScrcpyClient.mockResolvedValue({
+      client: { close, exited: new Promise<void>(() => undefined), controller: undefined },
+      metadata: { codec: 'h264', width: 1, height: 1 },
+      audioCodec: null,
+      audioWebCodecId: null,
+      videoStream: new ReadableStream(),
+      audioStream: null,
+      clipboard: null,
+    });
+    return close;
+  }
+
+  it('starts two opens for the same device one after the other', async () => {
+    let inFlight = 0;
+    let maxInFlight = 0;
+    tango.createDeviceAdb.mockImplementation(async () => {
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      inFlight -= 1;
+      return {};
+    });
+    startedClient();
+    const service = new ScrcpyService(adbService);
+    const webContents = {
+      postMessage: vi.fn(),
+      isDestroyed: () => false,
+    } as unknown as WebContents;
+
+    await Promise.all([
+      service.openMirror('device1', webContents),
+      service.openMirror('device1', webContents),
+    ]);
+
+    expect(tango.createDeviceAdb).toHaveBeenCalledTimes(2);
+    expect(maxInFlight).toBe(1);
+  });
+
+  it('closes the client instead of storing a session when the window died during startup', async () => {
+    tango.createDeviceAdb.mockResolvedValue({});
+    const closeClient = startedClient();
+    const service = new ScrcpyService(adbService);
+    const webContents = { postMessage: vi.fn(), isDestroyed: () => true } as unknown as WebContents;
+
+    const result = await service.openMirror('device1', webContents);
+
+    expect(result.ok).toBe(false);
+    expect(closeClient).toHaveBeenCalledTimes(1);
+    expect(service.getActiveMirrors()).toEqual([]);
   });
 
   it('returns active mirrors from session map', () => {
@@ -58,7 +137,10 @@ describe('ScrcpyService', () => {
     (service as unknown as { sessions: Map<string, unknown> }).sessions = sessions;
 
     const closeSpy = vi.spyOn(service, 'closeMirror');
-    const webContents = { postMessage: vi.fn() } as unknown as WebContents;
+    const webContents = {
+      postMessage: vi.fn(),
+      isDestroyed: () => false,
+    } as unknown as WebContents;
     await service.openMirror('device1', webContents);
 
     expect(closeSpy).toHaveBeenCalledWith('device1');
@@ -76,10 +158,13 @@ describe('ScrcpyService', () => {
     });
     (service as unknown as { sessions: Map<string, unknown> }).sessions = sessions;
     const openSpy = vi
-      .spyOn(service, 'openMirror')
+      .spyOn(service as unknown as { startMirror: () => unknown }, 'startMirror')
       .mockResolvedValue({ ok: true, value: {} as never });
 
-    const webContents = { postMessage: vi.fn() } as unknown as WebContents;
+    const webContents = {
+      postMessage: vi.fn(),
+      isDestroyed: () => false,
+    } as unknown as WebContents;
     await service.setOptions('device1', webContents, { ...DEFAULT_MIRROR_OPTIONS, maxSize: 2560 });
 
     expect(close).toHaveBeenCalledWith(undefined, { notifyRenderer: false });
@@ -91,7 +176,10 @@ describe('ScrcpyService', () => {
     vi.mocked(resolveScrcpyServerPath).mockResolvedValueOnce(null);
 
     const service = new ScrcpyService(adbService);
-    const webContents = { postMessage: vi.fn() } as unknown as WebContents;
+    const webContents = {
+      postMessage: vi.fn(),
+      isDestroyed: () => false,
+    } as unknown as WebContents;
     const result = await service.openMirror('device1', webContents);
     expect(result.ok).toBe(false);
   });

@@ -91,4 +91,24 @@ describe('QrPairingPanel', () => {
 
     expect(cancelQrPairing).toHaveBeenCalledWith('s1');
   });
+
+  it('cancels the session when the dialog closes while it is still starting', async () => {
+    let finishStart: (value: unknown) => void = () => undefined;
+    startQrPairing.mockReturnValue(new Promise((resolve) => (finishStart = resolve)));
+    const { unmount } = render(<QrPairingPanel onConnected={onConnected} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Mostrar código QR' }));
+
+    unmount();
+    finishStart({ ok: true, value: { sessionId: 's1', payload: PAYLOAD } });
+
+    await waitFor(() => expect(cancelQrPairing).toHaveBeenCalledWith('s1'));
+    expect(waitQrPairing).not.toHaveBeenCalled();
+  });
+
+  it('shows an error instead of sticking when the start call throws', async () => {
+    startQrPairing.mockRejectedValue(new Error('bridge down'));
+    show();
+
+    expect((await screen.findByRole('alert')).textContent).toContain('bridge down');
+  });
 });

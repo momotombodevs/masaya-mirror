@@ -115,4 +115,28 @@ describe('useReconnect', () => {
 
     expect(result.current.state).toEqual({ status: 'reconnecting', attempt: 1 });
   });
+
+  it('ignores a second report of the same drop while retrying', async () => {
+    const reopen = vi.fn(() => Promise.resolve(false));
+    const { result } = render(reopen);
+
+    act(() => result.current.begin());
+    act(() => result.current.begin());
+    await act(() => vi.advanceTimersByTimeAsync(100));
+
+    expect(reopen).toHaveBeenCalledTimes(1);
+    expect(result.current.state).toEqual({ status: 'reconnecting', attempt: 2 });
+  });
+
+  it('accepts a new drop once the stream is back', async () => {
+    const reopen = vi.fn(() => Promise.resolve(true));
+    const { result } = render(reopen);
+
+    act(() => result.current.begin());
+    await act(() => vi.advanceTimersByTimeAsync(100));
+    act(() => result.current.begin());
+    await act(() => vi.advanceTimersByTimeAsync(200));
+
+    expect(reopen).toHaveBeenCalledTimes(2);
+  });
 });

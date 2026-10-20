@@ -10,11 +10,18 @@ const RECORDING_FPS = 30;
 const RECORDING_CHUNK_MS = 1000;
 // MediaRecorder defaults to about 2.5 Mbps, far below the 8-32 Mbps stream it re-encodes.
 const RECORDING_BIT_RATE = 16_000_000;
+// Chunks stay in memory until the recording stops (about 8 minutes at the bit rate above).
+const MAX_RECORDING_BYTES = 128 * 1024 * 1024;
 
 export type UseRecordingResult = {
   readonly recording: boolean;
   readonly toggle: () => Promise<void>;
 };
+
+function stopStreamTracks(streamRef: { current: MediaStream | null }): void {
+  streamRef.current?.getTracks().forEach((track) => track.stop());
+  streamRef.current = null;
+}
 
 /** Records the mirror canvas as MP4 video or an animated GIF and saves it via the main process. */
 export function useRecording(
@@ -27,6 +34,7 @@ export function useRecording(
   const recorderRef = useRef<MediaRecorder | null>(null);
   const gifRecorderRef = useRef<GifRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const save = useCallback(
     async (data: ArrayBuffer, mimeType: string, savedMessage: string): Promise<void> => {
@@ -34,14 +42,18 @@ export function useRecording(
       if (!api) {
         return;
       }
-      const result = await api.saveRecording(data, mimeType);
-      if (result.ok && result.value.saved) {
-        showStatus(savedMessage);
-      } else if (!result.ok) {
-        showStatus(result.error);
+      try {
+        const result = await api.saveRecording(data, mimeType);
+        if (result.ok && result.value.saved) {
+          showStatus(savedMessage);
+        } else if (!result.ok) {
+          showStatus(result.error);
+        }
+      } catch {
+        showStatus(t('status.recordingFailed'));
       }
     },
-    [showStatus],
+    [showStatus, t],
   );
 
   const finishGif = useCallback(async (): Promise<void> => {
@@ -56,12 +68,16 @@ export function useRecording(
       return;
     }
     showStatus(t('status.makingGif'));
-    const bytes = await encodeGif(frames);
-    await save(
-      bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
-      GIF_MIME_TYPE,
-      t('status.gifSaved'),
-    );
+    try {
+      const bytes = await encodeGif(frames);
+      await save(
+        bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
+        GIF_MIME_TYPE,
+        t('status.gifSaved'),
+      );
+    } catch {
+      showStatus(t('status.recordingFailed'));
+    }
   }, [save, showStatus, t]);
 
   const startGif = useCallback(
@@ -80,23 +96,38 @@ export function useRecording(
         showStatus(t('status.recordingUnsupported'));
         return false;
       }
-      const recorder = new MediaRecorder(source.captureStream(RECORDING_FPS), {
+      const stream = source.captureStream(RECORDING_FPS);
+      const recorder = new MediaRecorder(stream, {
         mimeType,
         videoBitsPerSecond: RECORDING_BIT_RATE,
       });
+      streamRef.current = stream;
       chunksRef.current = [];
+      let recordedBytes = 0;
 
       recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunksRef.current.push(event.data);
+        if (event.data.size === 0) {
+          return;
+        }
+        chunksRef.current.push(event.data);
+        recordedBytes += event.data.size;
+        if (recordedBytes >= MAX_RECORDING_BYTES && recorder.state === 'recording') {
+          showStatus(t('status.recordingLimit'));
+          recorder.stop();
         }
       };
 
       recorder.onstop = async () => {
         setRecording(false);
         recorderRef.current = null;
+        stopStreamTracks(streamRef);
         const blob = new Blob(chunksRef.current, { type: mimeType });
-        await save(await blob.arrayBuffer(), mimeType, t('status.videoSaved'));
+        chunksRef.current = [];
+        try {
+          await save(await blob.arrayBuffer(), mimeType, t('status.videoSaved'));
+        } catch {
+          showStatus(t('status.recordingFailed'));
+        }
       };
 
       recorder.start(RECORDING_CHUNK_MS);
@@ -130,14 +161,24 @@ export function useRecording(
     showStatus(t('status.recording'));
   }, [canvas, finishGif, format, recording, showStatus, startGif, startVideo, t]);
 
-  // Closing the window mid-recording must not leave the sampling timer running.
-  useEffect(
-    () => () => {
+  // Closing the window mid-recording must not leave a timer or a live capture running.
+  useEffect(() => {
+    return () => {
       gifRecorderRef.current?.stop();
       gifRecorderRef.current = null;
-    },
-    [],
-  );
+      const recorder = recorderRef.current;
+      recorderRef.current = null;
+      if (recorder) {
+        recorder.onstop = null;
+        recorder.ondataavailable = null;
+        if (recorder.state !== 'inactive') {
+          recorder.stop();
+        }
+      }
+      chunksRef.current = [];
+      stopStreamTracks(streamRef);
+    };
+  }, []);
 
   return { recording, toggle };
 }

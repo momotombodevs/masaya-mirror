@@ -45,10 +45,12 @@ export function useReconnect({
   const attemptsUsedRef = useRef(0);
   const lastSuccessRef = useRef<number | null>(null);
   const timerRef = useRef<number | null>(null);
+  const activeRef = useRef(false);
   const maxAttempts = delaysMs.length;
 
   const cancel = useCallback((): void => {
     runRef.current += 1;
+    activeRef.current = false;
     if (timerRef.current !== null) {
       window.clearTimeout(timerRef.current);
       timerRef.current = null;
@@ -57,10 +59,12 @@ export function useReconnect({
   }, []);
 
   const begin = useCallback((): void => {
-    const run = ++runRef.current;
-    if (timerRef.current !== null) {
-      window.clearTimeout(timerRef.current);
+    // The stream error and the port close both report one drop; a retry cycle is already running.
+    if (activeRef.current) {
+      return;
     }
+    activeRef.current = true;
+    const run = ++runRef.current;
     const lastSuccess = lastSuccessRef.current;
     if (lastSuccess === null || Date.now() - lastSuccess >= stableAfterMs) {
       attemptsUsedRef.current = 0;
@@ -71,6 +75,7 @@ export function useReconnect({
         return;
       }
       if (attemptsUsedRef.current >= maxAttempts) {
+        activeRef.current = false;
         setState({ status: 'failed' });
         return;
       }
@@ -86,6 +91,7 @@ export function useReconnect({
           }
           if (opened) {
             lastSuccessRef.current = Date.now();
+            activeRef.current = false;
             setState({ status: 'idle' });
           } else {
             attemptOnce();

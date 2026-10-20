@@ -6,6 +6,7 @@ import { useRecording } from '../useRecording';
 const saveRecording = vi.fn();
 const showStatus = vi.fn();
 const canvas = document.createElement('canvas');
+const trackStop = vi.fn();
 
 class FakeRecorder {
   static instances: FakeRecorder[] = [];
@@ -13,6 +14,7 @@ class FakeRecorder {
   static isTypeSupported = (type: string): boolean => FakeRecorder.supported.has(type);
   ondataavailable: ((event: { data: Blob }) => void) | null = null;
   onstop: (() => Promise<void>) | null = null;
+  state = 'recording';
   constructor(
     readonly stream: unknown,
     readonly options: { mimeType: string },
@@ -21,6 +23,7 @@ class FakeRecorder {
   }
   start = vi.fn();
   stop = vi.fn(() => {
+    this.state = 'inactive';
     this.ondataavailable?.({ data: new Blob(['video']) });
     void this.onstop?.();
   });
@@ -34,7 +37,10 @@ describe('useRecording', () => {
     saveRecording.mockResolvedValue({ ok: true, value: { saved: true } });
     vi.stubGlobal('manolo', { saveRecording });
     vi.stubGlobal('MediaRecorder', FakeRecorder);
-    canvas.captureStream = vi.fn(() => ({}) as MediaStream);
+    trackStop.mockClear();
+    canvas.captureStream = vi.fn(
+      () => ({ getTracks: () => [{ stop: trackStop }] }) as unknown as MediaStream,
+    );
     // jsdom's Blob has no arrayBuffer().
     Blob.prototype.arrayBuffer = function arrayBuffer(this: Blob) {
       return Promise.resolve(new ArrayBuffer(this.size));
@@ -88,5 +94,29 @@ describe('useRecording', () => {
 
     expect(showStatus).toHaveBeenCalledWith('Espejo no listo');
     expect(FakeRecorder.instances).toHaveLength(0);
+  });
+
+  it('stops the recorder and the capture when the window closes mid-recording', async () => {
+    const { result, unmount } = renderHook(() => useRecording(canvas, showStatus, 'video'));
+    await act(() => result.current.toggle());
+
+    unmount();
+
+    expect(FakeRecorder.instances[0]?.stop).toHaveBeenCalledTimes(1);
+    expect(trackStop).toHaveBeenCalledTimes(1);
+    expect(saveRecording).not.toHaveBeenCalled();
+  });
+
+  it('reports a failed save instead of throwing', async () => {
+    saveRecording.mockRejectedValue(new Error('disk full'));
+    const { result } = renderHook(() => useRecording(canvas, showStatus, 'video'));
+    await act(() => result.current.toggle());
+
+    await act(() => result.current.toggle());
+
+    await vi.waitFor(() =>
+      expect(showStatus).toHaveBeenCalledWith('No se pudo guardar la grabación'),
+    );
+    expect(result.current.recording).toBe(false);
   });
 });

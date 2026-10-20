@@ -55,6 +55,19 @@ export async function startScrcpyClient(
 }> {
   const scrcpyOptions = buildScrcpyOptions(options);
   const client = await AdbScrcpyClient.start(adb, DefaultServerPath, scrcpyOptions);
+  try {
+    return await readStartedStreams(client, options);
+  } catch (error: unknown) {
+    // The caller never sees the client on failure, so it must not outlive this call.
+    await client.close().catch(() => undefined);
+    throw error;
+  }
+}
+
+async function readStartedStreams(
+  client: AdbScrcpyClientType<AdbScrcpyOptionsLatest<true>>,
+  options: MirrorOptions,
+) {
   const videoStreamResult = await client.videoStream;
 
   const metadata: MirrorVideoMetadata = {
