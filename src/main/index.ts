@@ -19,6 +19,7 @@ import { PreferencesService } from './features/preferences/preferences.service';
 import { resolveLocale } from '../shared/i18n/locale';
 import { PREFERENCES_CHANNELS } from '../shared/ipc/preferences.contract';
 import { registerQaIpcHandlers } from './features/qa/ipc/qa.handlers';
+import { createUpdaterService } from './features/updates/register-updater';
 
 function bootstrap(): void {
   augmentProcessPath();
@@ -43,7 +44,9 @@ function bootstrap(): void {
     // getLocale is only reliable once the app is ready.
     const locale = resolveLocale(preferences.get().language, app.getLocale());
     setMainLocale(locale);
-    installApplicationMenu(locale);
+    const updater = createUpdaterService();
+    const onCheckForUpdates = updater ? () => void updater.checkNow() : undefined;
+    installApplicationMenu(locale, onCheckForUpdates);
     registerDeviceIpcHandlers(deviceService);
     registerSetupIpcHandlers(
       adbService,
@@ -57,7 +60,7 @@ function bootstrap(): void {
       onLanguageChange: (language) => {
         const locale = resolveLocale(language, app.getLocale());
         setMainLocale(locale);
-        installApplicationMenu(locale);
+        installApplicationMenu(locale, onCheckForUpdates);
         for (const window of BrowserWindow.getAllWindows()) {
           window.webContents.send(PREFERENCES_CHANNELS.languageChanged, language);
         }
@@ -66,6 +69,7 @@ function bootstrap(): void {
     registerMirrorIpcHandlers(scrcpyService, mirrorWindowService);
     registerQaIpcHandlers(mirrorWindowService, preferences);
     createWindow();
+    updater?.start();
   });
 }
 

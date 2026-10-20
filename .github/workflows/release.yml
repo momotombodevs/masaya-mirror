@@ -60,17 +60,26 @@ jobs:
             runner: macos-14
             command: pnpm build:mac
             artifact: manolo-mirror-macos
-            files: release/**/*.dmg
+            files: |
+              release/**/*.dmg
+              release/**/*.zip
+              release/**/*.blockmap
+              release/**/latest*.yml
           - name: Windows (x64)
             runner: windows-latest
             command: pnpm build:win
             artifact: manolo-mirror-windows
-            files: release/**/*.exe
+            files: |
+              release/**/*.exe
+              release/**/*.blockmap
+              release/**/latest*.yml
           - name: Linux (x64)
             runner: ubuntu-latest
             command: pnpm build:linux
             artifact: manolo-mirror-linux
-            files: release/**/*.AppImage
+            files: |
+              release/**/*.AppImage
+              release/**/latest*.yml
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -115,6 +124,9 @@ jobs:
             release-artifacts/**/*.dmg
             release-artifacts/**/*.exe
             release-artifacts/**/*.AppImage
+            release-artifacts/**/*.zip
+            release-artifacts/**/*.blockmap
+            release-artifacts/**/latest*.yml
           generate_release_notes: true
           fail_on_unmatched_files: true
           body: |

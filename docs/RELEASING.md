@@ -98,3 +98,17 @@ reemplaza ese archivo.
 `resources/scrcpy-server/scrcpy-server.jar` está versionado y se verifica por SHA-256 en
 `scripts/setup-scrcpy.mjs`. Para actualizarlo, cambia `SCRCPY_SERVER_VERSION` y `SCRCPY_SERVER_SHA256` en
 ese script, ejecuta `pnpm setup:tools` y prueba el espejo con un dispositivo real.
+
+## Actualizaciones automáticas
+
+La app usa `electron-updater` con las GitHub Releases como fuente. Cada release publica, además de los
+instaladores, los archivos `latest.yml`, `latest-mac.yml`, `latest-linux.yml`, los `.zip` de macOS y los
+`.blockmap`; sin ellos las instalaciones existentes no ven la versión nueva.
+
+- Comprueba 10 s después de abrir y cada 4 h, descarga en segundo plano y pregunta si reiniciar. Si el
+  usuario elige «Más tarde», se instala al cerrar la app.
+- Menú → **Buscar actualizaciones…** hace una comprobación manual (Manolo Mirror en macOS, Archivo en
+  Windows y Linux).
+- Solo funciona en la app instalada y firmada: en `pnpm dev`, en un `.deb` o fuera de un AppImage el menú
+  no aparece. En macOS la actualización exige que el DMG esté firmado y notarizado.
+- No borres ni renombres los archivos de una release publicada: las versiones instaladas los leen.

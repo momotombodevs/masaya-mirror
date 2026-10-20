@@ -19,6 +19,9 @@
     enableNodeCliInspectArguments: false,
     onlyLoadAppFromAsar: true,
   },
+  // Generates app-update.yml and the latest*.yml files electron-updater reads from the GitHub Release.
+  // Nothing is uploaded from here: the Release workflow publishes the artifacts.
+  publish: [{ provider: 'github', owner: 'donmanueldev', repo: 'manolo-mirror' }],
   extraResources: [
     {
       from: 'resources/scrcpy-server',
@@ -30,7 +33,11 @@
   artifactName: '${name}-${version}-${os}-${arch}.${ext}',
   mac: {
     category: 'public.app-category.developer-tools',
-    target: [{ target: 'dmg', arch: ['arm64', 'x64'] }],
+    // The zip is what Squirrel.Mac installs on update; the dmg is for the first download.
+    target: [
+      { target: 'dmg', arch: ['arm64', 'x64'] },
+      { target: 'zip', arch: ['arm64', 'x64'] },
+    ],
     // Required for notarization. Signing only happens when a Developer ID certificate is configured.
     hardenedRuntime: true,
     gatekeeperAssess: false,

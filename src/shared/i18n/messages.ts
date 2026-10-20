@@ -117,6 +117,19 @@ const es = {
   'settings.reset': 'Restablecer valores',
   'settings.credits': 'Crafted with passion by Momotombo Devs',
 
+  'update.check': 'Buscar actualizaciones…',
+  'update.upToDate': 'Manolo Mirror está al día.',
+  'update.upToDateDetail': 'Versión {version}.',
+  'update.available': 'Hay una versión nueva ({version}).',
+  'update.availableDetail':
+    'Se descarga en segundo plano y te avisaremos cuando esté lista para instalar.',
+  'update.ready': 'La versión {version} está lista para instalar.',
+  'update.readyDetail':
+    'Reinicia para actualizar. Si eliges «Más tarde», se instalará al cerrar la app.',
+  'update.restart': 'Reiniciar ahora',
+  'update.later': 'Más tarde',
+  'update.failed': 'No se pudo buscar actualizaciones. Revisa tu conexión e inténtalo de nuevo.',
+
   'menu.about': 'Acerca de {app}',
   'menu.services': 'Servicios',
   'menu.hide': 'Ocultar {app}',
@@ -292,6 +305,19 @@ const en: Record<MessageKey, string> = {
   'settings.stayAwake.hint': 'While the phone is charging or plugged in.',
   'settings.reset': 'Reset to Defaults',
   'settings.credits': 'Crafted with passion by Momotombo Devs',
+
+  'update.check': 'Check for Updates…',
+  'update.upToDate': 'Manolo Mirror is up to date.',
+  'update.upToDateDetail': 'Version {version}.',
+  'update.available': 'A new version is available ({version}).',
+  'update.availableDetail':
+    'It downloads in the background and we will tell you when it is ready to install.',
+  'update.ready': 'Version {version} is ready to install.',
+  'update.readyDetail':
+    'Restart to update. If you choose “Later”, it installs when you quit the app.',
+  'update.restart': 'Restart now',
+  'update.later': 'Later',
+  'update.failed': 'Could not check for updates. Check your connection and try again.',
 
   'menu.about': 'About {app}',
   'menu.services': 'Services',

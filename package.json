@@ -68,5 +68,8 @@
   "packageManager": "pnpm@10.28.0",
   "engines": {
     "node": ">=20"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9"
   }
 }
