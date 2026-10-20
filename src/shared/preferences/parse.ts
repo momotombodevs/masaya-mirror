@@ -54,6 +54,7 @@ const FIELD_PARSERS: {
   alwaysOnTop: parseBoolean,
   showClicks: parseBoolean,
   captureAction: parseCaptureAction,
+  audio: parseBoolean,
   language: parseLanguage,
 };
 
@@ -99,6 +100,7 @@ export function readPreferences(raw: unknown): Preferences {
     alwaysOnTop: field('alwaysOnTop'),
     showClicks: field('showClicks'),
     captureAction: field('captureAction'),
+    audio: field('audio'),
     language: field('language'),
   };
 }

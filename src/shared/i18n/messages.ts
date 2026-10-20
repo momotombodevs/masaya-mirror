@@ -117,6 +117,8 @@ const es = {
   'settings.showTouches.hint': 'Dibuja un punto donde se toca la pantalla.',
   'settings.stayAwake': 'Mantener pantalla encendida',
   'settings.stayAwake.hint': 'Mientras el teléfono esté cargando o conectado.',
+  'settings.audio': 'Audio del dispositivo',
+  'settings.audio.hint': 'Requiere Android 11 o superior. Reinicia el espejo al cambiarlo.',
   'settings.reset': 'Restablecer valores',
   'settings.credits': 'Crafted with passion by Momotombo Devs',
 
@@ -309,6 +311,8 @@ const en: Record<MessageKey, string> = {
   'settings.showTouches.hint': 'Draws a dot where the screen is touched.',
   'settings.stayAwake': 'Stay awake',
   'settings.stayAwake.hint': 'While the phone is charging or plugged in.',
+  'settings.audio': 'Device audio',
+  'settings.audio.hint': 'Needs Android 11 or newer. Restarts the mirror when changed.',
   'settings.reset': 'Reset to Defaults',
   'settings.credits': 'Crafted with passion by Momotombo Devs',
 

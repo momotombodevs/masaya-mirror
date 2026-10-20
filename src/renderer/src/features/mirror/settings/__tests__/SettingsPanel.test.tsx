@@ -9,6 +9,7 @@ const getDeviceSettings = vi.fn();
 const setDeviceSetting = vi.fn();
 const onPreferenceChange = vi.fn();
 const onVideoChange = vi.fn();
+const onAudioChange = vi.fn();
 const onClose = vi.fn();
 
 type Props = Partial<Parameters<typeof SettingsPanel>[0]>;
@@ -22,6 +23,7 @@ const renderPanel = (props: Props = {}): void => {
       busy={false}
       onPreferenceChange={onPreferenceChange}
       onVideoChange={onVideoChange}
+      onAudioChange={onAudioChange}
       onClose={onClose}
       {...props}
     />,
@@ -87,6 +89,21 @@ describe('SettingsPanel', () => {
     fireEvent.click(toggle('Barra de navegación'));
 
     expect(onPreferenceChange).toHaveBeenCalledWith({ navigationBar: false });
+  });
+
+  it('turns the device audio on through the stream, not as a plain preference', () => {
+    renderPanel();
+
+    fireEvent.click(toggle('Audio del dispositivo'));
+
+    expect(onAudioChange).toHaveBeenCalledWith(true);
+    expect(onPreferenceChange).not.toHaveBeenCalled();
+  });
+
+  it('shows the audio as on when the running stream has it', () => {
+    renderPanel({ options: { ...DEFAULT_MIRROR_OPTIONS, audioEnabled: true } });
+
+    expect(toggle('Audio del dispositivo').getAttribute('aria-checked')).toBe('true');
   });
 
   it('changes what a capture does', () => {

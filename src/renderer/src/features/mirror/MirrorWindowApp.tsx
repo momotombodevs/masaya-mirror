@@ -29,6 +29,8 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
   openMirrorRef.current = mirror.openMirror;
   const startVideoRef = useRef(preferences.mirror);
   startVideoRef.current = preferences.mirror;
+  const startAudioRef = useRef(preferences.audio);
+  startAudioRef.current = preferences.audio;
 
   // Start once the saved preferences are known, so the stream opens with the user's video settings.
   useEffect(() => {
@@ -38,6 +40,7 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
     void openMirrorRef.current(undefined, {
       ...DEFAULT_MIRROR_OPTIONS,
       ...startVideoRef.current,
+      audioEnabled: startAudioRef.current,
     });
   }, [deviceId, loaded]);
 
@@ -96,6 +99,15 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
             videoCodec: next.videoCodec,
           },
         });
+      }
+    },
+    [applyOptions, options, update],
+  );
+
+  const handleAudioChange = useCallback(
+    async (audioEnabled: boolean): Promise<void> => {
+      if (await applyOptions({ ...options, audioEnabled })) {
+        update({ audio: audioEnabled });
       }
     },
     [applyOptions, options, update],
@@ -168,6 +180,7 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
             busy={mirror.loading}
             onPreferenceChange={update}
             onVideoChange={(patch) => void handleVideoChange(patch)}
+            onAudioChange={(enabled) => void handleAudioChange(enabled)}
             onClose={() => setSettingsOpen(false)}
           />
         )}

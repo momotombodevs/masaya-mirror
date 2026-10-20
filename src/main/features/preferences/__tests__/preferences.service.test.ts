@@ -34,6 +34,7 @@ describe('PreferencesService', () => {
       alwaysOnTop: true,
       showClicks: false,
       captureAction: 'copy',
+      audio: true,
       language: 'en',
     });
     prefs.setAdbPath('/opt/adb');
@@ -46,6 +47,7 @@ describe('PreferencesService', () => {
       alwaysOnTop: true,
       showClicks: false,
       captureAction: 'copy',
+      audio: true,
       language: 'en',
     });
     expect(reloaded.getAdbPath()).toBe('/opt/adb');
@@ -90,6 +92,7 @@ describe('PreferencesService', () => {
     expect(Object.keys(JSON.parse(readFileSync(file, 'utf8')) as object).sort()).toEqual([
       'adbPath',
       'alwaysOnTop',
+      'audio',
       'captureAction',
       'language',
       'mirror',

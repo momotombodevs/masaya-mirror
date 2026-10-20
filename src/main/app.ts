@@ -28,6 +28,8 @@ export function createSecureWindow(options: BrowserWindowConstructorOptions): Br
       nodeIntegration: false,
       sandbox: true,
       webSecurity: true,
+      // Device audio starts with the stream, not with a click in the window.
+      autoplayPolicy: 'no-user-gesture-required',
     },
   });
   attachWindowSecurity(window);

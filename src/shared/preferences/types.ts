@@ -6,7 +6,7 @@ export type CaptureAction = 'preview' | 'copy' | 'save';
 
 export const CAPTURE_ACTIONS: readonly CaptureAction[] = ['preview', 'copy', 'save'];
 
-/** The video settings a mirror window starts with. Audio is not offered yet. */
+/** The video settings a mirror window starts with. */
 export type MirrorVideoPreferences = Pick<MirrorOptions, 'maxSize' | 'videoBitRate' | 'videoCodec'>;
 
 export type Preferences = {
@@ -17,6 +17,8 @@ export type Preferences = {
   /** Draws a dot in the mirror window where the mouse touches the screen. */
   readonly showClicks: boolean;
   readonly captureAction: CaptureAction;
+  /** Plays the device audio in the mirror window (Android 11 or newer). */
+  readonly audio: boolean;
   readonly language: LanguagePreference;
 };
 
@@ -30,5 +32,6 @@ export const DEFAULT_PREFERENCES: Preferences = {
   alwaysOnTop: false,
   showClicks: true,
   captureAction: 'preview',
+  audio: false,
   language: 'system',
 };

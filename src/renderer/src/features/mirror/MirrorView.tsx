@@ -1,5 +1,6 @@
 import { useCallback, useRef } from 'react';
 import { useMirrorDecoder } from './useMirrorDecoder';
+import { useMirrorAudio } from './useMirrorAudio';
 import { useMirrorInput } from './useMirrorInput';
 import { TouchIndicators } from './TouchIndicators';
 import { OverlayError } from '../../components/ui/OverlayError';
@@ -32,6 +33,7 @@ export function MirrorView({
     onClose,
     onSizeChange,
   });
+  useMirrorAudio(deviceId);
   const input = useMirrorInput(deviceId, canvasRef, videoSizeRef);
 
   const showLoading = portStatus === 'waiting' || (!ready && !streamError);

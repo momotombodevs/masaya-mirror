@@ -34,6 +34,8 @@ type SettingsPanelProps = {
   readonly busy: boolean;
   readonly onPreferenceChange: (patch: Partial<Preferences>) => void;
   readonly onVideoChange: (patch: Partial<MirrorVideoPreferences>) => void;
+  /** Turns the device audio on or off, which restarts the stream. */
+  readonly onAudioChange: (enabled: boolean) => void;
   readonly onClose: () => void;
 };
 
@@ -71,6 +73,7 @@ export function SettingsPanel({
   busy,
   onPreferenceChange,
   onVideoChange,
+  onAudioChange,
   onClose,
 }: SettingsPanelProps): JSX.Element {
   const { t } = useI18n();
@@ -267,6 +270,19 @@ export function SettingsPanel({
           </SettingsSection>
 
           <SettingsSection title={t('settings.section.device')}>
+            <SettingRow
+              label={t('settings.audio')}
+              hint={t('settings.audio.hint')}
+              icon={ROW_ICONS.speaker}
+              tone="blue"
+            >
+              <Toggle
+                label={t('settings.audio')}
+                checked={options.audioEnabled}
+                disabled={busy}
+                onChange={onAudioChange}
+              />
+            </SettingRow>
             <SettingRow
               label={t('settings.showTouches')}
               hint={t('settings.showTouches.hint')}
