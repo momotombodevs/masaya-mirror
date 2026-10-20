@@ -5,10 +5,9 @@ import type { MirrorStreamInitMessage } from '../../../../../shared/mirror/types
 import { useMirrorDecoder } from '../useMirrorDecoder';
 
 type Subscriber = {
-  onInit: (message: MirrorStreamInitMessage) => void;
-  onVideoPacket: (packet: unknown) => void;
-  onAudioPacket: (packet: unknown) => void;
-  onClose: (message: unknown) => void;
+  onInit?: (message: MirrorStreamInitMessage) => void;
+  onVideoPacket?: (packet: unknown) => void;
+  onClose?: (message: unknown) => void;
 };
 
 const hoisted = vi.hoisted(() => ({
@@ -21,7 +20,7 @@ const hoisted = vi.hoisted(() => ({
     value: { portStatus: 'connected', init: null, lastError: null } as {
       portStatus: string;
       init: null;
-      lastError: string | null;
+      lastError: { message: string } | { key: string } | null;
     },
   },
 }));
@@ -96,7 +95,7 @@ describe('useMirrorDecoder', () => {
   it('creates a decoder on init and tells the main process the video size', () => {
     const { result } = render();
 
-    act(() => subscriber?.onInit(init(1080, 2400)));
+    act(() => subscriber?.onInit?.(init(1080, 2400)));
 
     expect(hoisted.decoders).toHaveLength(1);
     expect(result.current.ready).toBe(true);
@@ -107,7 +106,7 @@ describe('useMirrorDecoder', () => {
   it('ignores an init addressed to another device', () => {
     const { result } = render();
 
-    act(() => subscriber?.onInit({ ...init(1080, 2400), deviceId: 'other' }));
+    act(() => subscriber?.onInit?.({ ...init(1080, 2400), deviceId: 'other' }));
 
     expect(hoisted.decoders).toHaveLength(0);
     expect(result.current.ready).toBe(false);
@@ -116,8 +115,8 @@ describe('useMirrorDecoder', () => {
   it('replaces the decoder when the stream restarts, e.g. after a quality change', () => {
     render();
 
-    act(() => subscriber?.onInit(init(1080, 2400)));
-    act(() => subscriber?.onInit(init(720, 1600)));
+    act(() => subscriber?.onInit?.(init(1080, 2400)));
+    act(() => subscriber?.onInit?.(init(720, 1600)));
 
     expect(hoisted.decoders).toHaveLength(2);
     expect(hoisted.decoders[0]?.dispose).toHaveBeenCalledOnce();
@@ -126,7 +125,7 @@ describe('useMirrorDecoder', () => {
 
   it('follows size changes reported by the decoder', () => {
     const { result } = render();
-    act(() => subscriber?.onInit(init(1080, 2400)));
+    act(() => subscriber?.onInit?.(init(1080, 2400)));
 
     act(() => hoisted.decoders[0]?.emitSize(2400, 1080));
 
@@ -138,7 +137,7 @@ describe('useMirrorDecoder', () => {
     hoisted.supported.value = false;
     const { result } = render();
 
-    act(() => subscriber?.onInit(init(1080, 2400)));
+    act(() => subscriber?.onInit?.(init(1080, 2400)));
 
     expect(hoisted.decoders).toHaveLength(0);
     expect(result.current.streamError).toBe('Video no compatible con este sistema.');
@@ -148,7 +147,7 @@ describe('useMirrorDecoder', () => {
     const onClose = vi.fn();
     render({ onClose });
 
-    act(() => subscriber?.onClose({ kind: 'close' }));
+    act(() => subscriber?.onClose?.({ kind: 'close' }));
 
     expect(onClose).toHaveBeenCalledOnce();
   });
@@ -165,7 +164,7 @@ describe('useMirrorDecoder', () => {
 
   it('does not flag a missing signal once the video started', () => {
     const { result } = render();
-    act(() => subscriber?.onInit(init(1080, 2400)));
+    act(() => subscriber?.onInit?.(init(1080, 2400)));
 
     act(() => {
       vi.advanceTimersByTime(15_000);
@@ -177,18 +176,46 @@ describe('useMirrorDecoder', () => {
   it('disposes the decoder, unsubscribes and does not report a close on unmount', () => {
     const onClose = vi.fn();
     const { unmount } = render({ onClose });
-    act(() => subscriber?.onInit(init(1080, 2400)));
+    act(() => subscriber?.onInit?.(init(1080, 2400)));
 
     unmount();
-    subscriber?.onClose({ kind: 'close' });
+    subscriber?.onClose?.({ kind: 'close' });
 
     expect(hoisted.decoders[0]?.dispose).toHaveBeenCalledOnce();
     expect(unsubscribe).toHaveBeenCalledOnce();
     expect(onClose).not.toHaveBeenCalled();
   });
 
+  it('translates stream errors that the client reports by key', () => {
+    hoisted.streamState.value = {
+      portStatus: 'waiting',
+      init: null,
+      lastError: { key: 'mirror.apiUnavailable' },
+    };
+
+    const { result } = render();
+
+    expect(result.current.streamError).toBe('API de Manolo Mirror no disponible.');
+  });
+
+  it('keeps a more specific error when the missing-signal timer fires', () => {
+    hoisted.supported.value = false;
+    const { result } = render();
+    act(() => subscriber?.onInit?.(init(1080, 2400)));
+
+    act(() => {
+      vi.advanceTimersByTime(15_000);
+    });
+
+    expect(result.current.streamError).toBe('Video no compatible con este sistema.');
+  });
+
   it('surfaces stream errors from the client', () => {
-    hoisted.streamState.value = { portStatus: 'closed', init: null, lastError: 'Puerto cerrado' };
+    hoisted.streamState.value = {
+      portStatus: 'closed',
+      init: null,
+      lastError: { message: 'Puerto cerrado' },
+    };
 
     const { result } = render();
 

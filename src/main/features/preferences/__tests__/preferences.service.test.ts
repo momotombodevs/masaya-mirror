@@ -1,7 +1,7 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_PREFERENCES } from '../../../../shared/preferences/types';
 import { PreferencesService } from '../preferences.service';
 
@@ -15,6 +15,7 @@ describe('PreferencesService', () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     rmSync(dir, { recursive: true, force: true });
   });
 
@@ -66,6 +67,7 @@ describe('PreferencesService', () => {
   });
 
   it('falls back to defaults for a corrupt file', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
     new PreferencesService(file).set({ alwaysOnTop: true });
     writeFileSync(file, '{not json');
 
@@ -123,6 +125,7 @@ describe('PreferencesService', () => {
   });
 
   it('keeps working in memory when the file cannot be written', () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const blocked = path.join(dir, 'blocker');
     writeFileSync(blocked, 'a file, not a folder');
     const prefs = new PreferencesService(path.join(blocked, 'settings.json'));
@@ -130,5 +133,55 @@ describe('PreferencesService', () => {
     prefs.set({ navigationBar: false });
 
     expect(prefs.get().navigationBar).toBe(false);
+  });
+
+  describe('failures', () => {
+    it('does not log when there is simply no file yet', () => {
+      const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+      new PreferencesService(file);
+
+      expect(logged).not.toHaveBeenCalled();
+    });
+
+    it('logs an unreadable settings file instead of hiding it', () => {
+      const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      new PreferencesService(file).set({ alwaysOnTop: true });
+      writeFileSync(file, '{not json');
+
+      new PreferencesService(file);
+
+      expect(logged).toHaveBeenCalledTimes(1);
+    });
+
+    it('logs a failed write and keeps the value in memory', () => {
+      const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      const blocked = path.join(dir, 'blocker');
+      writeFileSync(blocked, 'a file, not a folder');
+      const prefs = new PreferencesService(path.join(blocked, 'settings.json'));
+      logged.mockClear();
+
+      prefs.set({ navigationBar: false });
+
+      expect(logged).toHaveBeenCalledTimes(1);
+      expect(prefs.get().navigationBar).toBe(false);
+    });
+
+    it('writes through a temp file and leaves nothing behind', () => {
+      new PreferencesService(file).set({ navigationBar: false });
+
+      expect(readdirSync(path.dirname(file))).toEqual(['settings.json']);
+      expect(JSON.parse(readFileSync(file, 'utf8'))).toMatchObject({ navigationBar: false });
+    });
+
+    it('cleans up its temp file when the final rename fails', () => {
+      vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      // A folder where the file belongs makes the rename fail after the temp file was written.
+      mkdirSync(file, { recursive: true });
+
+      new PreferencesService(file).set({ navigationBar: false });
+
+      expect(readdirSync(path.dirname(file))).toEqual(['settings.json']);
+    });
   });
 });

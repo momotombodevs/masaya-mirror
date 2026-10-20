@@ -5,7 +5,6 @@ import { setMainLocale } from './i18n';
 import { claimSingleInstance, createWindow, registerAppLifecycle } from './app';
 import { augmentProcessPath } from './features/device/adb-path.resolver';
 import { AdbService } from './features/device/adb.service';
-import { DeviceService } from './features/device/device.service';
 import { registerApkIpcHandlers } from './features/device/ipc/apk.handlers';
 import { registerDeviceSettingsIpcHandlers } from './features/device/ipc/device-settings.handlers';
 import { registerDeviceIpcHandlers } from './features/device/ipc/device.handlers';
@@ -25,7 +24,6 @@ function bootstrap(): void {
   augmentProcessPath();
 
   const adbService = new AdbService();
-  const deviceService = new DeviceService(adbService);
   const scrcpyService = new ScrcpyService(adbService);
   const preferences = new PreferencesService(path.join(app.getPath('userData'), 'settings.json'));
   adbService.setCustomPath(preferences.getAdbPath());
@@ -56,7 +54,7 @@ function bootstrap(): void {
     const updater = createUpdaterService();
     const onCheckForUpdates = updater ? () => void updater.checkNow() : undefined;
     installApplicationMenu(locale, onCheckForUpdates);
-    registerDeviceIpcHandlers(deviceService);
+    registerDeviceIpcHandlers(adbService);
     registerSetupIpcHandlers(
       adbService,
       preferences,

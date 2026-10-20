@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { DeviceSettingKey, DeviceSettings } from '../../../../shared/device/types';
 import { useI18n } from '../../shared/i18n';
-import { getManoloApi } from '../../shared/manolo-api';
+import { callApi } from '../../shared/manolo-api';
 
 export type UseDeviceSettingsResult = {
   /** Null while the phone is being read, or when it could not be read. */
@@ -19,16 +19,17 @@ export function useDeviceSettings(deviceId: string): UseDeviceSettingsResult {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      const result = await getManoloApi()
-        ?.getDeviceSettings(deviceId)
-        .catch(() => undefined);
+      const result = await callApi(
+        (api) => api.getDeviceSettings(deviceId),
+        t('deviceSettings.readFailed'),
+      );
       if (cancelled) {
         return;
       }
-      if (result?.ok) {
+      if (result.ok) {
         setSettings(result.value);
       } else {
-        setError(result?.ok === false ? result.error : t('deviceSettings.readFailed'));
+        setError(result.error);
       }
     })();
     return () => {
@@ -38,12 +39,15 @@ export function useDeviceSettings(deviceId: string): UseDeviceSettingsResult {
 
   const set = useCallback(
     async (key: DeviceSettingKey, enabled: boolean): Promise<void> => {
-      const result = await getManoloApi()?.setDeviceSetting(deviceId, key, enabled);
-      if (result?.ok) {
+      const result = await callApi(
+        (api) => api.setDeviceSetting(deviceId, key, enabled),
+        t('deviceSettings.writeFailed'),
+      );
+      if (result.ok) {
         setError(null);
         setSettings((current) => (current ? { ...current, [key]: enabled } : current));
       } else {
-        setError(result?.ok === false ? result.error : t('deviceSettings.writeFailed'));
+        setError(result.error);
       }
     },
     [deviceId, t],

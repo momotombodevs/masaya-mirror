@@ -4,6 +4,7 @@ import { registerMirrorIpcHandlers } from '../ipc/mirror.handlers';
 import { MIRROR_CHANNELS } from '../../../../shared/ipc/mirror.contract';
 import type { MirrorWindowService } from '../mirror-window.service';
 import type { ScrcpyService } from '../scrcpy.service';
+import { MAX_DEVICE_LABEL_LENGTH } from '../ipc/mirror.handlers';
 
 vi.mock('electron', () => ({
   ipcMain: {
@@ -25,6 +26,7 @@ describe('registerMirrorIpcHandlers', () => {
     setVideoLayout: vi.fn(),
     closeAll: vi.fn(),
     isSenderForDevice: vi.fn().mockReturnValue(true),
+    isMirrorWindowSender: vi.fn().mockReturnValue(false),
     getOpenDeviceIds: vi.fn().mockReturnValue([]),
   } as unknown as MirrorWindowService;
 
@@ -67,6 +69,53 @@ describe('registerMirrorIpcHandlers', () => {
     expect(result).toEqual({
       ok: false,
       error: 'The requesting window is not allowed to control this device.',
+    });
+  });
+
+  describe('openWindow', () => {
+    const openWindow = () =>
+      vi.mocked(ipcMain.handle).mock.calls.find(([c]) => c === MIRROR_CHANNELS.openWindow)?.[1];
+
+    it('rejects mirror windows as senders', async () => {
+      vi.mocked(mirrorWindowService.isMirrorWindowSender).mockReturnValue(true);
+
+      const result = await openWindow()?.({ sender: { id: 10 } } as never, {
+        deviceId: 'emulator-5554',
+      });
+
+      expect(result?.ok).toBe(false);
+      expect(mirrorWindowService.open).not.toHaveBeenCalled();
+    });
+
+    it('trims the label and caps its length', async () => {
+      vi.mocked(mirrorWindowService.isMirrorWindowSender).mockReturnValue(false);
+
+      await openWindow()?.({ sender: { id: 1 } } as never, {
+        deviceId: 'emulator-5554',
+        deviceLabel: `  ${'x'.repeat(MAX_DEVICE_LABEL_LENGTH + 50)}  `,
+      });
+
+      expect(mirrorWindowService.open).toHaveBeenCalledWith(
+        'emulator-5554',
+        'x'.repeat(MAX_DEVICE_LABEL_LENGTH),
+      );
+    });
+
+    it('falls back to the device id without a label', async () => {
+      vi.mocked(mirrorWindowService.isMirrorWindowSender).mockReturnValue(false);
+
+      await openWindow()?.({ sender: { id: 1 } } as never, {
+        deviceId: 'emulator-5554',
+        deviceLabel: '   ',
+      });
+
+      expect(mirrorWindowService.open).toHaveBeenCalledWith('emulator-5554', 'emulator-5554');
+    });
+
+    it('validates the device id', async () => {
+      const result = await openWindow()?.({ sender: { id: 1 } } as never, { deviceId: '' });
+
+      expect(result?.ok).toBe(false);
     });
   });
 });

@@ -109,6 +109,6 @@ describe('QrPairingPanel', () => {
     startQrPairing.mockRejectedValue(new Error('bridge down'));
     show();
 
-    expect((await screen.findByRole('alert')).textContent).toContain('bridge down');
+    expect((await screen.findByRole('alert')).textContent).toContain('Sin conexión con la app');
   });
 });

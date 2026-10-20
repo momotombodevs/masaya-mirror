@@ -20,7 +20,7 @@ function setup() {
   const canvasRef = { current: canvas };
   const videoSizeRef = { current: { width: 1000, height: 2000 } };
   const hook = renderHook(() => useMirrorInput('device-1', canvasRef, videoSizeRef));
-  return { canvas, videoSizeRef, handlers: hook.result.current };
+  return { canvas, videoSizeRef, handlers: hook.result.current, hook };
 }
 
 function pointerEvent(
@@ -222,5 +222,64 @@ describe('useMirrorInput', () => {
     expect(() =>
       act(() => handlers.onPointerDown(pointerEvent(canvas, { clientX: 1, clientY: 1 }))),
     ).not.toThrow();
+  });
+
+  it('releases the keys still held down when the window loses focus', () => {
+    const { handlers } = setup();
+    act(() => handlers.onKeyDown(keyEvent({ key: 'Enter', code: 'Enter' })));
+    sendControl.mockClear();
+
+    act(() => {
+      window.dispatchEvent(new Event('blur'));
+    });
+    expect(sent()).toEqual([
+      { type: 'key', action: ANDROID_KEY_EVENT_ACTION.up, keyCode: 66, repeat: 0, metaState: 0 },
+    ]);
+
+    // The key-up that follows once focus is back would be a second release.
+    act(() => window.dispatchEvent(new Event('blur')));
+    expect(sendControl).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not release a key that was already released', () => {
+    const { handlers } = setup();
+    act(() => handlers.onKeyDown(keyEvent({ key: 'Enter', code: 'Enter' })));
+    act(() => handlers.onKeyUp(keyEvent({ key: 'Enter', code: 'Enter' })));
+    sendControl.mockClear();
+
+    act(() => window.dispatchEvent(new Event('blur')));
+
+    expect(sendControl).not.toHaveBeenCalled();
+  });
+
+  it('delivers the pending move and releases held keys when the view goes away', () => {
+    const { canvas, handlers, hook } = setup();
+    act(() => {
+      handlers.onKeyDown(keyEvent({ key: 'Enter', code: 'Enter' }));
+      handlers.onPointerDown(pointerEvent(canvas, { clientX: 0, clientY: 0 }));
+      handlers.onPointerMove(pointerEvent(canvas, { clientX: 10, clientY: 10 }));
+    });
+    sendControl.mockClear();
+
+    hook.unmount();
+
+    expect(sent()).toEqual([
+      expect.objectContaining({ type: 'touch', action: ANDROID_MOTION_EVENT_ACTION.move }),
+      expect.objectContaining({ type: 'key', action: ANDROID_KEY_EVENT_ACTION.up, keyCode: 66 }),
+    ]);
+    // A frame callback scheduled before unmount must not send anything later.
+    act(() => frames.forEach((frame) => frame()));
+    expect(sendControl).toHaveBeenCalledTimes(2);
+  });
+
+  it('survives a rejected bridge call', async () => {
+    sendControl.mockRejectedValue(new Error('ipc closed'));
+    const { canvas, handlers } = setup();
+
+    // Vitest fails the run on an unhandled rejection, so reaching the end is the assertion.
+    act(() => handlers.onPointerDown(pointerEvent(canvas, { clientX: 10, clientY: 10 })));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(sendControl).toHaveBeenCalledOnce();
   });
 });

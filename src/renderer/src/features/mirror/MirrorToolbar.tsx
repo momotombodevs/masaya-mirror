@@ -1,7 +1,16 @@
 import { type ReactNode } from 'react';
-import type { CaptureAction, RecordingFormat } from '../../../../shared/preferences/types';
 import { Button } from '../../components/ui/Button';
-import { cx } from '../../components/ui/cx';
+import {
+  ApkIcon,
+  CameraIcon,
+  FullscreenIcon,
+  PowerIcon,
+  RecordIcon,
+  RotateIcon,
+  SettingsIcon,
+  VolumeDownIcon,
+  VolumeUpIcon,
+} from '../../components/ui/icons';
 import { CapturePreviewDialog } from './CapturePreviewDialog';
 import { useCapture } from './useCapture';
 import { useRecording } from './useRecording';
@@ -11,7 +20,8 @@ import { ANDROID_KEYCODE } from './android-keycodes';
 import { useApkInstall } from './useApkInstall';
 import { useDeviceKeys } from './useDeviceKeys';
 import { useToolbarStatus } from './useToolbarStatus';
-import { getManoloApi } from '../../shared/manolo-api';
+import { callApi } from '../../shared/manolo-api';
+import { usePreferences } from '../../shared/preferences';
 
 type MirrorToolbarProps = {
   readonly deviceId: string;
@@ -19,8 +29,6 @@ type MirrorToolbarProps = {
   readonly canvas: HTMLCanvasElement | null;
   readonly onFullscreen: () => void;
   readonly onOpenSettings: () => void;
-  readonly captureAction: CaptureAction;
-  readonly recordingFormat: RecordingFormat;
   readonly disabled?: boolean;
 };
 
@@ -30,16 +38,25 @@ export function MirrorToolbar({
   canvas,
   onFullscreen,
   onOpenSettings,
-  captureAction,
-  recordingFormat,
   disabled = false,
 }: MirrorToolbarProps): JSX.Element {
   const { t } = useI18n();
-  const { statusMessage, showStatus } = useToolbarStatus();
-  const capture = useCapture(canvas, showStatus, captureAction);
-  const recorder = useRecording(canvas, showStatus, recordingFormat);
-  const pressKey = useDeviceKeys(deviceId);
-  const apk = useApkInstall(deviceId, showStatus);
+  const { preferences } = usePreferences();
+  const { statusMessage, showStatus, clearStatus } = useToolbarStatus();
+  const capture = useCapture(canvas, showStatus, preferences.captureAction);
+  const recorder = useRecording(canvas, showStatus, preferences.recordingFormat);
+  const pressKey = useDeviceKeys(deviceId, showStatus);
+  const apk = useApkInstall(deviceId, showStatus, clearStatus);
+
+  const rotate = async (): Promise<void> => {
+    const result = await callApi(
+      (api) => api.sendControl(deviceId, { type: 'rotate' }),
+      t('common.noBridge'),
+    );
+    if (!result.ok) {
+      showStatus(result.error);
+    }
+  };
 
   useMenuActions({
     capture: () => void capture.open(),
@@ -83,7 +100,7 @@ export function MirrorToolbar({
           <ToolbarIconButton
             label={t('toolbar.rotate')}
             disabled={disabled}
-            onClick={() => void getManoloApi()?.sendControl(deviceId, { type: 'rotate' })}
+            onClick={() => void rotate()}
           >
             <RotateIcon />
           </ToolbarIconButton>
@@ -173,103 +190,5 @@ function ToolbarIconButton({
 function ToolbarDivider(): JSX.Element {
   return (
     <div role="separator" aria-orientation="vertical" className="mx-1 h-4 w-px bg-mirror-line" />
-  );
-}
-
-const ICON_PROPS = {
-  width: 18,
-  height: 18,
-  viewBox: '0 0 24 24',
-  fill: 'none',
-  stroke: 'currentColor',
-  strokeWidth: 1.75,
-  strokeLinecap: 'round',
-  strokeLinejoin: 'round',
-  'aria-hidden': true,
-} as const;
-
-function CameraIcon(): JSX.Element {
-  return (
-    <svg {...ICON_PROPS}>
-      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-      <circle cx="12" cy="13" r="4" />
-    </svg>
-  );
-}
-
-function RecordIcon({ recording }: { readonly recording: boolean }): JSX.Element {
-  return (
-    <svg {...ICON_PROPS}>
-      <circle cx="12" cy="12" r="8" />
-      <circle
-        cx="12"
-        cy="12"
-        r="4"
-        className={cx(recording ? 'fill-red-500 stroke-red-500' : 'fill-current stroke-none')}
-      />
-    </svg>
-  );
-}
-
-function FullscreenIcon(): JSX.Element {
-  return (
-    <svg {...ICON_PROPS}>
-      <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3" />
-    </svg>
-  );
-}
-
-function RotateIcon(): JSX.Element {
-  return (
-    <svg {...ICON_PROPS}>
-      <rect x="7" y="3" width="10" height="14" rx="2" />
-      <path d="M5 21h8m0 0-2-2m2 2-2 2" />
-    </svg>
-  );
-}
-
-function VolumeUpIcon(): JSX.Element {
-  return (
-    <svg {...ICON_PROPS}>
-      <path d="M11 5 6 9H2v6h4l5 4z" />
-      <path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14" />
-    </svg>
-  );
-}
-
-function VolumeDownIcon(): JSX.Element {
-  return (
-    <svg {...ICON_PROPS}>
-      <path d="M11 5 6 9H2v6h4l5 4z" />
-      <path d="M15.5 8.5a5 5 0 0 1 0 7" />
-    </svg>
-  );
-}
-
-function PowerIcon(): JSX.Element {
-  return (
-    <svg {...ICON_PROPS}>
-      <path d="M12 2v10" />
-      <path d="M18.4 6.6a9 9 0 1 1-12.8 0" />
-    </svg>
-  );
-}
-
-function ApkIcon(): JSX.Element {
-  return (
-    <svg {...ICON_PROPS}>
-      <path d="M12 3v12m0 0-4-4m4 4 4-4" />
-      <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
-    </svg>
-  );
-}
-
-function SettingsIcon(): JSX.Element {
-  return (
-    <svg {...ICON_PROPS}>
-      <path d="M4 7h10M18 7h2M4 17h2M10 17h10" />
-      <circle cx="16" cy="7" r="2" />
-      <circle cx="8" cy="17" r="2" />
-    </svg>
   );
 }

@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { getMirrorStreamClient } from './mirror-stream.client';
-import { MirrorAudioPlayer } from './mirror-audio';
+import { MirrorAudioPlayer, reportAudioError } from './mirror-audio';
 
 /** Plays the device audio while the mirror is shown; silent when the stream carries none. */
 export function useMirrorAudio(deviceId: string): void {
@@ -15,11 +15,10 @@ export function useMirrorAudio(deviceId: string): void {
           try {
             player = new MirrorAudioPlayer(message.audioWebCodecId);
           } catch (error) {
-            console.error('[audio]', error);
+            reportAudioError(error);
           }
         }
       },
-      onVideoPacket: () => undefined,
       onAudioPacket: (packet) => player?.push(packet),
       onClose: () => {
         player?.dispose();

@@ -1,12 +1,13 @@
-import { clipboard, dialog, ipcMain, nativeImage, type FileFilter } from 'electron';
+import { clipboard, dialog, nativeImage, type FileFilter } from 'electron';
 import { writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { QA_CHANNELS, type QaActionResponse } from '../../../../shared/ipc/qa.contract';
 import { isRecord } from '../../../../shared/ipc/is-record';
-import { err, ok, type Result } from '../../../../shared/ipc/result';
+import { err, ok } from '../../../../shared/ipc/result';
 import type { MirrorWindowService } from '../../mirror/mirror-window.service';
 import type { PreferencesService } from '../../preferences/preferences.service';
 import { mt } from '../../../i18n';
+import { fromMirrorWindow, handleIpc, type IpcGuard } from '../../../ipc/handle-ipc';
 
 /** Upper bound for renderer-provided buffers to avoid main-process memory exhaustion. */
 const MAX_CAPTURE_BYTES = 256 * 1024 * 1024;
@@ -17,15 +18,26 @@ type SaveDialogConfig = {
   readonly filters: readonly FileFilter[];
 };
 
-/** Reads a size-limited `data` buffer from an untrusted payload. */
-function readBuffer(payload: unknown): Result<ArrayBuffer> {
-  if (!isRecord(payload) || !(payload.data instanceof ArrayBuffer)) {
-    return err('Invalid payload.');
-  }
-  if (payload.data.byteLength > MAX_CAPTURE_BYTES) {
-    return err('Payload exceeds the maximum allowed size.');
-  }
-  return ok(payload.data);
+type CaptureRequest = {
+  readonly data: ArrayBuffer;
+  readonly body: Record<string, unknown>;
+};
+
+/** Adds a size-limited `data` buffer, read from the untrusted payload, to what `guard` allows. */
+function withCaptureBuffer(guard: IpcGuard<object>): IpcGuard<CaptureRequest> {
+  return (event, payload) => {
+    const allowed = guard(event, payload);
+    if (!allowed.ok) {
+      return allowed;
+    }
+    if (!isRecord(payload) || !(payload.data instanceof ArrayBuffer)) {
+      return err('Invalid payload.');
+    }
+    if (payload.data.byteLength > MAX_CAPTURE_BYTES) {
+      return err('Payload exceeds the maximum allowed size.');
+    }
+    return ok({ data: payload.data, body: payload });
+  };
 }
 
 function recordingExtension(mimeType: string): 'gif' | 'webm' | 'mp4' {
@@ -74,15 +86,10 @@ export function registerQaIpcHandlers(
   const handleFromMirrorWindow = (
     channel: string,
     run: (data: ArrayBuffer, payload: Record<string, unknown>) => Promise<QaActionResponse>,
-  ): void => {
-    ipcMain.handle(channel, async (event, payload: unknown): Promise<QaActionResponse> => {
-      if (!mirrorWindowService.isMirrorWindowSender(event.sender.id)) {
-        return err('The requesting window cannot run QA actions.');
-      }
-      const data = readBuffer(payload);
-      return data.ok ? run(data.value, payload as Record<string, unknown>) : data;
-    });
-  };
+  ): void =>
+    handleIpc(channel, withCaptureBuffer(fromMirrorWindow(mirrorWindowService)), ({ data, body }) =>
+      run(data, body),
+    );
 
   handleFromMirrorWindow(QA_CHANNELS.copyCapture, async (data) => {
     const image = nativeImage.createFromBuffer(Buffer.from(data));

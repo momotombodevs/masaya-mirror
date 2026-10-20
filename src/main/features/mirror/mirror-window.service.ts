@@ -2,7 +2,7 @@ import { type BrowserWindow, screen } from 'electron';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { ok, err, type Result } from '../../../shared/ipc/result';
-import { createSecureWindow } from '../../app';
+import { createSecureWindow } from '../../secure-window';
 import { RENDERER_DIST, VITE_DEV_SERVER_URL } from '../../paths';
 import type { ScrcpyService } from './scrcpy.service';
 import {
@@ -37,15 +37,45 @@ export class MirrorWindowService {
   private readonly windows = new Map<string, BrowserWindow>();
   private readonly layoutApplied = new Set<string>();
   private readonly orientations = new Map<string, Orientation>();
+  /** Tail of the open queue per device, so two opens never interleave. */
+  private readonly openChains = new Map<string, Promise<unknown>>();
 
   constructor(private readonly deps: MirrorWindowServiceDeps) {}
 
-  async open(deviceId: string, deviceLabel: string): Promise<Result<void>> {
+  /** Opens (or replaces) the window of a device. Calls for the same device run one at a time. */
+  open(deviceId: string, deviceLabel: string): Promise<Result<void>> {
+    const run = (this.openChains.get(deviceId) ?? Promise.resolve()).then(() =>
+      this.openNow(deviceId, deviceLabel),
+    );
+    const tail = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    this.openChains.set(deviceId, tail);
+    void tail.then(() => {
+      if (this.openChains.get(deviceId) === tail) {
+        this.openChains.delete(deviceId);
+      }
+    });
+    return run;
+  }
+
+  /** Drops everything remembered about a device's window, so a new one starts from scratch. */
+  private forget(deviceId: string): void {
+    this.windows.delete(deviceId);
+    this.layoutApplied.delete(deviceId);
+    this.orientations.delete(deviceId);
+  }
+
+  private async openNow(deviceId: string, deviceLabel: string): Promise<Result<void>> {
     const existing = this.windows.get(deviceId);
-    if (existing && !existing.isDestroyed()) {
+    if (existing) {
+      // Its 'closed' handler would otherwise forget the window that replaces it.
       existing.removeAllListeners('closed');
-      existing.close();
-      this.windows.delete(deviceId);
+      this.forget(deviceId);
+      if (!existing.isDestroyed()) {
+        existing.close();
+      }
     }
 
     await this.deps.scrcpyService.closeMirror(deviceId);
@@ -66,9 +96,7 @@ export class MirrorWindowService {
     win.on('focus', () => void this.deps.scrcpyService.syncClipboardToDevice(deviceId));
 
     win.on('closed', () => {
-      this.windows.delete(deviceId);
-      this.layoutApplied.delete(deviceId);
-      this.orientations.delete(deviceId);
+      this.forget(deviceId);
       void this.deps.scrcpyService.closeMirror(deviceId);
     });
 
@@ -163,12 +191,11 @@ export class MirrorWindowService {
   }
 
   closeAll(): void {
-    for (const deviceId of [...this.windows.keys()]) {
-      const win = this.windows.get(deviceId);
-      if (win && !win.isDestroyed()) {
+    for (const [deviceId, win] of [...this.windows]) {
+      this.forget(deviceId);
+      if (!win.isDestroyed()) {
         win.close();
       }
     }
-    this.windows.clear();
   }
 }

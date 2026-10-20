@@ -75,7 +75,8 @@ describe('ClipboardSync', () => {
     expect(setDeviceText).not.toHaveBeenCalled();
   });
 
-  it('retries the same text later if sending failed', async () => {
+  it('retries the same text later if sending failed, and says so', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const { sync, setDeviceText } = setup('from pc');
     setDeviceText.mockRejectedValueOnce(new Error('closed'));
 
@@ -83,6 +84,18 @@ describe('ClipboardSync', () => {
     await sync.pushToDevice();
 
     expect(setDeviceText).toHaveBeenCalledTimes(2);
+    expect(logged).toHaveBeenCalledTimes(1);
+    logged.mockRestore();
+  });
+
+  it('logs a device clipboard stream that fails while syncing', async () => {
+    const logged = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { controller } = setup();
+
+    controller.error(new Error('stream broke'));
+
+    await vi.waitFor(() => expect(logged).toHaveBeenCalledTimes(1));
+    logged.mockRestore();
   });
 
   it('does nothing after stop', async () => {

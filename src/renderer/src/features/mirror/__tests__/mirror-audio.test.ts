@@ -11,7 +11,7 @@ function setup(webCodecId = 'opus') {
     createBufferSource: vi.fn(() => source),
     destination: {},
   };
-  const decoder = { configure: vi.fn(), decode: vi.fn(), close: vi.fn() };
+  const decoder = { decodeQueueSize: 0, configure: vi.fn(), decode: vi.fn(), close: vi.fn() };
   let emit: (data: AudioData) => void = () => undefined;
   let fail: (error: Error) => void = () => undefined;
   const deps: MirrorAudioDeps = {
@@ -96,6 +96,44 @@ describe('MirrorAudioPlayer', () => {
 
     expect(source.start.mock.calls.length).toBeLessThan(40);
     expect(source.start.mock.calls.length).toBeGreaterThan(5);
+  });
+
+  it('timestamps packets by their own pts when the stream has one', () => {
+    const { player, decoder } = setup();
+    const chunks: number[] = [];
+    decoder.decode.mockImplementation((chunk: { timestamp: number }) =>
+      chunks.push(chunk.timestamp),
+    );
+
+    player.push({ type: 'data', data: new Uint8Array([1]), pts: 50_000n });
+    player.push({ type: 'data', data: new Uint8Array([2]), pts: 90_000n });
+
+    expect(chunks).toEqual([50_000, 90_000]);
+  });
+
+  it('falls back to a 20 ms step per packet without pts', () => {
+    const { player, decoder } = setup();
+    const chunks: number[] = [];
+    decoder.decode.mockImplementation((chunk: { timestamp: number }) =>
+      chunks.push(chunk.timestamp),
+    );
+
+    player.push(data([1]));
+    player.push(data([2]));
+
+    expect(chunks).toEqual([20_000, 40_000]);
+  });
+
+  it('drops encoded packets while the decoder is far behind', () => {
+    const { player, decoder } = setup();
+
+    decoder.decodeQueueSize = 50;
+    player.push(data([1]));
+    expect(decoder.decode).not.toHaveBeenCalled();
+
+    decoder.decodeQueueSize = 0;
+    player.push(data([2]));
+    expect(decoder.decode).toHaveBeenCalledTimes(1);
   });
 
   it('stops and releases everything on dispose, ignoring later packets', () => {

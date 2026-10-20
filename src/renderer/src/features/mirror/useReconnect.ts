@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-export type ReconnectState =
+type ReconnectState =
   | { readonly status: 'idle' }
   | { readonly status: 'reconnecting'; readonly attempt: number }
   | { readonly status: 'failed' };

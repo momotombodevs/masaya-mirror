@@ -39,6 +39,8 @@ export type MirrorStreamPacketMessage = {
     readonly type: 'configuration' | 'data';
     readonly data: Uint8Array;
     readonly keyframe?: boolean;
+    /** Presentation time in microseconds, as the device stamped it. */
+    readonly pts?: bigint;
   };
 };
 
@@ -50,7 +52,7 @@ export type MirrorStreamCloseMessage = {
 export type MirrorStreamMessage =
   MirrorStreamInitMessage | MirrorStreamPacketMessage | MirrorStreamCloseMessage;
 
-export type MirrorTouchControl = {
+type MirrorTouchControl = {
   readonly type: 'touch';
   readonly action: number;
   readonly pointerId: number;
@@ -63,7 +65,7 @@ export type MirrorTouchControl = {
   readonly actionButton: number;
 };
 
-export type MirrorScrollControl = {
+type MirrorScrollControl = {
   readonly type: 'scroll';
   readonly pointerX: number;
   readonly pointerY: number;
@@ -74,7 +76,7 @@ export type MirrorScrollControl = {
   readonly buttons: number;
 };
 
-export type MirrorKeyControl = {
+type MirrorKeyControl = {
   readonly type: 'key';
   readonly action: number;
   readonly keyCode: number;
@@ -94,13 +96,13 @@ export const ANDROID_KEY_EVENT_ACTION = {
   up: 1,
 } as const;
 
-export type MirrorTextControl = {
+type MirrorTextControl = {
   readonly type: 'text';
   readonly text: string;
 };
 
 /** Turns the device screen 90°, like the rotate button of the system navigation. */
-export type MirrorRotateControl = {
+type MirrorRotateControl = {
   readonly type: 'rotate';
 };
 

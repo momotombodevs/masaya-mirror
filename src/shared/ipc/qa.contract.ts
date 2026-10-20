@@ -15,7 +15,7 @@ export type SaveRecordingRequest = {
   readonly mimeType: string;
 };
 
-export type QaActionSuccess = {
+type QaActionSuccess = {
   readonly saved?: boolean;
   readonly copied?: boolean;
 };

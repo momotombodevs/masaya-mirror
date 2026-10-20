@@ -1,40 +1,15 @@
-import { app, BrowserWindow, type BrowserWindowConstructorOptions } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
-import { DEV_ICON, MAIN_DIST, RENDERER_DIST, VITE_DEV_SERVER_URL } from './paths';
-import {
-  applySystemAccent,
-  getWindowBackground,
-  getWindowMaterial,
-  keepWindowBackgroundInSync,
-} from './system-theme';
-import { attachWindowSecurity, registerDevContentSecurityPolicy } from './window-security';
+import { DEV_ICON, RENDERER_DIST, VITE_DEV_SERVER_URL } from './paths';
+import { createSecureWindow } from './secure-window';
+import { getWindowBackground, getWindowMaterial, keepWindowBackgroundInSync } from './system-theme';
+import { registerDevContentSecurityPolicy, registerPermissionPolicy } from './window-security';
 
 const APP_NAME = 'Manolo Mirror';
 
 app.setName(APP_NAME);
 if (process.platform === 'win32') {
   app.setAppUserModelId('com.manolo.mirror');
-}
-
-/** Every window runs sandboxed with context isolation and only the preload bridge. */
-export function createSecureWindow(options: BrowserWindowConstructorOptions): BrowserWindow {
-  const window = new BrowserWindow({
-    // Windows and Linux show this in dev; packaged builds use the icon embedded by the packager.
-    ...(app.isPackaged ? {} : { icon: DEV_ICON }),
-    ...options,
-    webPreferences: {
-      preload: path.join(MAIN_DIST, 'preload.cjs'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true,
-      webSecurity: true,
-      // Device audio starts with the stream, not with a click in the window.
-      autoplayPolicy: 'no-user-gesture-required',
-    },
-  });
-  attachWindowSecurity(window);
-  applySystemAccent(window);
-  return window;
 }
 
 export function createWindow(): BrowserWindow {
@@ -89,6 +64,7 @@ export function claimSingleInstance(): boolean {
 export function registerAppLifecycle(): void {
   void app.whenReady().then(() => {
     registerDevContentSecurityPolicy();
+    registerPermissionPolicy();
     if (!app.isPackaged) {
       app.dock?.setIcon(DEV_ICON);
     }

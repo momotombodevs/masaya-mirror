@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes } from 'react';
 import { cx } from './cx';
 
-export type ButtonVariant = 'default' | 'primary' | 'plain' | 'toolbar';
+type ButtonVariant = 'default' | 'primary' | 'plain' | 'toolbar';
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   default:

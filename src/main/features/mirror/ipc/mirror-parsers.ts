@@ -1,5 +1,5 @@
 import { isRecord } from '../../../../shared/ipc/is-record';
-import { err, ok, type Result } from '../../../../shared/ipc/result';
+import { err, mapResult, ok, type Result } from '../../../../shared/ipc/result';
 import {
   DEFAULT_MIRROR_OPTIONS,
   MAX_MIRROR_TEXT_BYTES,
@@ -12,6 +12,7 @@ import {
   MIN_BIT_RATE,
   MIN_MAX_SIZE,
 } from '../../../../shared/preferences/parse';
+import { utf8ByteLength } from '../../../../shared/text/utf8';
 import { parseNumericFields, type NumericRules } from './numeric-fields';
 
 const MAX_VIDEO_DIMENSION = 10_000;
@@ -107,15 +108,15 @@ export function parseControlMessage(value: unknown): Result<MirrorControlMessage
   switch (value.type) {
     case 'touch': {
       const fields = parseNumericFields(value, TOUCH_RULES, 'Invalid touch message.');
-      return fields.ok ? ok({ type: 'touch', ...fields.value }) : fields;
+      return mapResult(fields, (value) => ({ type: 'touch', ...value }) as const);
     }
     case 'scroll': {
       const fields = parseNumericFields(value, SCROLL_RULES, 'Invalid scroll message.');
-      return fields.ok ? ok({ type: 'scroll', ...fields.value }) : fields;
+      return mapResult(fields, (value) => ({ type: 'scroll', ...value }) as const);
     }
     case 'key': {
       const fields = parseNumericFields(value, KEY_RULES, 'Invalid key message.');
-      return fields.ok ? ok({ type: 'key', ...fields.value }) : fields;
+      return mapResult(fields, (value) => ({ type: 'key', ...value }) as const);
     }
     case 'rotate':
       return ok({ type: 'rotate' });
@@ -123,7 +124,7 @@ export function parseControlMessage(value: unknown): Result<MirrorControlMessage
       if (typeof value.text !== 'string' || value.text.length === 0) {
         return err('Invalid text message.');
       }
-      if (new TextEncoder().encode(value.text).byteLength > MAX_MIRROR_TEXT_BYTES) {
+      if (utf8ByteLength(value.text) > MAX_MIRROR_TEXT_BYTES) {
         return err('Text message is too long.');
       }
       return ok({ type: 'text', text: value.text });

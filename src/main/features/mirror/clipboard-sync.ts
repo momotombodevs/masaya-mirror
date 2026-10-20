@@ -1,3 +1,5 @@
+import { utf8ByteLength } from '../../../shared/text/utf8';
+
 /** The computer's clipboard, as far as the sync needs it. */
 export type SystemClipboard = {
   readText(): string;
@@ -5,7 +7,7 @@ export type SystemClipboard = {
 };
 
 /** The reading half of a stream of text; both the DOM and the scrcpy library streams fit it. */
-export type TextStream = {
+type TextStream = {
   getReader(): TextReader;
 };
 
@@ -25,10 +27,8 @@ export type ClipboardSyncDeps = {
 /** scrcpy refuses clipboard text above 256 KiB; larger text is not synced. */
 export const MAX_CLIPBOARD_BYTES = 256 * 1024;
 
-const encoder = new TextEncoder();
-
 function isSyncable(text: string): boolean {
-  return text.length > 0 && encoder.encode(text).byteLength <= MAX_CLIPBOARD_BYTES;
+  return text.length > 0 && utf8ByteLength(text) <= MAX_CLIPBOARD_BYTES;
 }
 
 /**
@@ -50,6 +50,7 @@ export class ClipboardSync {
 
   stop(): void {
     this.stopped = true;
+    // Cancelling a stream that already ended or failed has nothing left to report.
     void this.reader?.cancel().catch(() => undefined);
     this.reader = null;
   }
@@ -66,9 +67,12 @@ export class ClipboardSync {
     this.lastText = text;
     try {
       await this.deps.setDeviceText(text);
-    } catch {
-      // The session is closing; the next sync after reconnecting sends it again.
+    } catch (error: unknown) {
+      // Forget the text so the next sync tries again instead of assuming the device has it.
       this.lastText = null;
+      if (!this.stopped) {
+        console.error('[clipboard] could not send the clipboard to the device', error);
+      }
     }
   }
 
@@ -84,8 +88,11 @@ export class ClipboardSync {
           this.deps.system.writeText(value);
         }
       }
-    } catch {
-      // The stream ends with the session.
+    } catch (error: unknown) {
+      // The stream is cancelled with the session; only a failure while it lives is news.
+      if (!this.stopped) {
+        console.error('[clipboard] the device clipboard stream failed', error);
+      }
     }
   }
 }

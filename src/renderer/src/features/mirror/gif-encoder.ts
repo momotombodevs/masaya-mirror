@@ -10,13 +10,17 @@ export type GifFrame = {
 
 export type Size = { readonly width: number; readonly height: number };
 
-/** Scales a size down to `maxWidth` keeping its proportions; never scales up. */
-export function fitWidth(size: Size, maxWidth: number): Size {
-  if (size.width <= maxWidth) {
+/** Scales a size down so its longest edge is at most `maxEdge`, keeping proportions; never scales up. */
+export function fitWithin(size: Size, maxEdge: number): Size {
+  const longest = Math.max(size.width, size.height);
+  if (longest <= maxEdge) {
     return size;
   }
-  const scale = maxWidth / size.width;
-  return { width: maxWidth, height: Math.max(1, Math.round(size.height * scale)) };
+  const scale = maxEdge / longest;
+  return {
+    width: Math.max(1, Math.round(size.width * scale)),
+    height: Math.max(1, Math.round(size.height * scale)),
+  };
 }
 
 const MAX_COLORS = 256;

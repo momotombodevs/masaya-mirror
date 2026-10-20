@@ -66,7 +66,7 @@ const FIELDS = Object.keys(FIELD_PARSERS) as readonly (keyof Preferences)[];
 /** Strict: for a request from a window. Any known field with a bad value rejects the whole patch. */
 export function parsePreferencesPatch(payload: unknown): Result<Partial<Preferences>> {
   if (!isRecord(payload)) {
-    return err('Preferencia inválida.');
+    return err('Invalid preference.');
   }
   const patch: Record<string, unknown> = {};
   for (const field of FIELDS) {
@@ -75,7 +75,7 @@ export function parsePreferencesPatch(payload: unknown): Result<Partial<Preferen
     }
     const parsed = FIELD_PARSERS[field](payload[field]);
     if (parsed === undefined) {
-      return err('Preferencia inválida.');
+      return err('Invalid preference.');
     }
     patch[field] = parsed;
   }

@@ -36,7 +36,6 @@ export class UpdaterService {
   private downloadedVersion: string | null = null;
   private promptedVersion: string | null = null;
   private manualCheckPending = false;
-  private timers: NodeJS.Timeout[] = [];
 
   constructor(private readonly deps: UpdaterDeps) {
     const { driver } = deps;
@@ -63,18 +62,9 @@ export class UpdaterService {
   start(): void {
     const { startDelayMs = DEFAULT_START_DELAY_MS, intervalMs = DEFAULT_INTERVAL_MS } = this.deps;
     const check = (): void => void this.runCheck();
-    this.timers = [setTimeout(check, startDelayMs), setInterval(check, intervalMs)];
-    for (const timer of this.timers) {
-      timer.unref();
-    }
-  }
-
-  stop(): void {
-    for (const timer of this.timers) {
-      clearTimeout(timer);
-      clearInterval(timer);
-    }
-    this.timers = [];
+    // The timers live as long as the app and must not keep the process alive on their own.
+    setTimeout(check, startDelayMs).unref();
+    setInterval(check, intervalMs).unref();
   }
 
   /** User-initiated check from the menu: always answers, even when there is nothing new. */

@@ -38,7 +38,7 @@ export const ANDROID_KEYCODE = {
   appSwitch: 187,
 } as const;
 
-export function mapBrowserKeyToAndroid(code: string): number | null {
+function mapBrowserKeyToAndroid(code: string): number | null {
   return KEY_CODE_MAP[code] ?? null;
 }
 

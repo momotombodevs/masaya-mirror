@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RecordingFormat } from '../../../../shared/preferences/types';
 import { useI18n } from '../../shared/i18n';
-import { getManoloApi } from '../../shared/manolo-api';
+import { callApi } from '../../shared/manolo-api';
 import { encodeGif } from './gif-encoder';
 import { createCanvasFrameGrabber, GifRecorder } from './gif-recorder';
 import { GIF_MIME_TYPE, pickVideoMimeType } from './recording-formats';
@@ -38,19 +38,14 @@ export function useRecording(
 
   const save = useCallback(
     async (data: ArrayBuffer, mimeType: string, savedMessage: string): Promise<void> => {
-      const api = getManoloApi();
-      if (!api) {
-        return;
-      }
-      try {
-        const result = await api.saveRecording(data, mimeType);
-        if (result.ok && result.value.saved) {
-          showStatus(savedMessage);
-        } else if (!result.ok) {
-          showStatus(result.error);
-        }
-      } catch {
-        showStatus(t('status.recordingFailed'));
+      const result = await callApi(
+        (api) => api.saveRecording(data, mimeType),
+        t('status.recordingFailed'),
+      );
+      if (!result.ok) {
+        showStatus(result.error);
+      } else if (result.value.saved) {
+        showStatus(savedMessage);
       }
     },
     [showStatus, t],

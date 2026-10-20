@@ -5,7 +5,7 @@ import { mirrorApi } from './mirror.api';
 import { preferencesApi } from './preferences.api';
 import { qaApi } from './qa.api';
 
-export const manoloApi = {
+const manoloApi = {
   ...deviceApi,
   ...mirrorApi,
   ...qaApi,

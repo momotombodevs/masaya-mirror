@@ -11,6 +11,8 @@ export type AudioOutput = {
 };
 
 export type AudioDecoderLike = {
+  /** Encoded chunks waiting to be decoded. */
+  readonly decodeQueueSize: number;
   configure(config: AudioDecoderConfig): void;
   decode(chunk: EncodedAudioChunk): void;
   close(): void;
@@ -31,6 +33,19 @@ const CHANNELS = 2;
 const MIN_LEAD_S = 0.04;
 /** More audio queued than this is dropped, so sound cannot drift behind the picture. */
 const MAX_QUEUED_S = 0.25;
+
+/**
+ * scrcpy sends Opus/AAC in 20 ms frames. Used as the packet duration when the stream does not
+ * carry presentation timestamps (the packets forwarded to the window have none today).
+ */
+const FALLBACK_PACKET_DURATION_US = 20_000;
+/** More encoded packets than this waiting for the decoder are dropped, so audio stays near live. */
+const MAX_DECODE_QUEUE = 10;
+
+/** The one place audio failures are reported; audio is optional, so they never reach the user. */
+export function reportAudioError(error: unknown): void {
+  console.error('[audio]', error);
+}
 
 const browserDeps: MirrorAudioDeps = {
   createOutput: () => new AudioContext({ sampleRate: SAMPLE_RATE, latencyHint: 'interactive' }),
@@ -58,7 +73,7 @@ export class MirrorAudioPlayer {
     this.decoder = deps.createDecoder({
       output: (data) => this.play(data),
       error: (error) => {
-        console.error('[audio]', error);
+        reportAudioError(error);
         this.dispose();
       },
     });
@@ -85,11 +100,15 @@ export class MirrorAudioPlayer {
       }
       return;
     }
-    this.clockUs += 20_000;
+    if (this.decoder.decodeQueueSize > MAX_DECODE_QUEUE) {
+      return;
+    }
+    this.clockUs =
+      packet.pts === undefined ? this.clockUs + FALLBACK_PACKET_DURATION_US : Number(packet.pts);
     try {
       this.decoder.decode(this.deps.createChunk(packet.data, this.clockUs));
     } catch (error) {
-      console.error('[audio]', error);
+      reportAudioError(error);
       this.dispose();
     }
   }

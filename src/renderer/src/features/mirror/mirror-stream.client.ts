@@ -1,8 +1,9 @@
-import { useSyncExternalStore } from 'react';
+import { useCallback, useSyncExternalStore } from 'react';
 import type { ScrcpyMediaStreamPacket } from '@yume-chan/scrcpy';
 import { clearPendingMirrorPort, registerMirrorPortHandler } from './mirror-port-delivery';
 import { isValidMessagePort } from '../../../../shared/mirror/port-message';
-import { getManoloApi } from '../../shared/manolo-api';
+import { callApi, getManoloApi } from '../../shared/manolo-api';
+import type { MessageKey } from '../../../../shared/i18n/messages';
 import type {
   MirrorStreamCloseMessage,
   MirrorStreamInitMessage,
@@ -10,47 +11,41 @@ import type {
   MirrorStreamPacketMessage,
 } from '../../../../shared/mirror/types';
 
-type MirrorStreamHandlers = {
+/** What a subscriber may listen to; every handler is optional. */
+export type MirrorStreamHandlers = {
   onInit: (message: MirrorStreamInitMessage) => void;
   onVideoPacket: (packet: ScrcpyMediaStreamPacket) => void;
   onAudioPacket: (packet: ScrcpyMediaStreamPacket) => void;
   onClose: (message: MirrorStreamCloseMessage) => void;
 };
 
-type MirrorStreamSubscriber = MirrorStreamHandlers;
+/** Why the stream failed: a translatable message of ours, or text reported by the main process. */
+type MirrorStreamError = { readonly key: MessageKey } | { readonly message: string };
 
 export type MirrorStreamClientState = {
   readonly portStatus: 'waiting' | 'connected' | 'closed';
   readonly init: MirrorStreamInitMessage | null;
-  readonly lastError: string | null;
+  readonly lastError: MirrorStreamError | null;
 };
 
 type StateListener = (state: MirrorStreamClientState) => void;
 
-function toUint8Array(raw: Uint8Array | ArrayBuffer | readonly number[]): Uint8Array {
-  if (raw instanceof Uint8Array) {
-    return raw;
+/**
+ * Packets cross the MessagePort by structured clone, which keeps a Uint8Array a Uint8Array.
+ * Anything else is malformed and is skipped rather than guessed at.
+ */
+function toMediaPacket(
+  packet: MirrorStreamPacketMessage['packet'],
+): ScrcpyMediaStreamPacket | null {
+  if (!(packet.data instanceof Uint8Array)) {
+    return null;
   }
-  if (raw instanceof ArrayBuffer) {
-    return new Uint8Array(raw);
-  }
-  return Uint8Array.from(raw);
-}
-
-function normalizePacketData(packet: MirrorStreamPacketMessage['packet']): ScrcpyMediaStreamPacket {
-  const raw = packet.data as Uint8Array | ArrayBuffer | readonly number[] | Record<string, number>;
-  const data = Array.isArray(raw)
-    ? Uint8Array.from(raw)
-    : raw instanceof Uint8Array || raw instanceof ArrayBuffer
-      ? toUint8Array(raw)
-      : Uint8Array.from(Object.values(raw));
-
   if (packet.type === 'configuration') {
-    return { type: 'configuration', data };
+    return { type: 'configuration', data: packet.data };
   }
   return {
     type: 'data',
-    data,
+    data: packet.data,
     ...(packet.keyframe !== undefined ? { keyframe: packet.keyframe } : {}),
   };
 }
@@ -71,7 +66,10 @@ function listenOnPort(port: MessagePort, handlers: MirrorStreamHandlers): () => 
         handlers.onInit(message);
         break;
       case 'packet': {
-        const packet = normalizePacketData(message.packet);
+        const packet = toMediaPacket(message.packet);
+        if (!packet) {
+          break;
+        }
         if (message.stream === 'video') {
           handlers.onVideoPacket(packet);
         } else {
@@ -99,7 +97,7 @@ export class MirrorStreamClient {
   private port: MessagePort | null = null;
   private detachPort: (() => void) | null = null;
   private unsubscribePort: (() => void) | null = null;
-  private readonly subscribers = new Set<MirrorStreamSubscriber>();
+  private readonly subscribers = new Set<Partial<MirrorStreamHandlers>>();
   private readonly stateListeners = new Set<StateListener>();
   private state: MirrorStreamClientState = {
     portStatus: 'waiting',
@@ -110,7 +108,7 @@ export class MirrorStreamClient {
   constructor(private readonly deviceId: string) {
     const api = getManoloApi();
     if (!api) {
-      this.setState({ lastError: 'API de Manolo Mirror no disponible.' });
+      this.setState({ lastError: { key: 'mirror.apiUnavailable' } });
       return;
     }
 
@@ -132,35 +130,35 @@ export class MirrorStreamClient {
 
   subscribeState(listener: StateListener): () => void {
     this.stateListeners.add(listener);
-    listener(this.state);
     return () => {
       this.stateListeners.delete(listener);
     };
   }
 
-  subscribe(handlers: MirrorStreamSubscriber): () => void {
+  subscribe(handlers: Partial<MirrorStreamHandlers>): () => void {
     this.subscribers.add(handlers);
     if (this.state.init) {
-      handlers.onInit(this.state.init);
+      handlers.onInit?.(this.state.init);
     }
     return () => {
       this.subscribers.delete(handlers);
     };
   }
 
-  private fanOut(handlers: keyof MirrorStreamSubscriber, arg: unknown): void {
+  private emit(call: (subscriber: Partial<MirrorStreamHandlers>) => void): void {
     for (const subscriber of this.subscribers) {
-      const fn = subscriber[handlers];
-      if (typeof fn === 'function') {
-        (fn as (value: unknown) => void)(arg);
-      }
+      call(subscriber);
     }
   }
 
   private bindPort(port: MessagePort): void {
+    // A new port means a new session: drop the old port and what it announced.
     this.detachPort?.();
+    if (this.port && this.port !== port) {
+      this.port.close();
+    }
     this.port = port;
-    this.setState({ portStatus: 'connected', lastError: null });
+    this.setState({ portStatus: 'connected', init: null, lastError: null });
 
     this.detachPort = listenOnPort(port, {
       onInit: (message) => {
@@ -168,17 +166,17 @@ export class MirrorStreamClient {
           return;
         }
         this.setState({ init: message });
-        this.fanOut('onInit', message);
+        this.emit((subscriber) => subscriber.onInit?.(message));
       },
       onVideoPacket: (packet) => {
-        this.fanOut('onVideoPacket', packet);
+        this.emit((subscriber) => subscriber.onVideoPacket?.(packet));
       },
       onAudioPacket: (packet) => {
-        this.fanOut('onAudioPacket', packet);
+        this.emit((subscriber) => subscriber.onAudioPacket?.(packet));
       },
       onClose: (message) => {
         this.setState({ portStatus: 'closed' });
-        this.fanOut('onClose', message);
+        this.emit((subscriber) => subscriber.onClose?.(message));
       },
     });
 
@@ -188,13 +186,12 @@ export class MirrorStreamClient {
   }
 
   private async notifyStreamReadyOnce(): Promise<void> {
-    const api = getManoloApi();
-    if (!api) {
-      return;
-    }
-    const result = await api.notifyMirrorStreamReady(this.deviceId);
+    const result = await callApi((api) => api.notifyMirrorStreamReady(this.deviceId), '');
     if (!result.ok) {
-      this.setState({ lastError: result.error });
+      // An empty message means the call itself failed (no bridge, or it rejected).
+      this.setState({
+        lastError: result.error ? { message: result.error } : { key: 'mirror.apiUnavailable' },
+      });
     }
   }
 
@@ -234,10 +231,12 @@ export function disposeMirrorStreamClient(deviceId: string): void {
 
 export function useMirrorStream(deviceId: string): MirrorStreamClientState {
   const client = getMirrorStreamClient(deviceId);
-
-  return useSyncExternalStore(
-    (onStoreChange) => client.subscribeState(() => onStoreChange()),
-    () => client.getState(),
-    () => client.getState(),
+  // Stable per client, so React does not unsubscribe and resubscribe on every render.
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => client.subscribeState(onStoreChange),
+    [client],
   );
+  const getSnapshot = useCallback(() => client.getState(), [client]);
+
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }

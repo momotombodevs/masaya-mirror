@@ -2,33 +2,32 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEFAULT_MIRROR_OPTIONS } from '../../../../../../shared/mirror/types';
-import { DEFAULT_PREFERENCES } from '../../../../../../shared/preferences/types';
+import { DEFAULT_PREFERENCES, type Preferences } from '../../../../../../shared/preferences/types';
+import { PreferencesContext } from '../../../../shared/preferences';
 import { SettingsPanel } from '../SettingsPanel';
 
 const getDeviceSettings = vi.fn();
 const setDeviceSetting = vi.fn();
 const onPreferenceChange = vi.fn();
-const onVideoChange = vi.fn();
-const onAudioChange = vi.fn();
-const onClipboardChange = vi.fn();
+const onOptionsChange = vi.fn();
 const onClose = vi.fn();
 
-type Props = Partial<Parameters<typeof SettingsPanel>[0]>;
+type Props = Partial<Parameters<typeof SettingsPanel>[0]> & {
+  readonly preferences?: Preferences;
+};
 
-const renderPanel = (props: Props = {}): void => {
+const renderPanel = ({ preferences = DEFAULT_PREFERENCES, ...props }: Props = {}): void => {
   render(
-    <SettingsPanel
-      deviceId="device-1"
-      preferences={DEFAULT_PREFERENCES}
-      options={DEFAULT_MIRROR_OPTIONS}
-      busy={false}
-      onPreferenceChange={onPreferenceChange}
-      onVideoChange={onVideoChange}
-      onAudioChange={onAudioChange}
-      onClipboardChange={onClipboardChange}
-      onClose={onClose}
-      {...props}
-    />,
+    <PreferencesContext.Provider value={{ preferences, loaded: true, update: onPreferenceChange }}>
+      <SettingsPanel
+        deviceId="device-1"
+        options={DEFAULT_MIRROR_OPTIONS}
+        busy={false}
+        onOptionsChange={onOptionsChange}
+        onClose={onClose}
+        {...props}
+      />
+    </PreferencesContext.Provider>,
   );
 };
 
@@ -98,7 +97,7 @@ describe('SettingsPanel', () => {
 
     fireEvent.click(toggle('Audio del dispositivo'));
 
-    expect(onAudioChange).toHaveBeenCalledWith(true);
+    expect(onOptionsChange).toHaveBeenCalledWith({ audioEnabled: true });
     expect(onPreferenceChange).not.toHaveBeenCalled();
   });
 
@@ -114,7 +113,7 @@ describe('SettingsPanel', () => {
     expect(toggle('Portapapeles compartido').getAttribute('aria-checked')).toBe('true');
     fireEvent.click(toggle('Portapapeles compartido'));
 
-    expect(onClipboardChange).toHaveBeenCalledWith(false);
+    expect(onOptionsChange).toHaveBeenCalledWith({ clipboardSync: false });
   });
 
   it('changes what a capture does', () => {
@@ -137,7 +136,13 @@ describe('SettingsPanel', () => {
 
     fireEvent.click(within(presets).getByRole('button', { name: 'Máxima' }));
 
-    expect(onVideoChange).toHaveBeenCalledWith({ maxSize: 2560, videoBitRate: 32_000_000 });
+    expect(onOptionsChange).toHaveBeenCalledWith({ maxSize: 2560, videoBitRate: 32_000_000 });
+  });
+
+  it('describes the active preset with its size and data rate', () => {
+    renderPanel();
+
+    expect(screen.getByText('1920 px · 16 Mbps')).toBeTruthy();
   });
 
   it('shows custom values with no active preset and keeps them selectable', () => {
@@ -165,7 +170,7 @@ describe('SettingsPanel', () => {
       target: { value: 'h265' },
     });
 
-    expect(onVideoChange.mock.calls).toEqual([
+    expect(onOptionsChange.mock.calls).toEqual([
       [{ maxSize: 1280 }],
       [{ videoBitRate: 8_000_000 }],
       [{ videoCodec: 'h265' }],
@@ -229,7 +234,7 @@ describe('SettingsPanel', () => {
       captureAction: 'preview',
       recordingFormat: 'video',
     });
-    expect(onVideoChange).toHaveBeenCalledWith(DEFAULT_PREFERENCES.mirror);
+    expect(onOptionsChange).toHaveBeenCalledWith(DEFAULT_PREFERENCES.mirror);
   });
 
   it('closes with Cerrar and with Escape', () => {

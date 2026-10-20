@@ -26,7 +26,7 @@ function buildScrcpyOptions(options: MirrorOptions): AdbScrcpyOptionsLatest<true
   });
 }
 
-export async function createAdbServerClient(): Promise<AdbServerClient> {
+export function createAdbServerClient(): AdbServerClient {
   const connector = new AdbServerNodeTcpConnector({ host: '127.0.0.1', port: 5037 });
   return new AdbServerClient(connector);
 }
@@ -59,6 +59,7 @@ export async function startScrcpyClient(
     return await readStartedStreams(client, options);
   } catch (error: unknown) {
     // The caller never sees the client on failure, so it must not outlive this call.
+    // Already failing: a second error from tearing the client down would only hide the first.
     await client.close().catch(() => undefined);
     throw error;
   }

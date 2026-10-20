@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react';
+import { GROUPED_CARD_CLASSES } from '../../../components/ui/card';
+import { Toggle } from '../../../components/ui/Toggle';
 import { cx } from '../../../components/ui/cx';
 
 /** A titled, inset group of rows, like a grouped list in the system settings. */
@@ -12,9 +14,7 @@ export function SettingsSection({
   return (
     <section>
       <h3 className="px-4 pb-1.5 text-sm uppercase tracking-wide text-ink-3">{title}</h3>
-      <div className="divide-y divide-line overflow-hidden rounded-panel bg-content shadow-control ring-1 ring-line">
-        {children}
-      </div>
+      <div className={GROUPED_CARD_CLASSES}>{children}</div>
     </section>
   );
 }
@@ -78,5 +78,30 @@ export function SettingRow({
       </div>
       <div className="shrink-0">{children}</div>
     </div>
+  );
+}
+
+/** A setting that is a plain on/off switch. */
+export function ToggleRow({
+  label,
+  hint,
+  icon,
+  tone,
+  checked,
+  disabled,
+  onChange,
+}: {
+  readonly label: string;
+  readonly hint?: string;
+  readonly icon?: string;
+  readonly tone?: RowIconTone;
+  readonly checked: boolean;
+  readonly disabled?: boolean;
+  readonly onChange: (checked: boolean) => void;
+}): JSX.Element {
+  return (
+    <SettingRow label={label} hint={hint} {...(icon ? { icon } : {})} {...(tone ? { tone } : {})}>
+      <Toggle label={label} checked={checked} disabled={disabled ?? false} onChange={onChange} />
+    </SettingRow>
   );
 }

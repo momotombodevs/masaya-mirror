@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { LanguagePreference } from '../../../../shared/i18n/locale';
 import { DEFAULT_PREFERENCES } from '../../../../shared/preferences/types';
 import { I18nProvider } from '../I18nProvider';
+import { PreferencesProvider } from '../PreferencesProvider';
 import { useI18n } from '../i18n';
 
 function Label(): JSX.Element {
@@ -32,9 +33,11 @@ describe('I18nProvider', () => {
   it('speaks the saved language and follows changes from other windows', async () => {
     const api = stubApi('en');
     render(
-      <I18nProvider>
-        <Label />
-      </I18nProvider>,
+      <PreferencesProvider>
+        <I18nProvider>
+          <Label />
+        </I18nProvider>
+      </PreferencesProvider>,
     );
 
     await waitFor(() => expect(screen.getByText('Settings')).toBeTruthy());

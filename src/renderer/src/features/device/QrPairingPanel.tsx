@@ -2,7 +2,7 @@ import QRCode from 'qrcode';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '../../components/ui/Button';
 import { useI18n } from '../../shared/i18n';
-import { getManoloApi } from '../../shared/manolo-api';
+import { callApi } from '../../shared/manolo-api';
 
 type QrPairingPanelProps = {
   /** Called once the phone is paired and connected, so the device list can refresh. */
@@ -27,7 +27,7 @@ export function QrPairingPanel({ onConnected }: QrPairingPanelProps): JSX.Elemen
     const sessionId = activeSession.current;
     activeSession.current = null;
     if (sessionId) {
-      void getManoloApi()?.cancelQrPairing(sessionId);
+      void callApi((api) => api.cancelQrPairing(sessionId), '');
     }
   }, []);
 
@@ -41,26 +41,21 @@ export function QrPairingPanel({ onConnected }: QrPairingPanelProps): JSX.Elemen
   }, [cancel]);
 
   const start = async (): Promise<void> => {
-    const api = getManoloApi();
-    if (!api) {
-      setState({ step: 'error', message: t('common.noBridge') });
-      return;
-    }
     setState({ step: 'starting' });
 
-    try {
-      const started = await api.startQrPairing();
-      if (!started.ok) {
-        setState({ step: 'error', message: started.error });
-        return;
-      }
-      const { sessionId, payload } = started.value;
-      activeSession.current = sessionId;
-      if (!mountedRef.current) {
-        cancel(); // the dialog closed while the session was starting
-        return;
-      }
+    const started = await callApi((api) => api.startQrPairing(), t('common.noBridge'));
+    if (!started.ok) {
+      setState({ step: 'error', message: started.error });
+      return;
+    }
+    const { sessionId, payload } = started.value;
+    activeSession.current = sessionId;
+    if (!mountedRef.current) {
+      cancel(); // the dialog closed while the session was starting
+      return;
+    }
 
+    try {
       // SVG is generated without a canvas and shown as an image, so no markup is injected.
       const svg = await QRCode.toString(payload, {
         type: 'svg',
@@ -74,18 +69,6 @@ export function QrPairingPanel({ onConnected }: QrPairingPanelProps): JSX.Elemen
         step: 'waiting',
         qrUrl: `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`,
       });
-
-      const result = await api.waitQrPairing(sessionId);
-      if (activeSession.current !== sessionId) {
-        return; // cancelled or replaced while waiting
-      }
-      activeSession.current = null;
-      if (result.ok) {
-        setState({ step: 'done', message: result.value.message });
-        onConnected();
-      } else {
-        setState({ step: 'error', message: result.error });
-      }
     } catch (error: unknown) {
       cancel();
       if (mountedRef.current) {
@@ -94,6 +77,19 @@ export function QrPairingPanel({ onConnected }: QrPairingPanelProps): JSX.Elemen
           message: error instanceof Error ? error.message : t('common.noBridge'),
         });
       }
+      return;
+    }
+
+    const result = await callApi((api) => api.waitQrPairing(sessionId), t('common.noBridge'));
+    if (activeSession.current !== sessionId) {
+      return; // cancelled or replaced while waiting
+    }
+    activeSession.current = null;
+    if (result.ok) {
+      setState({ step: 'done', message: result.value.message });
+      onConnected();
+    } else {
+      setState({ step: 'error', message: result.error });
     }
   };
 

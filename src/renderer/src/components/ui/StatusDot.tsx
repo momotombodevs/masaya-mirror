@@ -1,6 +1,6 @@
 import { cx } from './cx';
 
-export type StatusTone = 'success' | 'warning' | 'idle';
+type StatusTone = 'success' | 'warning' | 'idle';
 
 const DOT_CLASSES: Record<StatusTone, string> = {
   success: 'bg-success',

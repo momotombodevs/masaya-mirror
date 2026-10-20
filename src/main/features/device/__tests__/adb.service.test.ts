@@ -55,6 +55,44 @@ XYZ789          offline`;
     expect(parseAdbDevicesOutput(stdout)).toEqual([]);
   });
 
+  it('ignores daemon chatter such as "* daemon started successfully"', () => {
+    const stdout = `* daemon not running; starting now at tcp:5037
+* daemon started successfully
+List of devices attached
+emulator-5554          device`;
+
+    expect(parseAdbDevicesOutput(stdout)).toEqual([{ id: 'emulator-5554', status: 'device' }]);
+  });
+
+  it('only accepts known statuses', () => {
+    const stdout = `List of devices attached
+adb server version (41) doesn't match this client (40); killing...
+daemon not running
+SERIAL1 authorizing
+SERIAL2 recovery
+SERIAL3 sideload
+SERIAL4 bootloader
+SERIAL5 host
+SERIAL6 nonsense product:x`;
+
+    expect(parseAdbDevicesOutput(stdout)).toEqual([
+      { id: 'SERIAL1', status: 'unknown' },
+      { id: 'SERIAL2', status: 'unknown' },
+      { id: 'SERIAL3', status: 'unknown' },
+      { id: 'SERIAL4', status: 'unknown' },
+      { id: 'SERIAL5', status: 'unknown' },
+    ]);
+  });
+
+  it('parses a device without permissions together with its reason', () => {
+    const stdout = `List of devices attached
+0123456789ABCDEF no permissions (user in plugdev group; are your udev rules wrong?); see [http://developer.android.com/tools/device.html] usb:1-1 model:Pixel`;
+
+    expect(parseAdbDevicesOutput(stdout)).toEqual([
+      { id: '0123456789ABCDEF', status: 'unknown', model: 'Pixel' },
+    ]);
+  });
+
   it('skips malformed lines', () => {
     const stdout = `List of devices attached
 broken-line
@@ -81,7 +119,7 @@ describe('AdbService', () => {
     const service = new AdbService();
     const result = await service.listDevices();
 
-    expect(mockedRunCommand).toHaveBeenCalledWith('/usr/local/bin/adb', ['devices', '-l']);
+    expect(mockedRunCommand).toHaveBeenCalledWith('/usr/local/bin/adb', ['devices', '-l'], 20_000);
     expect(result).toEqual({
       ok: true,
       value: [{ id: 'emulator-5554', status: 'device' }],
@@ -98,8 +136,17 @@ describe('AdbService', () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error).toContain('ADB no encontrado');
+      expect(result.code).toBe('ADB_NOT_FOUND');
     }
     expect(mockedRunCommand).not.toHaveBeenCalled();
+  });
+
+  it('flags a missing adb binary with its code', async () => {
+    mockedRunCommand.mockRejectedValue(new CommandError('spawn adb ENOENT', { code: 'ENOENT' }));
+
+    const result = await new AdbService().listDevices();
+
+    expect(result).toMatchObject({ ok: false, code: 'ADB_NOT_FOUND' });
   });
 
   it('returns stderr message on adb failure', async () => {

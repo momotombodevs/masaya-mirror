@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useI18n } from '../../shared/i18n';
-import { getManoloApi } from '../../shared/manolo-api';
-import type { Translate } from '../../../../shared/i18n/messages';
+import { callApi } from '../../shared/manolo-api';
 import type { CaptureAction } from '../../../../shared/preferences/types';
 import { captureCanvasPng } from './capture-canvas';
 
-export type CapturePreview = {
+type CapturePreview = {
   readonly url: string;
   readonly buffer: ArrayBuffer;
 };
@@ -19,27 +18,6 @@ export type UseCaptureResult = {
   readonly close: () => void;
 };
 
-/** Copies or saves a capture without showing the preview. */
-async function deliver(
-  action: Exclude<CaptureAction, 'preview'>,
-  buffer: ArrayBuffer,
-  showStatus: (message: string) => void,
-  t: Translate,
-): Promise<void> {
-  const api = getManoloApi();
-  if (!api) {
-    return;
-  }
-  const result = await (action === 'copy' ? api.copyCapture(buffer) : api.saveCapture(buffer));
-  if (!result.ok) {
-    showStatus(result.error);
-  } else if (action === 'copy') {
-    showStatus(t('status.copied'));
-  } else {
-    showStatus(result.value.saved ? t('status.captureSaved') : t('status.saveCancelled'));
-  }
-}
-
 /** Captures the mirror canvas to a PNG and exposes copy/save actions via the main process. */
 export function useCapture(
   canvas: HTMLCanvasElement | null,
@@ -51,22 +29,42 @@ export function useCapture(
   const [preview, setPreview] = useState<CapturePreview | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const close = useCallback((): void => {
-    setPreview((current) => {
-      if (current) {
-        URL.revokeObjectURL(current.url);
-      }
-      return null;
-    });
-  }, []);
-
+  // The preview URL is revoked here and only here: when it is replaced, closed or the hook unmounts.
   useEffect(() => {
-    return () => {
-      if (preview) {
-        URL.revokeObjectURL(preview.url);
-      }
-    };
+    if (!preview) {
+      return undefined;
+    }
+    return () => URL.revokeObjectURL(preview.url);
   }, [preview]);
+
+  const close = useCallback((): void => setPreview(null), []);
+
+  /** Copies or saves a capture. Resolves true when it was done, so the preview can close. */
+  const deliver = useCallback(
+    async (kind: 'copy' | 'save', buffer: ArrayBuffer): Promise<boolean> => {
+      const result = await callApi(
+        (api) => (kind === 'copy' ? api.copyCapture(buffer) : api.saveCapture(buffer)),
+        t('common.noBridge'),
+      );
+      if (!result.ok) {
+        showStatus(result.error);
+        return false;
+      }
+      if (kind === 'copy') {
+        if (result.value.copied) {
+          showStatus(t('status.copied'));
+        }
+        return result.value.copied === true;
+      }
+      if (result.value.saved) {
+        showStatus(t('status.captureSaved'));
+      } else {
+        showStatus(t('status.saveCancelled'));
+      }
+      return result.value.saved === true;
+    },
+    [showStatus, t],
+  );
 
   const open = useCallback(async (): Promise<void> => {
     if (!canvas) {
@@ -81,52 +79,33 @@ export function useCapture(
     }
 
     if (action !== 'preview') {
-      await deliver(action, buffer, showStatus, t);
+      await deliver(action, buffer);
       return;
     }
 
     const url = URL.createObjectURL(new Blob([buffer], { type: 'image/png' }));
-    setPreview((current) => {
-      if (current) {
-        URL.revokeObjectURL(current.url);
+    setPreview({ url, buffer });
+  }, [canvas, showStatus, action, deliver, t]);
+
+  const deliverPreview = useCallback(
+    async (kind: 'copy' | 'save'): Promise<void> => {
+      if (!preview) {
+        return;
       }
-      return { url, buffer };
-    });
-  }, [canvas, showStatus, action, t]);
+      setBusy(true);
+      try {
+        if (await deliver(kind, preview.buffer)) {
+          close();
+        }
+      } finally {
+        setBusy(false);
+      }
+    },
+    [preview, deliver, close],
+  );
 
-  const copy = useCallback(async (): Promise<void> => {
-    const api = getManoloApi();
-    if (!preview || !api) {
-      return;
-    }
-    setBusy(true);
-    const result = await api.copyCapture(preview.buffer);
-    setBusy(false);
-    if (result.ok && result.value.copied) {
-      showStatus(t('status.copied'));
-      close();
-    } else if (!result.ok) {
-      showStatus(result.error);
-    }
-  }, [preview, close, showStatus, t]);
-
-  const save = useCallback(async (): Promise<void> => {
-    const api = getManoloApi();
-    if (!preview || !api) {
-      return;
-    }
-    setBusy(true);
-    const result = await api.saveCapture(preview.buffer);
-    setBusy(false);
-    if (result.ok && result.value.saved) {
-      showStatus(t('status.captureSaved'));
-      close();
-    } else if (result.ok) {
-      showStatus(t('status.saveCancelled'));
-    } else {
-      showStatus(result.error);
-    }
-  }, [preview, close, showStatus, t]);
+  const copy = useCallback(() => deliverPreview('copy'), [deliverPreview]);
+  const save = useCallback(() => deliverPreview('save'), [deliverPreview]);
 
   return { preview, busy, open, copy, save, close };
 }

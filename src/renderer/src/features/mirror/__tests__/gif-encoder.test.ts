@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { encodeGif, fitWidth, type GifFrame } from '../gif-encoder';
+import { encodeGif, fitWithin, type GifFrame } from '../gif-encoder';
 
 function solidFrame(width: number, height: number, [r, g, b]: number[], delayMs = 100): GifFrame {
   const data = new Uint8ClampedArray(width * height * 4);
@@ -9,13 +9,17 @@ function solidFrame(width: number, height: number, [r, g, b]: number[], delayMs 
   return { data, width, height, delayMs };
 }
 
-describe('fitWidth', () => {
-  it('scales down keeping the proportions', () => {
-    expect(fitWidth({ width: 1080, height: 2400 }, 480)).toEqual({ width: 480, height: 1067 });
+describe('fitWithin', () => {
+  it('scales a portrait size down by its height, keeping the proportions', () => {
+    expect(fitWithin({ width: 1080, height: 2400 }, 480)).toEqual({ width: 216, height: 480 });
+  });
+
+  it('scales a landscape size down by its width', () => {
+    expect(fitWithin({ width: 2400, height: 1080 }, 480)).toEqual({ width: 480, height: 216 });
   });
 
   it('never scales up', () => {
-    expect(fitWidth({ width: 300, height: 600 }, 480)).toEqual({ width: 300, height: 600 });
+    expect(fitWithin({ width: 300, height: 400 }, 480)).toEqual({ width: 300, height: 400 });
   });
 });
 

@@ -1,10 +1,12 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useMirrorDecoder } from './useMirrorDecoder';
 import { useMirrorAudio } from './useMirrorAudio';
 import { useMirrorInput } from './useMirrorInput';
 import { TouchIndicators } from './TouchIndicators';
+import { useI18n } from '../../shared/i18n';
 import { OverlayError } from '../../components/ui/OverlayError';
 import { cx } from '../../components/ui/cx';
+import { disposeMirrorStreamClient } from './mirror-stream.client';
 
 type MirrorViewProps = {
   readonly deviceId: string;
@@ -19,6 +21,7 @@ export function MirrorView({
   onClose,
   onCanvasChange,
 }: MirrorViewProps): JSX.Element {
+  const { t } = useI18n();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const attachCanvas = useCallback(
     (canvas: HTMLCanvasElement | null): void => {
@@ -32,6 +35,10 @@ export function MirrorView({
   });
   useMirrorAudio(deviceId);
   const input = useMirrorInput(deviceId, canvasRef, videoSizeRef);
+
+  // This view owns the stream client of its device and releases it (closing its MessagePort)
+  // on unmount. Declared after the hooks above, whose cleanups unsubscribe first.
+  useEffect(() => () => disposeMirrorStreamClient(deviceId), [deviceId]);
 
   const showLoading = portStatus === 'waiting' || (!ready && !streamError);
 
@@ -58,7 +65,7 @@ export function MirrorView({
       {showClicks && <TouchIndicators canvasRef={canvasRef} />}
       {showLoading && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-base text-mirror-muted">
-          Conectando…
+          {t('mirror.connecting')}
         </div>
       )}
       {streamError && <OverlayError>{streamError}</OverlayError>}

@@ -60,10 +60,6 @@ describe('UpdaterService', () => {
     expect(driver.checkForUpdates).toHaveBeenCalledTimes(1);
     await vi.advanceTimersByTimeAsync(10_000);
     expect(driver.checkForUpdates).toHaveBeenCalledTimes(2);
-
-    service.stop();
-    await vi.advanceTimersByTimeAsync(60_000);
-    expect(driver.checkForUpdates).toHaveBeenCalledTimes(2);
   });
 
   it('stays silent in background checks that find nothing or fail', async () => {

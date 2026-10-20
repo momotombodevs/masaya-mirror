@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import type { AndroidDevice } from '../../../../shared/device/types';
 import { Button } from '../../components/ui/Button';
+import { GROUPED_CARD_CLASSES } from '../../components/ui/card';
+import { PhoneIcon } from '../../components/ui/icons';
 import { StatusDot } from '../../components/ui/StatusDot';
 import type { DeviceSummary } from './connected-devices';
 import { isWifiDeviceId } from '../../../../shared/ipc/validators';
@@ -56,7 +58,7 @@ export function DeviceList({
       )}
 
       {connected.length > 0 && (
-        <ul className={LIST_CLASSES}>
+        <ul className={GROUPED_CARD_CLASSES}>
           {connected.map((device) => {
             const isMirroring = activeMirrorIds.includes(device.id);
             return (
@@ -80,7 +82,7 @@ export function DeviceList({
           <h2 className="-mb-2.5 px-4 text-sm uppercase tracking-wide text-ink-3">
             {t('devices.unavailable')}
           </h2>
-          <ul className={LIST_CLASSES}>
+          <ul className={GROUPED_CARD_CLASSES}>
             {unavailable.map((device) => (
               <DeviceRow
                 key={device.id}
@@ -106,10 +108,6 @@ export function DeviceList({
     </section>
   );
 }
-
-/** Inset grouped list: rounded card on the window background with hairline dividers. */
-const LIST_CLASSES =
-  'divide-y divide-line overflow-hidden rounded-panel bg-content shadow-control ring-1 ring-line';
 
 function countModels(devices: readonly AndroidDevice[]): ReadonlyMap<string, number> {
   const counts = new Map<string, number>();
@@ -168,23 +166,5 @@ function DeviceRow({ device, showId, status, onOpen, onDisconnect }: DeviceRowPr
         </Button>
       )}
     </li>
-  );
-}
-
-function PhoneIcon({ className }: { readonly className?: string }): JSX.Element {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <rect x="7" y="2.5" width="10" height="19" rx="2.5" />
-      <path d="M11 18.5h2" />
-    </svg>
   );
 }

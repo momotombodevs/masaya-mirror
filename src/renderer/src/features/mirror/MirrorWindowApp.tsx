@@ -5,13 +5,12 @@ import { NavigationBar } from './NavigationBar';
 import { SettingsPanel } from './settings/SettingsPanel';
 import { useMirror } from './useMirror';
 import { useReconnect } from './useReconnect';
-import { usePreferences } from './usePreferences';
-import { DEFAULT_MIRROR_OPTIONS } from '../../../../shared/mirror/types';
-import type { MirrorVideoPreferences } from '../../../../shared/preferences/types';
+import { DEFAULT_MIRROR_OPTIONS, type MirrorOptions } from '../../../../shared/mirror/types';
 import { Button } from '../../components/ui/Button';
 import { OverlayError } from '../../components/ui/OverlayError';
 import { useI18n } from '../../shared/i18n';
-import { getManoloApi } from '../../shared/manolo-api';
+import { callApi } from '../../shared/manolo-api';
+import { usePreferences } from '../../shared/preferences';
 
 type MirrorWindowAppProps = {
   readonly deviceId: string;
@@ -53,7 +52,7 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
   const { alwaysOnTop } = preferences;
   useEffect(() => {
     if (loaded) {
-      void getManoloApi()?.setAlwaysOnTop(deviceId, alwaysOnTop);
+      void callApi((api) => api.setAlwaysOnTop(deviceId, alwaysOnTop), '');
     }
   }, [deviceId, loaded, alwaysOnTop]);
 
@@ -93,9 +92,11 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
     }
   }, []);
 
+  // Every settings change goes through here: restart the stream with it, and only if that
+  // worked remember it as the preference for the next window.
   const { applyOptions, options } = mirror;
-  const handleVideoChange = useCallback(
-    async (patch: Partial<MirrorVideoPreferences>): Promise<void> => {
+  const applyAndPersist = useCallback(
+    async (patch: Partial<MirrorOptions>): Promise<void> => {
       const next = { ...options, ...patch };
       if (await applyOptions(next)) {
         update({
@@ -104,25 +105,9 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
             videoBitRate: next.videoBitRate,
             videoCodec: next.videoCodec,
           },
+          audio: next.audioEnabled,
+          clipboardSync: next.clipboardSync,
         });
-      }
-    },
-    [applyOptions, options, update],
-  );
-
-  const handleAudioChange = useCallback(
-    async (audioEnabled: boolean): Promise<void> => {
-      if (await applyOptions({ ...options, audioEnabled })) {
-        update({ audio: audioEnabled });
-      }
-    },
-    [applyOptions, options, update],
-  );
-
-  const handleClipboardChange = useCallback(
-    async (clipboardSync: boolean): Promise<void> => {
-      if (await applyOptions({ ...options, clipboardSync })) {
-        update({ clipboardSync });
       }
     },
     [applyOptions, options, update],
@@ -136,8 +121,6 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
         canvas={mirrorCanvas}
         onFullscreen={handleFullscreen}
         onOpenSettings={() => setSettingsOpen(true)}
-        captureAction={preferences.captureAction}
-        recordingFormat={preferences.recordingFormat}
         disabled={mirror.loading}
       />
 
@@ -191,13 +174,9 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
         {settingsOpen && (
           <SettingsPanel
             deviceId={deviceId}
-            preferences={preferences}
             options={mirror.options}
             busy={mirror.loading}
-            onPreferenceChange={update}
-            onVideoChange={(patch) => void handleVideoChange(patch)}
-            onAudioChange={(enabled) => void handleAudioChange(enabled)}
-            onClipboardChange={(enabled) => void handleClipboardChange(enabled)}
+            onOptionsChange={(patch) => void applyAndPersist(patch)}
             onClose={() => setSettingsOpen(false)}
           />
         )}

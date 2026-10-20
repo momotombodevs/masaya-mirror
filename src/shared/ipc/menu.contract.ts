@@ -1,7 +1,7 @@
 /** Channel the main process uses to forward application menu commands to a window. */
 export const MENU_ACTION_CHANNEL = 'manolo:menu-action';
 
-export const MENU_ACTIONS = ['refresh', 'capture', 'record', 'wifi', 'settings'] as const;
+const MENU_ACTIONS = ['refresh', 'capture', 'record', 'wifi', 'settings'] as const;
 
 export type MenuAction = (typeof MENU_ACTIONS)[number];
 
