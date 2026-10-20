@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { callApi } from '../../shared/manolo-api';
+import { sameItems } from '../../shared/same-items';
 
 export type MirrorStatus = {
   readonly activeDeviceIds: readonly string[];
@@ -17,7 +18,10 @@ export function useMirrorStatus(): MirrorStatus {
   const refreshStatus = useCallback(async (): Promise<void> => {
     const result = await callApi((api) => api.getMirrorStatus(), '');
     if (result.ok) {
-      setActiveDeviceIds(result.value.activeDeviceIds);
+      // The 5 s poll must not re-render the list when nothing changed.
+      setActiveDeviceIds((prev) =>
+        sameItems(prev, result.value.activeDeviceIds) ? prev : result.value.activeDeviceIds,
+      );
     }
   }, []);
 

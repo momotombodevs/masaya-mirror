@@ -1,7 +1,5 @@
-import { useState } from 'react';
-import { AdbSetupPanel } from './features/device/AdbSetupPanel';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { DeviceList } from './features/device/DeviceList';
-import { WifiConnectDialog } from './features/device/WifiConnectDialog';
 import { summarizeDevices } from './features/device/connected-devices';
 import { DEVICE_REFRESH_MS, useDevices } from './features/device/useDevices';
 import { useMirrorStatus } from './features/mirror/useMirrorStatus';
@@ -10,6 +8,14 @@ import { callApi } from './shared/manolo-api';
 import { useAutoRefresh } from './shared/useAutoRefresh';
 import { useMenuActions } from './shared/useMenuAction';
 
+// Only needed on demand, so the Wi-Fi dialog (with the QR library) and adb setup load when shown.
+const AdbSetupPanel = lazy(() =>
+  import('./features/device/AdbSetupPanel').then((m) => ({ default: m.AdbSetupPanel })),
+);
+const WifiConnectDialog = lazy(() =>
+  import('./features/device/WifiConnectDialog').then((m) => ({ default: m.WifiConnectDialog })),
+);
+
 export default function App(): JSX.Element {
   const { t } = useI18n();
   const { devices, loading, error, errorCode, refresh } = useDevices();
@@ -17,7 +23,7 @@ export default function App(): JSX.Element {
   const [wifiOpen, setWifiOpen] = useState(false);
   const { activeDeviceIds, refreshStatus } = useMirrorStatus();
 
-  const summary = summarizeDevices(devices);
+  const summary = useMemo(() => summarizeDevices(devices), [devices]);
   useMenuActions({ refresh: () => void refresh(), wifi: () => setWifiOpen(true) });
   // "Mirroring" badges follow mirror windows opened or closed since the last look.
   useAutoRefresh(() => void refreshStatus(), DEVICE_REFRESH_MS);
@@ -45,11 +51,13 @@ export default function App(): JSX.Element {
   if (errorCode === 'ADB_NOT_FOUND') {
     return (
       <main className="min-h-screen bg-content">
-        <AdbSetupPanel
-          retrying={loading}
-          onRetry={() => void refresh()}
-          onResolved={() => void refresh()}
-        />
+        <Suspense fallback={null}>
+          <AdbSetupPanel
+            retrying={loading}
+            onRetry={() => void refresh()}
+            onResolved={() => void refresh()}
+          />
+        </Suspense>
       </main>
     );
   }
@@ -67,10 +75,12 @@ export default function App(): JSX.Element {
         onDisconnect={(id) => void handleDisconnect(id)}
       />
       {wifiOpen && (
-        <WifiConnectDialog
-          onClose={() => setWifiOpen(false)}
-          onConnected={() => void refresh({ silent: true })}
-        />
+        <Suspense fallback={null}>
+          <WifiConnectDialog
+            onClose={() => setWifiOpen(false)}
+            onConnected={() => void refresh({ silent: true })}
+          />
+        </Suspense>
       )}
     </main>
   );

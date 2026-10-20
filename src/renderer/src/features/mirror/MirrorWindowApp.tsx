@@ -1,8 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { MirrorView } from './MirrorView';
 import { MirrorToolbar } from './MirrorToolbar';
 import { NavigationBar } from './NavigationBar';
-import { SettingsPanel } from './settings/SettingsPanel';
 import { useMirror } from './useMirror';
 import { useReconnect } from './useReconnect';
 import { DEFAULT_MIRROR_OPTIONS, type MirrorOptions } from '../../../../shared/mirror/types';
@@ -16,6 +15,10 @@ type MirrorWindowAppProps = {
   readonly deviceId: string;
   readonly deviceLabel: string;
 };
+
+const SettingsPanel = lazy(() =>
+  import('./settings/SettingsPanel').then((m) => ({ default: m.SettingsPanel })),
+);
 
 export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps): JSX.Element {
   const { t } = useI18n();
@@ -172,13 +175,15 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
           />
         )}
         {settingsOpen && (
-          <SettingsPanel
-            deviceId={deviceId}
-            options={mirror.options}
-            busy={mirror.loading}
-            onOptionsChange={(patch) => void applyAndPersist(patch)}
-            onClose={() => setSettingsOpen(false)}
-          />
+          <Suspense fallback={null}>
+            <SettingsPanel
+              deviceId={deviceId}
+              options={mirror.options}
+              busy={mirror.loading}
+              onOptionsChange={(patch) => void applyAndPersist(patch)}
+              onClose={() => setSettingsOpen(false)}
+            />
+          </Suspense>
         )}
       </div>
 

@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react';
+import { lazy, Suspense, type ReactNode } from 'react';
 import { Button } from '../../components/ui/Button';
 import {
   ApkIcon,
@@ -11,7 +11,6 @@ import {
   VolumeDownIcon,
   VolumeUpIcon,
 } from '../../components/ui/icons';
-import { CapturePreviewDialog } from './CapturePreviewDialog';
 import { useCapture } from './useCapture';
 import { useRecording } from './useRecording';
 import { useI18n } from '../../shared/i18n';
@@ -31,6 +30,10 @@ type MirrorToolbarProps = {
   readonly onOpenSettings: () => void;
   readonly disabled?: boolean;
 };
+
+const CapturePreviewDialog = lazy(() =>
+  import('./CapturePreviewDialog').then((m) => ({ default: m.CapturePreviewDialog })),
+);
 
 export function MirrorToolbar({
   deviceId,
@@ -145,13 +148,15 @@ export function MirrorToolbar({
       </header>
 
       {capture.preview && (
-        <CapturePreviewDialog
-          imageUrl={capture.preview.url}
-          onCopy={() => void capture.copy()}
-          onSave={() => void capture.save()}
-          onClose={capture.close}
-          busy={capture.busy}
-        />
+        <Suspense fallback={null}>
+          <CapturePreviewDialog
+            imageUrl={capture.preview.url}
+            onCopy={() => void capture.copy()}
+            onSave={() => void capture.save()}
+            onClose={capture.close}
+            busy={capture.busy}
+          />
+        </Suspense>
       )}
     </>
   );

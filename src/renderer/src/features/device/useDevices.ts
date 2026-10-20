@@ -3,6 +3,7 @@ import type { ErrorCode } from '../../../../shared/ipc/result';
 import type { AndroidDevice } from '../../../../shared/device/types';
 import { useI18n } from '../../shared/i18n';
 import { callApi } from '../../shared/manolo-api';
+import { sameFields } from '../../shared/same-items';
 import { useAutoRefresh } from '../../shared/useAutoRefresh';
 
 type DevicesState = {
@@ -56,7 +57,21 @@ export function useDevices(): UseDevicesResult {
     inFlight.current = false;
 
     if (result.ok) {
-      setState({ devices: result.value, loading: false, error: null, errorCode: null });
+      setState((prev) => {
+        // A poll that finds the same devices must keep the same state, so nothing re-renders.
+        const unchanged =
+          !prev.loading &&
+          prev.error === null &&
+          prev.errorCode === null &&
+          prev.devices.length === result.value.length &&
+          prev.devices.every((device, index) => {
+            const next = result.value[index];
+            return next !== undefined && sameFields(device, next);
+          });
+        return unchanged
+          ? prev
+          : { devices: result.value, loading: false, error: null, errorCode: null };
+      });
     } else {
       // A failed background refresh must not blank a list the user is looking at.
       setState((prev) => ({

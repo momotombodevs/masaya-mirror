@@ -59,7 +59,9 @@ describe('App', () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
+    vi.useRealTimers();
 
-    expect(screen.getByText('Falta adb')).toBeTruthy();
+    // The setup panel is a lazy chunk, so it appears after the import resolves.
+    expect(await screen.findByText('Falta adb')).toBeTruthy();
   });
 });

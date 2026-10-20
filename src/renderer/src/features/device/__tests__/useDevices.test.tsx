@@ -94,4 +94,15 @@ describe('useDevices', () => {
 
     expect(result.current.devices).toEqual([phone('b')]);
   });
+
+  it('keeps the same state object when a poll finds the same devices', async () => {
+    const { result } = renderHook(() => useDevices());
+    await waitFor(() => expect(result.current.devices).toHaveLength(1));
+    const before = result.current.devices;
+
+    listDevices.mockResolvedValue({ ok: true, value: [phone('a')] });
+    await act(async () => result.current.refresh({ silent: true }));
+
+    expect(result.current.devices).toBe(before);
+  });
 });
