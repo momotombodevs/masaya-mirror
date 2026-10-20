@@ -10,6 +10,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  version:
+    name: Version is new
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bump package.json version before merging to main
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          if git ls-remote --exit-code --tags origin "refs/tags/v${version}" > /dev/null; then
+            echo "v${version} is already released; bump \"version\" in package.json." >&2
+            exit 1
+          fi
+
   verify:
     name: Typecheck, lint, format, test
     runs-on: ubuntu-latest

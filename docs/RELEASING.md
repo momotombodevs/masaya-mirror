@@ -2,20 +2,13 @@
 
 ## Pasos
 
-1. Actualiza `version` en `package.json` (por ejemplo `0.4.0`, **sin** prefijo `v`).
-2. Asegúrate de que `pnpm check` pasa.
-3. Haz merge a `main`, crea y empuja el tag:
-
-   ```bash
-   git tag v0.4.0
-   git push origin v0.4.0
-   ```
-
-4. El workflow **Release** (`.github/workflows/release.yml`):
-   - comprueba que el tag coincide con `package.json`;
+1. En tu rama, actualiza `version` en `package.json` (por ejemplo `0.4.0`, **sin** prefijo `v`).
+2. Asegúrate de que `pnpm check` pasa y abre un PR hacia `main`. CI falla si esa versión ya tiene tag.
+3. Al hacer merge a `main`, el workflow **Release** (`.github/workflows/release.yml`) se dispara solo:
+   - si el tag `v<versión>` ya existe, no hace nada (un merge sin subir la versión no publica);
    - ejecuta typecheck, lint y tests;
    - empaqueta en macOS (DMG `arm64` y `x64`), Windows (NSIS x64) y Linux (AppImage);
-   - publica todo en una GitHub Release con notas generadas.
+   - crea el tag sobre el commit del merge y publica todo en una GitHub Release con notas generadas.
 
 Los nombres siguen `manolo-mirror-<versión>-<os>-<arch>.<ext>`.
 

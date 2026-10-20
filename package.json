@@ -1,7 +1,7 @@
 {
   "name": "manolo-mirror",
   "private": true,
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Android device mirroring and QA workspace for macOS, Windows and Linux",
   "author": "Manuel Duarte",
   "license": "UNLICENSED",
