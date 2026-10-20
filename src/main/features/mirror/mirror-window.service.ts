@@ -52,6 +52,9 @@ export class MirrorWindowService {
 
     this.windows.set(deviceId, win);
 
+    // Whatever was copied on the computer while the window was in the background goes to the phone.
+    win.on('focus', () => void this.deps.scrcpyService.syncClipboardToDevice(deviceId));
+
     win.on('closed', () => {
       this.windows.delete(deviceId);
       this.layoutApplied.delete(deviceId);

@@ -19,6 +19,8 @@ export type Preferences = {
   readonly captureAction: CaptureAction;
   /** Plays the device audio in the mirror window (Android 11 or newer). */
   readonly audio: boolean;
+  /** Keeps the computer and device clipboards equal. */
+  readonly clipboardSync: boolean;
   readonly language: LanguagePreference;
 };
 
@@ -33,5 +35,6 @@ export const DEFAULT_PREFERENCES: Preferences = {
   showClicks: true,
   captureAction: 'preview',
   audio: false,
+  clipboardSync: true,
   language: 'system',
 };

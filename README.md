@@ -12,6 +12,8 @@ captura de pantalla, grabación de video y control con mouse y teclado, sin inst
   calidad de imagen (preajustes, resolución, velocidad de datos, códec) y dispositivo (mostrar toques,
   mantener pantalla encendida).
 - **Instalar APK** desde la barra o arrastrando el archivo a la ventana del espejo.
+- **Portapapeles compartido:** lo que copias en el teléfono llega al equipo y al revés (se puede desactivar
+  en Ajustes).
 - **Audio del dispositivo** (Android 11 o superior), activable en Ajustes.
 - **Reconexión automática:** si se desconecta el cable o se cae el Wi-Fi, el espejo reintenta durante
   aproximadamente un minuto y vuelve solo.

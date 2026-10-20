@@ -55,6 +55,7 @@ const FIELD_PARSERS: {
   showClicks: parseBoolean,
   captureAction: parseCaptureAction,
   audio: parseBoolean,
+  clipboardSync: parseBoolean,
   language: parseLanguage,
 };
 
@@ -101,6 +102,7 @@ export function readPreferences(raw: unknown): Preferences {
     showClicks: field('showClicks'),
     captureAction: field('captureAction'),
     audio: field('audio'),
+    clipboardSync: field('clipboardSync'),
     language: field('language'),
   };
 }

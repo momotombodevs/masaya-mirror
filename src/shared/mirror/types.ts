@@ -5,6 +5,8 @@ export type MirrorOptions = {
   readonly videoBitRate: number;
   readonly videoCodec: 'h264' | 'h265';
   readonly audioEnabled: boolean;
+  /** Keeps the computer and device clipboards equal. */
+  readonly clipboardSync: boolean;
 };
 
 /** maxSize 1920 = longest edge capped at Full HD. */
@@ -13,6 +15,7 @@ export const DEFAULT_MIRROR_OPTIONS: MirrorOptions = {
   videoBitRate: 16_000_000,
   videoCodec: 'h264',
   audioEnabled: false,
+  clipboardSync: true,
 };
 
 export type MirrorVideoMetadata = {

@@ -35,6 +35,7 @@ describe('PreferencesService', () => {
       showClicks: false,
       captureAction: 'copy',
       audio: true,
+      clipboardSync: false,
       language: 'en',
     });
     prefs.setAdbPath('/opt/adb');
@@ -48,6 +49,7 @@ describe('PreferencesService', () => {
       showClicks: false,
       captureAction: 'copy',
       audio: true,
+      clipboardSync: false,
       language: 'en',
     });
     expect(reloaded.getAdbPath()).toBe('/opt/adb');
@@ -94,6 +96,7 @@ describe('PreferencesService', () => {
       'alwaysOnTop',
       'audio',
       'captureAction',
+      'clipboardSync',
       'language',
       'mirror',
       'navigationBar',

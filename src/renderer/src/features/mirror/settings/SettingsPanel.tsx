@@ -36,6 +36,8 @@ type SettingsPanelProps = {
   readonly onVideoChange: (patch: Partial<MirrorVideoPreferences>) => void;
   /** Turns the device audio on or off, which restarts the stream. */
   readonly onAudioChange: (enabled: boolean) => void;
+  /** Turns the clipboard sync on or off, which restarts the stream. */
+  readonly onClipboardChange: (enabled: boolean) => void;
   readonly onClose: () => void;
 };
 
@@ -74,6 +76,7 @@ export function SettingsPanel({
   onPreferenceChange,
   onVideoChange,
   onAudioChange,
+  onClipboardChange,
   onClose,
 }: SettingsPanelProps): JSX.Element {
   const { t } = useI18n();
@@ -281,6 +284,19 @@ export function SettingsPanel({
                 checked={options.audioEnabled}
                 disabled={busy}
                 onChange={onAudioChange}
+              />
+            </SettingRow>
+            <SettingRow
+              label={t('settings.clipboard')}
+              hint={t('settings.clipboard.hint')}
+              icon={ROW_ICONS.clipboard}
+              tone="teal"
+            >
+              <Toggle
+                label={t('settings.clipboard')}
+                checked={options.clipboardSync}
+                disabled={busy}
+                onChange={onClipboardChange}
               />
             </SettingRow>
             <SettingRow

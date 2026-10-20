@@ -50,9 +50,26 @@ export class PreferencesService {
   }
 
   get(): Preferences {
-    const { mirror, navigationBar, alwaysOnTop, showClicks, captureAction, audio, language } =
-      this.settings;
-    return { mirror, navigationBar, alwaysOnTop, showClicks, captureAction, audio, language };
+    const {
+      mirror,
+      navigationBar,
+      alwaysOnTop,
+      showClicks,
+      captureAction,
+      audio,
+      clipboardSync,
+      language,
+    } = this.settings;
+    return {
+      mirror,
+      navigationBar,
+      alwaysOnTop,
+      showClicks,
+      captureAction,
+      audio,
+      clipboardSync,
+      language,
+    };
   }
 
   /** Applies a patch already validated by `parsePreferencesPatch`. */

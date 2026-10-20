@@ -79,6 +79,10 @@ export function parseMirrorOptions(value: unknown): Result<MirrorOptions> {
       typeof value.audioEnabled === 'boolean'
         ? value.audioEnabled
         : DEFAULT_MIRROR_OPTIONS.audioEnabled,
+    clipboardSync:
+      typeof value.clipboardSync === 'boolean'
+        ? value.clipboardSync
+        : DEFAULT_MIRROR_OPTIONS.clipboardSync,
   });
 }
 

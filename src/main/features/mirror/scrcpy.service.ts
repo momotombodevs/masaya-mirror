@@ -11,6 +11,8 @@ import {
   getExpectedScrcpyServerPath,
   resolveScrcpyServerPath,
 } from './scrcpy-server-path.resolver';
+import { ClipboardSync } from './clipboard-sync';
+import { systemClipboard } from './system-clipboard';
 import { MirrorStreamSession } from './mirror-stream.session';
 import { mt } from '../../i18n';
 import { ADB_NOT_FOUND_MESSAGE } from '../device/adb-error';
@@ -36,9 +38,24 @@ type MirrorSession = {
   readonly controller: ScrcpyControlMessageWriter | undefined;
   readonly options: MirrorOptions;
   readonly audioEnabled: boolean;
+  readonly clipboard: ClipboardSync | null;
   /** Tail of the control queue. Each control message waits for the previous one. */
   controlChain: Promise<unknown>;
 };
+
+const KEYCODE_V = 50;
+/** Android meta-state bits for Ctrl and Meta (Cmd on macOS), either side. */
+const PASTE_MODIFIERS = 0x1000 | 0x2000 | 0x10000 | 0x20000;
+const KEY_ACTION_DOWN = 0;
+
+function isPasteShortcut(message: MirrorControlMessage): boolean {
+  return (
+    message.type === 'key' &&
+    message.action === KEY_ACTION_DOWN &&
+    message.keyCode === KEYCODE_V &&
+    (message.metaState & PASTE_MODIFIERS) !== 0
+  );
+}
 
 export class ScrcpyService {
   private readonly sessions = new Map<string, MirrorSession>();
@@ -94,7 +111,8 @@ export class ScrcpyService {
       await tango.pushScrcpyServer(adb, serverPath);
 
       const started = await tango.startScrcpyClient(adb, options);
-      const { client, metadata, audioCodec, audioWebCodecId, videoStream, audioStream } = started;
+      const { client, metadata, audioCodec, audioWebCodecId, videoStream, audioStream, clipboard } =
+        started;
       startedClient = client;
 
       const { port1, port2 } = new MessageChannelMain();
@@ -114,6 +132,17 @@ export class ScrcpyService {
         audioStream,
       });
 
+      const controller = client.controller;
+      const clipboardSync =
+        options.clipboardSync && clipboard && controller
+          ? new ClipboardSync({
+              system: systemClipboard,
+              deviceText: clipboard,
+              setDeviceText: (content) =>
+                controller.setClipboard({ content, paste: false, sequence: 0n }),
+            })
+          : null;
+
       const session: MirrorSession = {
         deviceId,
         stream: streamSession,
@@ -121,13 +150,16 @@ export class ScrcpyService {
           close: () => client.close(),
           exited: client.exited,
         },
-        controller: client.controller,
+        controller,
         options,
         audioEnabled: options.audioEnabled && audioWebCodecId !== null,
+        clipboard: clipboardSync,
         controlChain: Promise.resolve(),
       };
       this.sessions.set(deviceId, session);
       stored = true;
+      clipboardSync?.start();
+      void clipboardSync?.pushToDevice();
 
       // A replaced session also exits; only the session still registered may close the device.
       void client.exited.then(() => {
@@ -152,6 +184,11 @@ export class ScrcpyService {
     }
   }
 
+  /** Called when a mirror window gains focus: whatever was copied meanwhile goes to the device. */
+  async syncClipboardToDevice(deviceId: string): Promise<void> {
+    await this.sessions.get(deviceId)?.clipboard?.pushToDevice();
+  }
+
   notifyStreamReady(deviceId: string): Result<void> {
     const session = this.sessions.get(deviceId);
     if (!session) {
@@ -169,7 +206,13 @@ export class ScrcpyService {
     }
 
     // Control messages run strictly in arrival order, one at a time per device.
-    const result = session.controlChain.then(() => this.dispatchControl(session, message));
+    const result = session.controlChain.then(async () => {
+      // A paste must find the computer's current clipboard on the device.
+      if (isPasteShortcut(message)) {
+        await session.clipboard?.pushToDevice();
+      }
+      return this.dispatchControl(session, message);
+    });
     session.controlChain = result.then(
       () => undefined,
       () => undefined,
@@ -256,6 +299,7 @@ export class ScrcpyService {
       return ok(undefined);
     }
 
+    session.clipboard?.stop();
     session.stream.close(undefined, { notifyRenderer });
 
     try {

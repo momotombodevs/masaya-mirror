@@ -19,6 +19,7 @@ function buildScrcpyOptions(options: MirrorOptions): AdbScrcpyOptionsLatest<true
     videoCodec: options.videoCodec,
     audio: options.audioEnabled,
     control: true,
+    clipboardAutosync: options.clipboardSync,
     sendFrameMeta: true,
     sendCodecMeta: true,
     sendDeviceMeta: true,
@@ -50,6 +51,7 @@ export async function startScrcpyClient(
   audioWebCodecId: string | null;
   videoStream: ReadableStream<ScrcpyMediaStreamPacket>;
   audioStream: ReadableStream<ScrcpyMediaStreamPacket> | null;
+  clipboard: ReadableStream<string> | null;
 }> {
   const scrcpyOptions = buildScrcpyOptions(options);
   const client = await AdbScrcpyClient.start(adb, DefaultServerPath, scrcpyOptions);
@@ -81,5 +83,6 @@ export async function startScrcpyClient(
     audioWebCodecId,
     videoStream: videoStreamResult.stream,
     audioStream: audioPacketStream,
+    clipboard: client.clipboard ?? null,
   };
 }

@@ -119,6 +119,9 @@ const es = {
   'settings.stayAwake.hint': 'Mientras el teléfono esté cargando o conectado.',
   'settings.audio': 'Audio del dispositivo',
   'settings.audio.hint': 'Requiere Android 11 o superior. Reinicia el espejo al cambiarlo.',
+  'settings.clipboard': 'Portapapeles compartido',
+  'settings.clipboard.hint':
+    'Lo que copias en el teléfono llega a tu equipo y al revés. Reinicia el espejo al cambiarlo.',
   'settings.reset': 'Restablecer valores',
   'settings.credits': 'Crafted with passion by Momotombo Devs',
 
@@ -313,6 +316,9 @@ const en: Record<MessageKey, string> = {
   'settings.stayAwake.hint': 'While the phone is charging or plugged in.',
   'settings.audio': 'Device audio',
   'settings.audio.hint': 'Needs Android 11 or newer. Restarts the mirror when changed.',
+  'settings.clipboard': 'Shared clipboard',
+  'settings.clipboard.hint':
+    'What you copy on the phone reaches your computer and the other way around. Restarts the mirror when changed.',
   'settings.reset': 'Reset to Defaults',
   'settings.credits': 'Crafted with passion by Momotombo Devs',
 

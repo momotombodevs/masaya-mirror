@@ -123,4 +123,63 @@ describe('ScrcpyService', () => {
     const result = await service.closeMirror('unknown');
     expect(result.ok).toBe(true);
   });
+
+  describe('clipboard', () => {
+    const key = (keyCode: number, metaState: number, action = 0) =>
+      ({ type: 'key', action, keyCode, repeat: 0, metaState }) as const;
+
+    function serviceWithSession() {
+      const order: string[] = [];
+      const pushToDevice = vi.fn(() => {
+        order.push('push');
+        return Promise.resolve();
+      });
+      const injectKeyCode = vi.fn(() => {
+        order.push('key');
+        return Promise.resolve();
+      });
+      const service = new ScrcpyService(adbService);
+      (service as unknown as { sessions: Map<string, unknown> }).sessions = new Map([
+        [
+          'device1',
+          {
+            deviceId: 'device1',
+            controller: { injectKeyCode },
+            clipboard: { pushToDevice, stop: vi.fn() },
+            controlChain: Promise.resolve(),
+          },
+        ],
+      ]);
+      return { service, order, pushToDevice };
+    }
+
+    it('sends the computer clipboard before a Ctrl+V or Cmd+V reaches the device', async () => {
+      const { service, order, pushToDevice } = serviceWithSession();
+
+      await service.sendControl('device1', key(50, 0x1000));
+      await service.sendControl('device1', key(50, 0x10000));
+
+      expect(pushToDevice).toHaveBeenCalledTimes(2);
+      expect(order).toEqual(['push', 'key', 'push', 'key']);
+    });
+
+    it('leaves other keys and the key release alone', async () => {
+      const { service, pushToDevice } = serviceWithSession();
+
+      await service.sendControl('device1', key(50, 0));
+      await service.sendControl('device1', key(31, 0x1000));
+      await service.sendControl('device1', key(50, 0x1000, 1));
+
+      expect(pushToDevice).not.toHaveBeenCalled();
+    });
+
+    it('syncs on demand for a window that gained focus, and ignores unknown devices', async () => {
+      const { service, pushToDevice } = serviceWithSession();
+
+      await service.syncClipboardToDevice('device1');
+      await service.syncClipboardToDevice('missing');
+
+      expect(pushToDevice).toHaveBeenCalledTimes(1);
+    });
+  });
 });

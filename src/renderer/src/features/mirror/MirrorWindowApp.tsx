@@ -29,8 +29,14 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
   openMirrorRef.current = mirror.openMirror;
   const startVideoRef = useRef(preferences.mirror);
   startVideoRef.current = preferences.mirror;
-  const startAudioRef = useRef(preferences.audio);
-  startAudioRef.current = preferences.audio;
+  const startStreamRef = useRef({
+    audioEnabled: preferences.audio,
+    clipboardSync: preferences.clipboardSync,
+  });
+  startStreamRef.current = {
+    audioEnabled: preferences.audio,
+    clipboardSync: preferences.clipboardSync,
+  };
 
   // Start once the saved preferences are known, so the stream opens with the user's video settings.
   useEffect(() => {
@@ -40,7 +46,7 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
     void openMirrorRef.current(undefined, {
       ...DEFAULT_MIRROR_OPTIONS,
       ...startVideoRef.current,
-      audioEnabled: startAudioRef.current,
+      ...startStreamRef.current,
     });
   }, [deviceId, loaded]);
 
@@ -108,6 +114,15 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
     async (audioEnabled: boolean): Promise<void> => {
       if (await applyOptions({ ...options, audioEnabled })) {
         update({ audio: audioEnabled });
+      }
+    },
+    [applyOptions, options, update],
+  );
+
+  const handleClipboardChange = useCallback(
+    async (clipboardSync: boolean): Promise<void> => {
+      if (await applyOptions({ ...options, clipboardSync })) {
+        update({ clipboardSync });
       }
     },
     [applyOptions, options, update],
@@ -181,6 +196,7 @@ export function MirrorWindowApp({ deviceId, deviceLabel }: MirrorWindowAppProps)
             onPreferenceChange={update}
             onVideoChange={(patch) => void handleVideoChange(patch)}
             onAudioChange={(enabled) => void handleAudioChange(enabled)}
+            onClipboardChange={(enabled) => void handleClipboardChange(enabled)}
             onClose={() => setSettingsOpen(false)}
           />
         )}

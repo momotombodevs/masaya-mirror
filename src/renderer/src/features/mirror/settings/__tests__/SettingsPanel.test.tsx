@@ -10,6 +10,7 @@ const setDeviceSetting = vi.fn();
 const onPreferenceChange = vi.fn();
 const onVideoChange = vi.fn();
 const onAudioChange = vi.fn();
+const onClipboardChange = vi.fn();
 const onClose = vi.fn();
 
 type Props = Partial<Parameters<typeof SettingsPanel>[0]>;
@@ -24,6 +25,7 @@ const renderPanel = (props: Props = {}): void => {
       onPreferenceChange={onPreferenceChange}
       onVideoChange={onVideoChange}
       onAudioChange={onAudioChange}
+      onClipboardChange={onClipboardChange}
       onClose={onClose}
       {...props}
     />,
@@ -104,6 +106,15 @@ describe('SettingsPanel', () => {
     renderPanel({ options: { ...DEFAULT_MIRROR_OPTIONS, audioEnabled: true } });
 
     expect(toggle('Audio del dispositivo').getAttribute('aria-checked')).toBe('true');
+  });
+
+  it('turns the clipboard sync off through the stream', () => {
+    renderPanel();
+
+    expect(toggle('Portapapeles compartido').getAttribute('aria-checked')).toBe('true');
+    fireEvent.click(toggle('Portapapeles compartido'));
+
+    expect(onClipboardChange).toHaveBeenCalledWith(false);
   });
 
   it('changes what a capture does', () => {
