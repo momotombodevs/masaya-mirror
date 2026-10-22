@@ -1,4 +1,5 @@
 import { utf8ByteLength } from '../../../shared/text/utf8';
+import { log } from '../../logging/log';
 
 /** The computer's clipboard, as far as the sync needs it. */
 export type SystemClipboard = {
@@ -71,7 +72,7 @@ export class ClipboardSync {
       // Forget the text so the next sync tries again instead of assuming the device has it.
       this.lastText = null;
       if (!this.stopped) {
-        console.error('[clipboard] could not send the clipboard to the device', error);
+        log.error('clipboard', 'could not send the clipboard to the device', error);
       }
     }
   }
@@ -91,7 +92,7 @@ export class ClipboardSync {
     } catch (error: unknown) {
       // The stream is cancelled with the session; only a failure while it lives is news.
       if (!this.stopped) {
-        console.error('[clipboard] the device clipboard stream failed', error);
+        log.error('clipboard', 'the device clipboard stream failed', error);
       }
     }
   }

@@ -16,6 +16,7 @@ import { ClipboardSync } from './clipboard-sync';
 import { systemClipboard } from './system-clipboard';
 import { MirrorStreamSession } from './mirror-stream.session';
 import { mt } from '../../i18n';
+import { log } from '../../logging/log';
 import { AdbNotFoundError, adbNotFound } from '../device/adb-error';
 import type { Adb, AdbServerClient } from '@yume-chan/adb';
 import type {
@@ -72,6 +73,17 @@ async function closeQuietly(close: () => unknown): Promise<void> {
   } catch {
     // Already closed, or the device went away while closing.
   }
+}
+
+/** The options that shape a session, without anything the user typed or copied. */
+function describeOptions(options: MirrorOptions): string {
+  return [
+    options.videoCodec,
+    `${options.maxSize}px`,
+    `${options.videoBitRate / 1_000_000} Mbps`,
+    `audio ${options.audioEnabled ? 'on' : 'off'}`,
+    `clipboard ${options.clipboardSync ? 'on' : 'off'}`,
+  ].join(', ');
 }
 
 function isTouchMove(message: MirrorControlMessage): boolean {
@@ -142,8 +154,10 @@ export class ScrcpyService {
       await this.closeMirror(deviceId);
     }
 
+    log.info('mirror', `starting ${deviceId}: ${describeOptions(options)}`);
     const serverPath = await resolveScrcpyServerPath();
     if (!serverPath) {
+      log.error('mirror', `scrcpy-server missing, expected at ${getExpectedScrcpyServerPath()}`);
       return err(mt('main.scrcpyMissing', { path: getExpectedScrcpyServerPath() }));
     }
 
@@ -200,6 +214,7 @@ export class ScrcpyService {
       };
       // The window may have closed during startup; nobody would ever close this session.
       if (webContents.isDestroyed()) {
+        log.info('mirror', `${deviceId}: window closed while starting, session dropped`);
         clipboardSync?.stop();
         streamSession.close(undefined, { notifyRenderer: false });
         return err(mt('main.mirrorStartFailed'));
@@ -210,18 +225,24 @@ export class ScrcpyService {
       void clipboardSync?.pushToDevice();
 
       // A replaced session also exits; only the session still registered may close the device.
-      const onExited = (): void => {
+      const onExited = (error?: unknown): void => {
         if (this.sessions.get(deviceId) === session) {
+          log.warn('mirror', `${deviceId}: scrcpy-server exited unexpectedly`, error);
           void this.closeMirror(deviceId);
         }
       };
-      client.exited.then(onExited, onExited);
+      client.exited.then(() => onExited(), onExited);
 
+      log.info(
+        'mirror',
+        `started ${deviceId}: ${metadata.width}x${metadata.height} ${options.videoCodec}, audio ${session.audioEnabled ? `on (${audioCodec ?? 'unknown codec'})` : 'off'}`,
+      );
       return ok({
         metadata,
         audioEnabled: session.audioEnabled,
       });
     } catch (error: unknown) {
+      log.error('mirror', `could not start ${deviceId}`, error);
       if (error instanceof AdbNotFoundError) {
         return adbNotFound();
       }
@@ -262,6 +283,7 @@ export class ScrcpyService {
     // A slow device must not build an unbounded backlog. Pointer moves are superseded by the
     // next one, so they are the only thing dropped; presses, releases and typing never are.
     if (session.pendingControls >= MAX_PENDING_CONTROLS && isTouchMove(message)) {
+      log.count('mirror', 'pointer move dropped, device is behind');
       return ok(undefined);
     }
 
@@ -337,6 +359,8 @@ export class ScrcpyService {
       }
       return ok(undefined);
     } catch (error: unknown) {
+      const reason = error instanceof Error ? error.message : 'unknown error';
+      log.count('mirror', `${message.type} control failed: ${reason}`);
       if (error instanceof Error) {
         return err(error.message);
       }
@@ -350,6 +374,7 @@ export class ScrcpyService {
     options: MirrorOptions,
   ): Promise<Result<OpenMirrorSuccess>> {
     return this.enqueueStart(deviceId, async () => {
+      log.info('mirror', `restarting ${deviceId} with new options`);
       // Restarting must not tell the window the stream ended, or it would close itself.
       await this.closeMirror(deviceId, { notifyRenderer: false });
       return this.startMirror(deviceId, webContents, options);
@@ -365,6 +390,7 @@ export class ScrcpyService {
       return ok(undefined);
     }
 
+    log.info('mirror', `stopping ${deviceId}`);
     session.clipboard?.stop();
     session.stream.close(undefined, { notifyRenderer });
 
