@@ -8,6 +8,10 @@ export function setMainLocale(next: Locale): void {
   locale = next;
 }
 
+export function getMainLocale(): Locale {
+  return locale;
+}
+
 /** Translates a message into the current language of the main process. */
 export function mt(key: MessageKey, params?: TranslateParams): string {
   return translate(locale, key, params);

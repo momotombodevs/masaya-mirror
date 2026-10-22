@@ -1,6 +1,7 @@
 import type { MessagePortMain } from 'electron';
 import type { ScrcpyMediaStreamPacket } from '@yume-chan/scrcpy';
 import type { ReadableStream } from '@yume-chan/stream-extra';
+import { log } from '../../logging/log';
 import type {
   MirrorStreamMessage,
   MirrorStreamPacketMessage,
@@ -95,7 +96,7 @@ export class MirrorStreamSession {
       this.pipe('audio', this.audioStream).catch((error: unknown) => {
         // Audio ended; video may continue.
         if (!this.abort.signal.aborted) {
-          console.error('[mirror] audio stream ended', error);
+          log.error('mirror', 'audio stream ended', error);
         }
       });
     }

@@ -11,6 +11,8 @@ const setDeviceSetting = vi.fn();
 const onPreferenceChange = vi.fn();
 const onOptionsChange = vi.fn();
 const onClose = vi.fn();
+const copyDiagnosticReport = vi.fn();
+const openLogFolder = vi.fn();
 
 type Props = Partial<Parameters<typeof SettingsPanel>[0]> & {
   readonly preferences?: Preferences;
@@ -42,7 +44,14 @@ describe('SettingsPanel', () => {
       value: { showTouches: false, stayAwake: true },
     });
     setDeviceSetting.mockResolvedValue({ ok: true, value: undefined });
-    vi.stubGlobal('masaya', { getDeviceSettings, setDeviceSetting });
+    copyDiagnosticReport.mockResolvedValue({ ok: true, value: undefined });
+    openLogFolder.mockResolvedValue({ ok: true, value: undefined });
+    vi.stubGlobal('masaya', {
+      getDeviceSettings,
+      setDeviceSetting,
+      copyDiagnosticReport,
+      openLogFolder,
+    });
   });
 
   afterEach(() => {
@@ -238,5 +247,31 @@ describe('SettingsPanel', () => {
     fireEvent.keyDown(window, { key: 'Escape' });
 
     expect(onClose).toHaveBeenCalledTimes(2);
+  });
+
+  it('copies the diagnostic report and confirms it on the button', async () => {
+    renderPanel();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copiar diagnóstico' }));
+
+    expect(await screen.findByRole('button', { name: 'Copiado' })).toBeTruthy();
+    expect(copyDiagnosticReport).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows why the report could not be copied', async () => {
+    copyDiagnosticReport.mockResolvedValue({ ok: false, error: 'adb se colgó' });
+    renderPanel();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Copiar diagnóstico' }));
+
+    expect((await screen.findByRole('alert')).textContent).toBe('adb se colgó');
+  });
+
+  it('opens the logs folder', async () => {
+    renderPanel();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Abrir carpeta de logs' }));
+
+    await waitFor(() => expect(openLogFolder).toHaveBeenCalledTimes(1));
   });
 });

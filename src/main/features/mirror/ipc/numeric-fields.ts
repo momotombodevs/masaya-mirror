@@ -42,3 +42,14 @@ export function parseNumericFields<R extends NumericRules>(
   }
   return ok(parsed as ParsedFields<R>);
 }
+
+/** The first field `parseNumericFields` would reject, for logging which one a sender gets wrong. */
+export function findInvalidField(
+  raw: Readonly<Record<string, unknown>>,
+  rules: NumericRules,
+): string | null {
+  return (
+    Object.entries(rules).find(([field, rule]) => readNumber(raw[field], rule) === null)?.[0] ??
+    null
+  );
+}

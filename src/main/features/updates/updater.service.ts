@@ -1,3 +1,5 @@
+import { log } from '../../logging/log';
+
 /** The part of electron-updater's `autoUpdater` that the service uses; tests provide a fake. */
 export interface UpdateDriver {
   autoDownload: boolean;
@@ -87,7 +89,7 @@ export class UpdaterService {
 
   /** electron-updater both emits `error` and rejects, so only the first report counts. */
   private handleFailure(error: unknown): void {
-    console.error('[updater]', error);
+    log.error('updater', 'update check failed', error);
     if (this.takeManualCheck()) {
       this.deps.notify({ kind: 'failed' });
     }

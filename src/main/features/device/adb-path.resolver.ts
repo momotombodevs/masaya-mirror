@@ -2,6 +2,7 @@ import { constants } from 'node:fs';
 import { access } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'node:path';
+import { log } from '../../logging/log';
 
 const ADB_EXECUTABLE = process.platform === 'win32' ? 'adb.exe' : 'adb';
 
@@ -69,13 +70,29 @@ async function isExecutable(filePath: string): Promise<boolean> {
   }
 }
 
+/** What the last lookup found, so a lookup repeated every few seconds logs only changes. */
+let lastLoggedOutcome: string | undefined;
+
+function logOutcome(found: string | null, checked: number, customPath?: string | null): void {
+  const source = found === null ? '' : found === customPath ? ' (chosen in the app)' : '';
+  const outcome =
+    found === null ? `adb not found in ${checked} locations` : `adb found: ${found}${source}`;
+  if (outcome !== lastLoggedOutcome) {
+    lastLoggedOutcome = outcome;
+    (found === null ? log.warn : log.info)('adb', outcome);
+  }
+}
+
 /** `customPath` (chosen by the user in the app) wins over `ADB_PATH` and the usual locations. */
 export async function resolveAdbPath(customPath?: string | null): Promise<string | null> {
-  for (const candidate of buildCandidatePaths(customPath)) {
+  const candidates = buildCandidatePaths(customPath);
+  for (const candidate of candidates) {
     if (await isExecutable(candidate)) {
+      logOutcome(candidate, candidates.length, customPath);
       return candidate;
     }
   }
+  logOutcome(null, candidates.length, customPath);
   return null;
 }
 

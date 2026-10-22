@@ -14,7 +14,7 @@ import {
   MIN_MAX_SIZE,
 } from '../../../../shared/preferences/parse';
 import { utf8ByteLength } from '../../../../shared/text/utf8';
-import { parseNumericFields, type NumericRules } from './numeric-fields';
+import { findInvalidField, parseNumericFields, type NumericRules } from './numeric-fields';
 
 const MAX_VIDEO_DIMENSION = 10_000;
 const MAX_ANDROID_BUTTON_MASK = 0xffff;
@@ -22,9 +22,11 @@ const MAX_ANDROID_KEYCODE = 400;
 const MAX_KEY_REPEAT = 100;
 const MAX_META_STATE = 0xffffff;
 
+// A captured drag keeps reporting past the screen edge, so a pointer can be negative (scrcpy sends
+// it as a signed int). Rejecting it would drop the release and leave a finger held on the phone.
 const POINTER_RULES = {
-  pointerX: { max: MAX_VIDEO_DIMENSION },
-  pointerY: { max: MAX_VIDEO_DIMENSION },
+  pointerX: { min: -MAX_VIDEO_DIMENSION, max: MAX_VIDEO_DIMENSION },
+  pointerY: { min: -MAX_VIDEO_DIMENSION, max: MAX_VIDEO_DIMENSION },
   videoWidth: { min: 1, max: MAX_VIDEO_DIMENSION },
   videoHeight: { min: 1, max: MAX_VIDEO_DIMENSION },
   buttons: { max: MAX_ANDROID_BUTTON_MASK, fallback: 0 },
@@ -132,4 +134,23 @@ export function parseControlMessage(value: unknown): Result<MirrorControlMessage
     default:
       return err('Invalid control message.');
   }
+}
+
+const CONTROL_RULES = { touch: TOUCH_RULES, scroll: SCROLL_RULES, key: KEY_RULES } as const;
+
+/**
+ * Names why a control message was rejected, e.g. `touch.pointerX`, without any of its values:
+ * a text message's content is what the user typed.
+ */
+export function describeRejectedControl(value: unknown): string {
+  if (!isRecord(value)) {
+    return 'not an object';
+  }
+  if (value.type === 'text') {
+    return typeof value.text === 'string' && value.text.length > 0 ? 'text.too-long' : 'text.empty';
+  }
+  if (value.type === 'touch' || value.type === 'scroll' || value.type === 'key') {
+    return `${value.type}.${findInvalidField(value, CONTROL_RULES[value.type]) ?? 'unknown field'}`;
+  }
+  return 'unknown type';
 }

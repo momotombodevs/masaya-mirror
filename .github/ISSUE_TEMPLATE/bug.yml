@@ -1,0 +1,89 @@
+name: Reportar un error
+description: Algo no funciona como debería en Masaya.
+title: '[Error] '
+labels: ['bug']
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por tomarte el tiempo. Cuanto más concreto sea el reporte, antes se puede reproducir.
+        Antes de abrirlo, revisa la sección **Solución de problemas** del README y los issues abiertos.
+
+  - type: input
+    id: version
+    attributes:
+      label: Versión de Masaya
+      description: En macOS, menú Masaya → Acerca de Masaya. En Windows y Linux, el nombre del instalador.
+      placeholder: '0.3.2'
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Sistema operativo del equipo y versión
+      placeholder: 'macOS 26.1 (Apple Silicon), Windows 11 24H2, Ubuntu 24.04…'
+    validations:
+      required: true
+
+  - type: input
+    id: phone
+    attributes:
+      label: Modelo del teléfono
+      placeholder: 'Galaxy S23 Ultra, Pixel 8…'
+    validations:
+      required: true
+
+  - type: input
+    id: android
+    attributes:
+      label: Versión de Android
+      placeholder: '14'
+    validations:
+      required: true
+
+  - type: dropdown
+    id: connection
+    attributes:
+      label: Conexión
+      options:
+        - USB
+        - Wi-Fi
+        - Ambas
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Pasos para reproducirlo
+      placeholder: |
+        1. Conecta el teléfono por USB
+        2. Abre el espejo
+        3. …
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Qué esperabas que pasara
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Qué pasó en cambio
+      description: Si puedes, adjunta una captura o un video corto.
+    validations:
+      required: true
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Informe de diagnóstico (opcional)
+      description: |
+        Pega aquí el informe de diagnóstico de la app o los logs de la terminal (`pnpm dev`).
+        Revísalo antes de enviarlo: puede incluir el modelo y el número de serie del teléfono.
+      render: text
