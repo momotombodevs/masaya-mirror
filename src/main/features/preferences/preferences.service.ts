@@ -1,5 +1,6 @@
 import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import { log } from '../../logging/log';
 import { readPreferences } from '../../../shared/preferences/parse';
 import type { Preferences } from '../../../shared/preferences/types';
 
@@ -37,7 +38,7 @@ export class PreferencesService {
     } catch (error: unknown) {
       // No file yet is the normal first run; anything else means settings are being dropped.
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-        console.error('[preferences] could not read the settings file, using defaults', error);
+        log.error('preferences', 'could not read the settings file, using defaults', error);
       }
       return sanitize(null);
     }
@@ -53,7 +54,7 @@ export class PreferencesService {
       renameSync(tempPath, this.filePath);
     } catch (error: unknown) {
       // Losing a preference is not worth interrupting the user; it stays in memory for this run.
-      console.error('[preferences] could not save the settings file', error);
+      log.error('preferences', 'could not save the settings file', error);
       try {
         rmSync(tempPath, { force: true });
       } catch {

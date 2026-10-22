@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_MIRROR_OPTIONS } from '../../../../shared/mirror/types';
-import { parseControlMessage, parseMirrorOptions, parseVideoLayout } from '../ipc/mirror-parsers';
+import {
+  describeRejectedControl,
+  parseControlMessage,
+  parseMirrorOptions,
+  parseVideoLayout,
+} from '../ipc/mirror-parsers';
 
 const touch = {
   type: 'touch',
@@ -120,5 +125,27 @@ describe('parseVideoLayout', () => {
       value: { videoWidth: 1080, videoHeight: 2400 },
     });
     expect(parseVideoLayout({ videoWidth: 1080 }).ok).toBe(false);
+  });
+});
+
+describe('describeRejectedControl', () => {
+  it('names the first field a touch, scroll or key message got wrong', () => {
+    expect(describeRejectedControl({ ...touch, pointerX: 20_000 })).toBe('touch.pointerX');
+    expect(describeRejectedControl({ ...touch, type: 'scroll', videoWidth: 0 })).toBe(
+      'scroll.videoWidth',
+    );
+    expect(describeRejectedControl({ type: 'key', action: 0, keyCode: 9_999 })).toBe('key.keyCode');
+  });
+
+  it('never repeats the text the user typed', () => {
+    const kind = describeRejectedControl({ type: 'text', text: 'secreto'.repeat(10_000) });
+
+    expect(kind).toBe('text.too-long');
+    expect(describeRejectedControl({ type: 'text', text: '' })).toBe('text.empty');
+  });
+
+  it('describes payloads that are not control messages at all', () => {
+    expect(describeRejectedControl('nope')).toBe('not an object');
+    expect(describeRejectedControl({ type: 'explode' })).toBe('unknown type');
   });
 });

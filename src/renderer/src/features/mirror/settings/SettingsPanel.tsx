@@ -23,6 +23,7 @@ import { usePreferences } from '../../../shared/preferences';
 import { LANGUAGE_PREFERENCES, type LanguagePreference } from '../../../../../shared/i18n/locale';
 import type { MessageKey } from '../../../../../shared/i18n/messages';
 import { useDeviceSettings } from '../useDeviceSettings';
+import { DiagnosticsSection } from './DiagnosticsSection';
 import { SettingRow, SettingsSection, ToggleRow } from './settings-layout';
 import { ROW_ICONS } from './row-icons';
 
@@ -293,6 +294,8 @@ export function SettingsPanel({
               </p>
             )}
           </SettingsSection>
+
+          <DiagnosticsSection />
 
           <div className="flex justify-center">
             <Button variant="danger" onClick={reset} disabled={busy}>

@@ -1,4 +1,5 @@
 import { deviceApi } from './device.api';
+import { diagnosticsApi } from './diagnostics.api';
 import { filesApi } from './files.api';
 import { menuApi } from './menu.api';
 import { mirrorApi } from './mirror.api';
@@ -12,6 +13,7 @@ const masayaApi = {
   ...preferencesApi,
   ...filesApi,
   ...menuApi,
+  ...diagnosticsApi,
 };
 
 export type MasayaApi = typeof masayaApi;
@@ -56,6 +58,8 @@ const MIRROR_WINDOW_API: readonly ApiName[] = [
   'setAlwaysOnTop',
   'getPathForFile',
   'setPreferences',
+  'copyDiagnosticReport',
+  'openLogFolder',
 ];
 
 const unavailable = (): Promise<{ ok: false; error: string }> =>

@@ -1,5 +1,11 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { AdbService, parseAdbDevicesOutput, parseMdnsServices } from '../adb.service';
+import {
+  AdbService,
+  logDeviceChanges,
+  parseAdbDevicesOutput,
+  parseMdnsServices,
+} from '../adb.service';
+import { log } from '../../../logging/log';
 import { CommandError, runCommand } from '../../../utils/runCommand';
 import { DEVICE_NAME_PROPS, DEVICE_NAME_SHELL_COMMAND } from '../device-name';
 
@@ -532,5 +538,28 @@ describe('AdbService device settings', () => {
       ['-s', 'emulator-5554', 'shell', 'settings', 'put', ...tail],
       20_000,
     );
+  });
+});
+
+describe('logDeviceChanges', () => {
+  it('logs phones that connect, change state or leave, and nothing when the list is the same', () => {
+    const info = vi.spyOn(log, 'info').mockImplementation(() => undefined);
+    const phone = {
+      id: 'R5CW1234',
+      status: 'unauthorized',
+      displayName: 'Galaxy S23 Ultra',
+    } as const;
+    const gone = { id: 'emulator-5554', status: 'device' } as const;
+
+    logDeviceChanges(new Map([[gone.id, gone]]), [phone]);
+    logDeviceChanges(new Map([[phone.id, phone]]), [{ ...phone, status: 'device' }]);
+    logDeviceChanges(new Map([[phone.id, phone]]), [phone]);
+
+    expect(info.mock.calls).toEqual([
+      ['device', 'connected: R5CW1234 (Galaxy S23 Ultra), unauthorized'],
+      ['device', 'disconnected: emulator-5554'],
+      ['device', 'R5CW1234 (Galaxy S23 Ultra): unauthorized → device'],
+    ]);
+    info.mockRestore();
   });
 });

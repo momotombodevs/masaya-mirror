@@ -17,10 +17,14 @@ import { registerPreferencesIpcHandlers } from './features/preferences/ipc/prefe
 import { PreferencesService } from './features/preferences/preferences.service';
 import { resolveLocale } from '../shared/i18n/locale';
 import { PREFERENCES_CHANNELS } from '../shared/ipc/preferences.contract';
+import { startDiagnosticLogging } from './features/diagnostics/crash-logging';
+import { registerDiagnosticsIpcHandlers } from './features/diagnostics/ipc/diagnostics.handlers';
 import { registerQaIpcHandlers } from './features/qa/ipc/qa.handlers';
 import { createUpdaterService } from './features/updates/register-updater';
+import { log } from './logging/log';
 
 function bootstrap(): void {
+  startDiagnosticLogging();
   augmentProcessPath();
 
   const adbService = new AdbService();
@@ -53,6 +57,7 @@ function bootstrap(): void {
     // getLocale is only reliable once the app is ready.
     const locale = resolveLocale(preferences.get().language, app.getLocale());
     setMainLocale(locale);
+    log.info('app', `language: ${locale} (system ${app.getLocale()})`);
     const updater = createUpdaterService();
     const onCheckForUpdates = updater ? () => void updater.checkNow() : undefined;
     installApplicationMenu(locale, onCheckForUpdates);
@@ -77,6 +82,7 @@ function bootstrap(): void {
     });
     registerMirrorIpcHandlers(scrcpyService, mirrorWindowService);
     registerQaIpcHandlers(mirrorWindowService, preferences);
+    registerDiagnosticsIpcHandlers(adbService, mirrorWindowService);
     createWindow();
     updater?.start();
   });

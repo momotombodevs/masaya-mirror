@@ -7,8 +7,10 @@ import type {
 import { err, mapResult, ok, type Result } from '../../../shared/ipc/result';
 import { runCommand } from '../../utils/runCommand';
 import { mt } from '../../i18n';
+import { log } from '../../logging/log';
 import { adbNotFound, commandFailure } from './adb-error';
 import { resolveAdbPath } from './adb-path.resolver';
+import { summarizeAdbVersion } from '../diagnostics/diagnostic-report';
 import { DEVICE_NAME_SHELL_COMMAND, friendlyModelName, parseDeviceName } from './device-name';
 
 /**
@@ -109,6 +111,32 @@ export function parseMdnsServices(stdout: string): readonly MdnsService[] {
   return services;
 }
 
+function describeDevice(device: AndroidDevice): string {
+  const name = device.displayName ?? device.model;
+  return name ? `${device.id} (${name})` : device.id;
+}
+
+/** Logs phones that appeared, left, or changed state since the previous listing. */
+export function logDeviceChanges(
+  previous: ReadonlyMap<string, AndroidDevice>,
+  current: readonly AndroidDevice[],
+): void {
+  const currentIds = new Set(current.map((device) => device.id));
+  for (const device of current) {
+    const before = previous.get(device.id);
+    if (!before) {
+      log.info('device', `connected: ${describeDevice(device)}, ${device.status}`);
+    } else if (before.status !== device.status) {
+      log.info('device', `${describeDevice(device)}: ${before.status} → ${device.status}`);
+    }
+  }
+  for (const [id, device] of previous) {
+    if (!currentIds.has(id)) {
+      log.info('device', `disconnected: ${describeDevice(device)}`);
+    }
+  }
+}
+
 export class AdbService {
   private adbPath: string | null = null;
   private customPath: string | null = null;
@@ -117,6 +145,10 @@ export class AdbService {
    * connection; failed lookups are dropped and retried on the next refresh.
    */
   private readonly deviceNames = new Map<string, Promise<string | undefined>>();
+  /** The previous listing, to log connections and disconnections rather than every refresh. */
+  private knownDevices = new Map<string, AndroidDevice>();
+  /** The last listing failure, logged once until the listing works again or fails differently. */
+  private lastListError: string | null = null;
 
   /** Sets (or clears) the `adb` the user picked in the app and forgets the cached lookup. */
   setCustomPath(customPath: string | null): void {
@@ -158,6 +190,11 @@ export class AdbService {
     }
   }
 
+  /** `adb version`, condensed to its version lines. */
+  async getVersion(): Promise<Result<string>> {
+    return mapResult(await this.run(['version'], 5_000), summarizeAdbVersion);
+  }
+
   /** mDNS lets adb find phones without typing an address. Some adb builds or networks lack it. */
   async checkMdns(): Promise<Result<void>> {
     const result = await this.run(['mdns', 'check']);
@@ -178,9 +215,13 @@ export class AdbService {
     if (!result.ok) {
       return result;
     }
-    return /successfully paired/i.test(result.value)
-      ? ok(mt('main.paired'))
-      : err(lastLine(result.value) || mt('main.pairFailed'));
+    if (/successfully paired/i.test(result.value)) {
+      log.info('device', `paired over Wi-Fi: ${address}`);
+      return ok(mt('main.paired'));
+    }
+    // The pairing code is never logged, only adb's verdict.
+    log.warn('device', `Wi-Fi pairing with ${address} failed: ${lastLine(result.value)}`);
+    return err(lastLine(result.value) || mt('main.pairFailed'));
   }
 
   async connect(address: string): Promise<Result<string>> {
@@ -189,9 +230,11 @@ export class AdbService {
       return result;
     }
     const verdict = lastLine(result.value);
-    return /^(already )?connected/i.test(verdict)
-      ? ok(mt('main.connectedTo', { address }))
-      : err(verdict || mt('main.connectFailed'));
+    if (/^(already )?connected/i.test(verdict)) {
+      return ok(mt('main.connectedTo', { address }));
+    }
+    log.warn('device', `Wi-Fi connection to ${address} failed: ${verdict}`);
+    return err(verdict || mt('main.connectFailed'));
   }
 
   async disconnect(address: string): Promise<Result<string>> {
@@ -258,8 +301,13 @@ export class AdbService {
   async listDevices(): Promise<Result<readonly AndroidDevice[]>> {
     const result = mapResult(await this.run(['devices', '-l']), parseAdbDevicesOutput);
     if (!result.ok) {
+      if (result.error !== this.lastListError) {
+        this.lastListError = result.error;
+        log.warn('device', `could not list devices: ${result.error}`);
+      }
       return result;
     }
+    this.lastListError = null;
     const devices = result.value;
     const listedIds = new Set(devices.map((device) => device.id));
     for (const id of this.deviceNames.keys()) {
@@ -268,14 +316,14 @@ export class AdbService {
       }
     }
     const names = await Promise.all(devices.map((device) => this.lookUpDeviceName(device)));
-    return ok(
-      devices.map((device, index) => {
-        const displayName =
-          names[index] ??
-          (device.model !== undefined ? friendlyModelName(device.model) : undefined);
-        return displayName ? { ...device, displayName } : device;
-      }),
-    );
+    const named = devices.map((device, index) => {
+      const displayName =
+        names[index] ?? (device.model !== undefined ? friendlyModelName(device.model) : undefined);
+      return displayName ? { ...device, displayName } : device;
+    });
+    logDeviceChanges(this.knownDevices, named);
+    this.knownDevices = new Map(named.map((device) => [device.id, device]));
+    return ok(named);
   }
 
   /** Reads the phone's marketing name once; only a phone that is online can answer. */

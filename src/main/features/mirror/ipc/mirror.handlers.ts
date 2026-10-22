@@ -10,7 +10,13 @@ import {
 } from '../../../ipc/handle-ipc';
 import type { MirrorWindowService } from '../mirror-window.service';
 import type { ScrcpyService } from '../scrcpy.service';
-import { parseControlMessage, parseMirrorOptions, parseVideoLayout } from './mirror-parsers';
+import {
+  describeRejectedControl,
+  parseControlMessage,
+  parseMirrorOptions,
+  parseVideoLayout,
+} from './mirror-parsers';
+import { log } from '../../../logging/log';
 import { mt } from '../../../i18n';
 
 type DeviceHandler<T> = (request: DeviceRequest) => Result<T> | Promise<Result<T>>;
@@ -82,6 +88,11 @@ export function registerMirrorIpcHandlers(
 
   ownedDevice(MIRROR_CHANNELS.control, ({ deviceId, body }) => {
     const message = parseControlMessage(body.message);
-    return message.ok ? scrcpyService.sendControl(deviceId, message.value) : message;
+    if (!message.ok) {
+      // Pointer moves arrive many times a second; a counter keeps a bad sender to a few lines.
+      log.count('mirror', `control rejected: ${describeRejectedControl(body.message)}`);
+      return message;
+    }
+    return scrcpyService.sendControl(deviceId, message.value);
   });
 }
