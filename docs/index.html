@@ -158,101 +158,13 @@
       type="font/woff2"
       crossorigin
     />
-    <link rel="stylesheet" href="style.css?v=5" />
+    <link rel="stylesheet" href="style.css?v=6" />
   </head>
   <body>
-    <!-- icon sprite: every icon is decorative; labels live on the controls -->
+    <!-- icon sprite: the menu icon is decorative; its label lives on the control -->
     <svg width="0" height="0" class="d-sprite" aria-hidden="true">
       <defs>
-        <symbol id="i-apple" viewBox="0 0 24 24">
-          <path
-            d="M16.5 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9s-1.8-.9-3-.9C7 7.3 5.5 8.3 4.7 9.8 3 12.7 4.3 17 5.9 19.3c.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2.1-1.1 2.8-2.3.9-1.3 1.3-2.6 1.3-2.7-.1 0-2.4-.9-2.4-4zM14.3 5.6c.6-.8 1.1-1.8 1-2.9-.9 0-2 .6-2.7 1.4-.6.7-1.1 1.8-1 2.8 1 .1 2-.5 2.7-1.3z"
-          />
-        </symbol>
-        <symbol id="i-win" viewBox="0 0 24 24">
-          <path
-            d="M3 5.5l7.5-1v7H3zM12 4.3L21 3v8.5h-9zM3 12.5h7.5v7L3 18.5zM12 12.5h9V21l-9-1.3z"
-          />
-        </symbol>
-        <symbol id="i-linux" viewBox="0 0 24 24">
-          <path
-            d="M12 3c-2.2 0-3.3 1.8-3.3 4.2 0 1.6-.5 2.6-1.6 4.1C5.8 13 5 14.6 5 16.5 5 19.6 8 21 12 21s7-1.4 7-4.5c0-1.9-.8-3.5-2.1-5.2-1.1-1.5-1.6-2.5-1.6-4.1C15.3 4.8 14.2 3 12 3z"
-          />
-          <circle cx="10.5" cy="7.5" r=".6" />
-          <circle cx="13.5" cy="7.5" r=".6" />
-          <path d="M10.8 9.6h2.4" />
-        </symbol>
-        <symbol id="i-book" viewBox="0 0 24 24">
-          <path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM4 19V5M8 7h7" />
-        </symbol>
         <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" /></symbol>
-        <symbol id="i-shield" viewBox="0 0 24 24">
-          <path d="M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6z" />
-          <path d="M8.5 12l2.5 2.5 4.5-5" />
-        </symbol>
-        <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></symbol>
-        <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></symbol>
-        <symbol id="i-wifi" viewBox="0 0 24 24">
-          <path d="M2 8.8a15 15 0 0 1 20 0M5.5 12.3a10 10 0 0 1 13 0M9 15.8a5 5 0 0 1 6 0" />
-          <circle cx="12" cy="19" r="1" />
-        </symbol>
-        <symbol id="i-window" viewBox="0 0 24 24">
-          <rect x="3" y="4" width="18" height="16" rx="2.5" />
-          <path d="M3 9h18" />
-        </symbol>
-        <symbol id="i-phone" viewBox="0 0 24 24">
-          <rect x="7" y="2.5" width="10" height="19" rx="2.5" />
-          <path d="M11 18.5h2" />
-        </symbol>
-        <symbol id="i-usb" viewBox="0 0 24 24">
-          <path d="M12 3v14M12 3l-2.5 3h5zM7 10v2.5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9" />
-          <circle cx="12" cy="19" r="2" />
-          <rect x="5.5" y="8" width="3" height="2" />
-          <circle cx="17" cy="8" r="1.3" />
-        </symbol>
-        <symbol id="i-pointer" viewBox="0 0 24 24"><path d="M5 3l14 8-6 2-2 6z" /></symbol>
-        <symbol id="i-install" viewBox="0 0 24 24">
-          <path d="M12 3v12m0 0-4-4m4 4 4-4" />
-          <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
-        </symbol>
-        <symbol id="i-sliders" viewBox="0 0 24 24">
-          <path d="M4 7h10M18 7h2M4 17h2M10 17h10" />
-          <circle cx="16" cy="7" r="2" />
-          <circle cx="8" cy="17" r="2" />
-        </symbol>
-        <symbol id="i-sun" viewBox="0 0 24 24">
-          <path
-            d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"
-          />
-        </symbol>
-        <symbol id="i-vol-up" viewBox="0 0 24 24">
-          <path d="M11 5 6 9H2v6h4l5 4z" />
-          <path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14" />
-        </symbol>
-        <symbol id="i-vol-down" viewBox="0 0 24 24">
-          <path d="M11 5 6 9H2v6h4l5 4z" />
-          <path d="M15.5 8.5a5 5 0 0 1 0 7" />
-        </symbol>
-        <symbol id="i-power" viewBox="0 0 24 24">
-          <path d="M12 2v10" />
-          <path d="M18.4 6.6a9 9 0 1 1-12.8 0" />
-        </symbol>
-        <symbol id="i-camera" viewBox="0 0 24 24">
-          <path
-            d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"
-          />
-          <circle cx="12" cy="13" r="4" />
-        </symbol>
-        <symbol id="i-expand" viewBox="0 0 24 24">
-          <path
-            d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"
-          />
-        </symbol>
-        <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" /></symbol>
-        <symbol id="i-home" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" /></symbol>
-        <symbol id="i-recents" viewBox="0 0 24 24">
-          <rect x="6" y="6" width="12" height="12" rx="2" />
-        </symbol>
       </defs>
     </svg>
 
@@ -265,10 +177,7 @@
         >
         <nav class="d-links" aria-label="Principal" data-i18n-label="nav.label">
           <a href="#funciones" data-i18n="nav.features">Funciones</a>
-          <a href="#empezar" data-i18n="nav.start">Empezar</a>
-          <a href="#atajos" data-i18n="nav.shortcuts">Atajos</a>
           <a href="#vysor">Vs. Vysor</a>
-          <a href="https://github.com/donmanueldev/manolo-mirror">GitHub</a>
         </nav>
         <div class="d-lang" role="group" aria-label="Idioma" data-i18n-label="nav.lang">
           <button type="button" data-lang="es" aria-pressed="true" lang="es">ES</button>
@@ -298,11 +207,8 @@
           <div class="d-menu__panel">
             <nav aria-label="Principal" data-i18n-label="nav.label">
               <a href="#funciones" data-i18n="nav.features">Funciones</a>
-              <a href="#empezar" data-i18n="nav.start">Empezar</a>
-              <a href="#atajos" data-i18n="nav.shortcuts">Atajos</a>
               <a href="#vysor">Vs. Vysor</a>
               <a href="#ayuda" data-i18n="nav.help">Ayuda</a>
-              <a href="https://github.com/donmanueldev/manolo-mirror">GitHub</a>
             </nav>
             <div class="d-menu__row">
               <div class="d-lang" role="group" aria-label="Idioma" data-i18n-label="nav.lang">
@@ -335,25 +241,13 @@
             </div>
           </div>
           <p class="d-lead" data-i18n="hero.lead">
-            Ve y controla tu teléfono desde macOS, Windows o Linux con mouse y teclado. Captura y
-            graba lo que pasa mientras pruebas. Por USB, o por Wi-Fi con un código QR.
+            Controla tu teléfono con mouse y teclado desde macOS, Windows o Linux.
           </p>
           <div class="d-dl">
             <a
               class="d-btn d-btn--main"
               href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
               data-dl
-              ><svg
-                width="19"
-                height="19"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.6"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <use href="#i-apple" /></svg
               ><span data-i18n="dl.mac">Descargar para macOS</span></a
             >
             <a
@@ -361,51 +255,18 @@
               href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
               data-os="mac"
               hidden
-              ><svg
-                width="17"
-                height="17"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.6"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <use href="#i-apple" /></svg
               >macOS</a
             >
             <a
               class="d-btn d-btn--line"
               href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
               data-os="win"
-              ><svg
-                width="17"
-                height="17"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.6"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <use href="#i-win" /></svg
               >Windows</a
             >
             <a
               class="d-btn d-btn--line"
               href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
               data-os="linux"
-              ><svg
-                width="17"
-                height="17"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.6"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <use href="#i-linux" /></svg
               >Linux</a
             >
           </div>
@@ -417,62 +278,12 @@
               >Ver descargas</a
             >
             <a class="d-btn d-btn--line" href="https://github.com/donmanueldev/manolo-mirror"
-              ><svg
-                width="17"
-                height="17"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <use href="#i-book" /></svg
               ><span data-i18n="hero.code">Código en GitHub</span></a
             >
             <div class="d-mdl__os">
-              <a href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
-                ><svg
-                  width="15"
-                  height="15"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.6"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
-                  <use href="#i-apple" /></svg
-                >macOS</a
-              >
-              <a href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
-                ><svg
-                  width="14"
-                  height="14"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.6"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
-                  <use href="#i-win" /></svg
-                >Windows</a
-              >
-              <a href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
-                ><svg
-                  width="14"
-                  height="14"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.6"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
-                  <use href="#i-linux" /></svg
-                >Linux</a
-              >
+              <a href="https://github.com/donmanueldev/manolo-mirror/releases/latest">macOS</a>
+              <a href="https://github.com/donmanueldev/manolo-mirror/releases/latest">Windows</a>
+              <a href="https://github.com/donmanueldev/manolo-mirror/releases/latest">Linux</a>
             </div>
           </div>
           <p class="d-hero-note" data-i18n="hero.note">
@@ -485,7 +296,7 @@
           <div
             class="d-win mm"
             role="img"
-            aria-label="Ventana de Masaya duplicando un Galaxy S23 Ultra con los ajustes de pantalla abiertos"
+            aria-label="Ventana de Masaya duplicando un Galaxy S23 Ultra con la app Despertá abierta"
             data-i18n-label="hero.winLabel"
           >
             <div class="xx-win">
@@ -562,72 +373,24 @@
       <div class="d-wrap">
         <ul class="d-perks">
           <li class="d-perk">
-            <svg
-              width="22"
-              height="22"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <use href="#i-shield" />
-            </svg>
             <div>
               <b data-i18n="perk.accounts">Sin cuentas</b
               ><span data-i18n="perk.accountsV">Ni registro ni correo</span>
             </div>
           </li>
           <li class="d-perk">
-            <svg
-              width="22"
-              height="22"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <use href="#i-x" />
-            </svg>
             <div>
               <b data-i18n="perk.ads">Sin anuncios</b
               ><span data-i18n="perk.adsV">Ni planes de pago</span>
             </div>
           </li>
           <li class="d-perk">
-            <svg
-              width="22"
-              height="22"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <use href="#i-wifi" />
-            </svg>
             <div>
               <b data-i18n="perk.local">Sin nube</b
               ><span data-i18n="perk.localV">Ni analítica ni telemetría</span>
             </div>
           </li>
           <li class="d-perk">
-            <svg
-              width="22"
-              height="22"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.8"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              aria-hidden="true"
-            >
-              <use href="#i-window" />
-            </svg>
             <div>
               <b data-i18n="perk.os">Multiplataforma</b
               ><span data-i18n="perk.osV">macOS, Windows y Linux</span>
@@ -710,19 +473,6 @@
           </div>
           <ul class="d-specs">
             <li class="d-spec">
-              <span class="d-spec__ic"
-                ><svg
-                  width="20"
-                  height="20"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
-                  <use href="#i-pointer" /></svg
-              ></span>
               <div>
                 <h3 data-i18n="spec.control">Control completo</h3>
                 <p data-i18n="spec.controlV">
@@ -731,76 +481,24 @@
               </div>
             </li>
             <li class="d-spec">
-              <span class="d-spec__ic"
-                ><svg
-                  width="20"
-                  height="20"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
-                  <use href="#i-install" /></svg
-              ></span>
               <div>
                 <h3 data-i18n="spec.apk">Instalar APK</h3>
                 <p data-i18n="spec.apkV">Arrastra el archivo a la ventana.</p>
               </div>
             </li>
             <li class="d-spec">
-              <span class="d-spec__ic"
-                ><svg
-                  width="20"
-                  height="20"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
-                  <use href="#i-sliders" /></svg
-              ></span>
               <div>
                 <h3 data-i18n="spec.quality">Calidad ajustable</h3>
                 <p data-i18n="spec.qualityV">Preajustes, resolución, velocidad de datos y códec.</p>
               </div>
             </li>
             <li class="d-spec">
-              <span class="d-spec__ic"
-                ><svg
-                  width="20"
-                  height="20"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
-                  <use href="#i-sun" /></svg
-              ></span>
               <div>
                 <h3 data-i18n="spec.theme">Claro y oscuro</h3>
                 <p data-i18n="spec.themeV">Sigue el tema del sistema. En español e inglés.</p>
               </div>
             </li>
             <li class="d-spec">
-              <span class="d-spec__ic"
-                ><svg
-                  width="20"
-                  height="20"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.8"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
-                  <use href="#i-shield" /></svg
-              ></span>
               <div>
                 <h3 data-i18n="spec.private">Privado</h3>
                 <p data-i18n="spec.privateV">
@@ -866,18 +564,6 @@ List of devices attached
         <div class="d-wrap">
           <ul class="d-req">
             <li>
-              <svg
-                width="18"
-                height="18"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <use href="#i-check" />
-              </svg>
               <div>
                 <b data-i18n="req.phone">Un teléfono Android</b
                 ><span data-i18n="req.phoneV"
@@ -886,18 +572,6 @@ List of devices attached
               </div>
             </li>
             <li>
-              <svg
-                width="18"
-                height="18"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <use href="#i-check" />
-              </svg>
               <div>
                 <b>adb (Android platform-tools)</b
                 ><span data-i18n="req.adbV"
@@ -906,18 +580,6 @@ List of devices attached
               </div>
             </li>
             <li>
-              <svg
-                width="18"
-                height="18"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2.2"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                aria-hidden="true"
-              >
-                <use href="#i-check" />
-              </svg>
               <div>
                 <b data-i18n="req.os">macOS, Windows o Linux</b
                 ><span data-i18n="req.osV"
@@ -945,20 +607,7 @@ List of devices attached
           </p>
           <div class="d-install">
             <article class="d-os-card">
-              <h3>
-                <svg
-                  width="20"
-                  height="20"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.6"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
-                  <use href="#i-apple" /></svg
-                >macOS
-              </h3>
+              <h3>macOS</h3>
               <ol>
                 <li data-i18n="inst.mac1">Abre el <b>.dmg</b> y arrastra Masaya a Aplicaciones.</li>
                 <li data-i18n="inst.mac2">
@@ -978,20 +627,7 @@ List of devices attached
               </div>
             </article>
             <article class="d-os-card">
-              <h3>
-                <svg
-                  width="18"
-                  height="18"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="1.6"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  aria-hidden="true"
-                >
-                  <use href="#i-win" /></svg
-                >Windows
-              </h3>
+              <h3>Windows</h3>
               <ol>
                 <li data-i18n="inst.win1">Ejecuta el instalador <b>.exe</b>.</li>
                 <li data-i18n="inst.win2">
@@ -1075,141 +711,37 @@ List of devices attached
                 <tr>
                   <th scope="row">Wi-Fi</th>
                   <td class="us">
-                    <span class="d-yes"
-                      ><svg
-                        width="16"
-                        height="16"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2.2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        aria-hidden="true"
-                      >
-                        <use href="#i-check" /></svg
-                      ><span data-i18n="vs.wifiUs">Incluido</span></span
-                    >
+                    <span data-i18n="vs.wifiUs">Incluido</span>
                   </td>
                   <td>
-                    <span class="d-no"
-                      ><svg
-                        width="16"
-                        height="16"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2.2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        aria-hidden="true"
-                      >
-                        <use href="#i-x" /></svg
-                      ><span data-i18n="vs.wifiThem">Solo en Pro</span></span
-                    >
+                    <span data-i18n="vs.wifiThem">Solo en Pro</span>
                   </td>
                 </tr>
                 <tr>
                   <th scope="row" data-i18n="vs.quality">Calidad</th>
                   <td class="us">
-                    <span class="d-yes"
-                      ><svg
-                        width="16"
-                        height="16"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2.2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        aria-hidden="true"
-                      >
-                        <use href="#i-check" /></svg
-                      ><span data-i18n="vs.qualityUs">Ajustable, hasta 2560 px</span></span
-                    >
+                    <span data-i18n="vs.qualityUs">Ajustable, hasta 2560 px</span>
                   </td>
                   <td>
-                    <span class="d-no"
-                      ><svg
-                        width="16"
-                        height="16"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2.2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        aria-hidden="true"
-                      >
-                        <use href="#i-x" /></svg
-                      ><span data-i18n="vs.qualityThem">Limitada; HD en Pro</span></span
-                    >
+                    <span data-i18n="vs.qualityThem">Limitada; HD en Pro</span>
                   </td>
                 </tr>
                 <tr>
                   <th scope="row" data-i18n="vs.ads">Anuncios</th>
                   <td class="us">
-                    <span class="d-yes"
-                      ><svg
-                        width="16"
-                        height="16"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2.2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        aria-hidden="true"
-                      >
-                        <use href="#i-check" /></svg
-                      ><span data-i18n="vs.adsUs">Ninguno</span></span
-                    >
+                    <span data-i18n="vs.adsUs">Ninguno</span>
                   </td>
                   <td>
-                    <span class="d-no"
-                      ><svg
-                        width="16"
-                        height="16"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2.2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        aria-hidden="true"
-                      >
-                        <use href="#i-x" /></svg
-                      ><span data-i18n="vs.adsThem">Sí; se quitan con Pro</span></span
-                    >
+                    <span data-i18n="vs.adsThem">Sí; se quitan con Pro</span>
                   </td>
                 </tr>
                 <tr>
                   <th scope="row" data-i18n="vs.plans">Planes</th>
                   <td class="us">
-                    <span class="d-yes"
-                      ><svg
-                        width="16"
-                        height="16"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2.2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        aria-hidden="true"
-                      >
-                        <use href="#i-check" /></svg
-                      ><span data-i18n="vs.plansUs">Sin funciones bloqueadas</span></span
-                    >
+                    <span data-i18n="vs.plansUs">Sin funciones bloqueadas</span>
                   </td>
                   <td>
-                    <span class="d-no"
-                      ><svg
-                        width="16"
-                        height="16"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="2.2"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                        aria-hidden="true"
-                      >
-                        <use href="#i-x" /></svg
-                      ><span data-i18n="vs.plansThem">Pro de pago</span></span
-                    >
+                    <span data-i18n="vs.plansThem">Pro de pago</span>
                   </td>
                 </tr>
               </tbody>
@@ -1268,7 +800,40 @@ List of devices attached
         <a class="d-brand" href="./"
           ><img src="masaya-logo.svg" alt="" width="28" height="28" />Masaya</a
         >
-        <small data-i18n="foot.copy">© 2026 Masaya, hecho por Momotombo Devs.</small>
+        <p class="d-foot__by">
+          Crafted with passion by
+          <a href="https://momotombo.dev/" target="_blank" rel="noopener noreferrer"
+            >Momotombo Devs
+            <svg viewBox="0 0 108 100" width="18" height="18" fill="none" aria-hidden="true">
+              <defs>
+                <mask id="mt-gap-mask">
+                  <rect width="108" height="100" fill="white" />
+                  <polygon
+                    points="28,49 3,89 53,89"
+                    fill="black"
+                    stroke="black"
+                    stroke-width="14"
+                    stroke-linejoin="round"
+                  />
+                </mask>
+              </defs>
+              <polygon
+                points="60,24 15,89 105,89"
+                fill="#FF6600"
+                stroke="#FF6600"
+                stroke-width="6"
+                stroke-linejoin="round"
+                mask="url(#mt-gap-mask)"
+              />
+              <polygon
+                points="28,49 3,89 53,89"
+                fill="#FF6600"
+                stroke="#FF6600"
+                stroke-width="6"
+                stroke-linejoin="round"
+              /></svg
+          ></a>
+        </p>
         <nav aria-label="Pie de página" data-i18n-label="foot.label">
           <a href="#empezar" data-i18n="foot.guide">Guía</a>
           <a href="#ayuda" data-i18n="nav.help">Ayuda</a>
@@ -1276,40 +841,8 @@ List of devices attached
           <a href="https://github.com/donmanueldev/manolo-mirror">GitHub</a>
         </nav>
       </div>
-      <div class="d-wrap d-foot__note">
-        <span
-          ><svg
-            width="14"
-            height="14"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <use href="#i-book" /></svg
-          ><span data-i18n="foot.oss">Código abierto en GitHub</span></span
-        >
-        <span
-          ><svg
-            width="14"
-            height="14"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <use href="#i-shield" /></svg
-          ><span data-i18n="foot.local"
-            >Todo pasa entre tu equipo y tu teléfono; tus datos no salen a internet.</span
-          ></span
-        >
-      </div>
     </footer>
 
-    <script src="site.js?v=5" defer></script>
+    <script src="site.js?v=6" defer></script>
   </body>
 </html>

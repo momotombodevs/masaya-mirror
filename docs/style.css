@@ -513,10 +513,6 @@ svg {
 .d-perk:first-child {
   border-left: 0;
 }
-.d-perk svg {
-  flex-shrink: 0;
-  color: var(--d-blue-ink);
-}
 .d-perk b {
   display: block;
   font-size: 15px;
@@ -635,23 +631,8 @@ svg {
   border-top: 1px solid var(--d-line);
 }
 .d-spec {
-  display: grid;
-  grid-template-columns: 40px minmax(0, 1fr);
-  align-items: start;
-  gap: 16px;
   padding: 22px 0;
   border-bottom: 1px solid var(--d-line);
-}
-.d-spec__ic {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background: var(--d-bg-2);
-  box-shadow: inset 0 0 0 1px var(--d-line);
-  color: var(--d-blue-ink);
 }
 .d-spec h3 {
   font-size: 17px;
@@ -769,17 +750,10 @@ svg {
   list-style: none;
 }
 .d-req li {
-  display: flex;
-  gap: 14px;
   padding: 20px;
   border-radius: 14px;
   background: var(--d-bg-2);
   box-shadow: inset 0 0 0 1px var(--d-line);
-}
-.d-req svg {
-  flex-shrink: 0;
-  margin-top: 2px;
-  color: var(--d-green);
 }
 .d-req b {
   display: block;
@@ -835,9 +809,6 @@ svg {
   box-shadow: inset 0 0 0 1px var(--d-line);
 }
 .d-os-card h3 {
-  display: flex;
-  align-items: center;
-  gap: 10px;
   font-size: 17px;
   font-weight: 600;
 }
@@ -974,22 +945,6 @@ svg {
   color: var(--d-ink);
   background: rgba(10, 132, 255, 0.07);
 }
-.d-yes,
-.d-no {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-.d-yes svg,
-.d-no svg {
-  flex-shrink: 0;
-}
-.d-yes svg {
-  color: var(--d-green);
-}
-.d-no svg {
-  color: #ff6b5e;
-}
 
 /* faq */
 .d-faq {
@@ -1054,25 +1009,15 @@ svg {
 .d-foot a:hover {
   color: var(--d-ink);
 }
-.d-foot small {
+.d-foot__by {
   font-size: 13px;
   color: var(--d-ink-3);
 }
-.d-foot__note {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 24px;
-  padding-bottom: 28px;
-  font-size: 13px;
-  color: var(--d-ink-3);
-}
-.d-foot__note > span {
+.d-foot__by a {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-}
-.d-foot__note svg {
-  flex-shrink: 0;
+  gap: 6px;
+  color: var(--d-ink-2);
 }
 
 /* ---------- privacy page: a readable prose column ---------- */

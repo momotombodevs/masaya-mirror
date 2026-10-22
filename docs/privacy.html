@@ -17,19 +17,12 @@
     <meta property="og:title" content="Política de privacidad — Masaya" />
     <meta property="og:image" content="https://donmanueldev.github.io/manolo-mirror/og-image.png" />
     <meta name="twitter:card" content="summary_large_image" />
-    <link rel="stylesheet" href="style.css?v=5" />
+    <link rel="stylesheet" href="style.css?v=6" />
   </head>
   <body>
     <svg width="0" height="0" class="d-sprite" aria-hidden="true">
       <defs>
-        <symbol id="i-book" viewBox="0 0 24 24">
-          <path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM4 19V5M8 7h7" />
-        </symbol>
         <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" /></symbol>
-        <symbol id="i-shield" viewBox="0 0 24 24">
-          <path d="M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6z" />
-          <path d="M8.5 12l2.5 2.5 4.5-5" />
-        </symbol>
       </defs>
     </svg>
 
@@ -42,10 +35,7 @@
         >
         <nav class="d-links" aria-label="Principal">
           <a href="./#funciones">Funciones</a>
-          <a href="./#empezar">Empezar</a>
-          <a href="./#atajos">Atajos</a>
           <a href="./#vysor">Vs. Vysor</a>
-          <a href="https://github.com/donmanueldev/manolo-mirror">GitHub</a>
         </nav>
         <a
           class="d-btn d-btn--main d-btn--sm d-nav__dl"
@@ -70,11 +60,8 @@
           <div class="d-menu__panel">
             <nav aria-label="Principal">
               <a href="./#funciones">Funciones</a>
-              <a href="./#empezar">Empezar</a>
-              <a href="./#atajos">Atajos</a>
               <a href="./#vysor">Vs. Vysor</a>
               <a href="./#ayuda">Ayuda</a>
-              <a href="https://github.com/donmanueldev/manolo-mirror">GitHub</a>
             </nav>
             <div class="d-menu__row">
               <a
@@ -165,43 +152,46 @@
         <a class="d-brand" href="./"
           ><img src="masaya-logo.svg" alt="" width="28" height="28" />Masaya</a
         >
-        <small>© 2026 Masaya, hecho por Momotombo Devs.</small>
+        <p class="d-foot__by">
+          Crafted with passion by
+          <a href="https://momotombo.dev/" target="_blank" rel="noopener noreferrer"
+            >Momotombo Devs
+            <svg viewBox="0 0 108 100" width="18" height="18" fill="none" aria-hidden="true">
+              <defs>
+                <mask id="mt-gap-mask">
+                  <rect width="108" height="100" fill="white" />
+                  <polygon
+                    points="28,49 3,89 53,89"
+                    fill="black"
+                    stroke="black"
+                    stroke-width="14"
+                    stroke-linejoin="round"
+                  />
+                </mask>
+              </defs>
+              <polygon
+                points="60,24 15,89 105,89"
+                fill="#FF6600"
+                stroke="#FF6600"
+                stroke-width="6"
+                stroke-linejoin="round"
+                mask="url(#mt-gap-mask)"
+              />
+              <polygon
+                points="28,49 3,89 53,89"
+                fill="#FF6600"
+                stroke="#FF6600"
+                stroke-width="6"
+                stroke-linejoin="round"
+              /></svg
+          ></a>
+        </p>
         <nav aria-label="Pie de página">
           <a href="./#empezar">Guía</a>
           <a href="./#ayuda">Ayuda</a>
           <a href="privacy.html" aria-current="page">Privacidad</a>
           <a href="https://github.com/donmanueldev/manolo-mirror">GitHub</a>
         </nav>
-      </div>
-      <div class="d-wrap d-foot__note">
-        <span
-          ><svg
-            width="14"
-            height="14"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <use href="#i-book" /></svg
-          >Código abierto en GitHub</span
-        >
-        <span
-          ><svg
-            width="14"
-            height="14"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            aria-hidden="true"
-          >
-            <use href="#i-shield" /></svg
-          >Todo pasa entre tu equipo y tu teléfono; tus datos no salen a internet.</span
-        >
       </div>
     </footer>
   </body>

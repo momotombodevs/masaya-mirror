@@ -19,22 +19,19 @@
     'nav.lang': 'Language',
     'nav.menu': 'Menu',
     'nav.features': 'Features',
-    'nav.start': 'Get started',
-    'nav.shortcuts': 'Shortcuts',
     'nav.help': 'Help',
     'nav.download': 'Download',
 
     'hero.status': '<b>Galaxy S23 Ultra</b> connected over USB',
     'hero.title': 'Your Android, on the big screen.',
-    'hero.lead':
-      'See and control your phone from macOS, Windows or Linux with mouse and keyboard. Take screenshots and record what happens while you test. Over USB, or over Wi-Fi with a QR code.',
+    'hero.lead': 'Control your phone with mouse and keyboard from macOS, Windows or Linux.',
     'dl.mac': 'Download for macOS',
     'dl.win': 'Download for Windows',
     'dl.linux': 'Download for Linux',
     'hero.downloads': 'See downloads',
     'hero.code': 'Code on GitHub',
     'hero.note': 'For Android. <span>iOS coming soon.</span>',
-    'hero.winLabel': 'Masaya window mirroring a Galaxy S23 Ultra with its display settings open',
+    'hero.winLabel': 'Masaya window mirroring a Galaxy S23 Ultra with the Despertá app open',
     'call.quality': 'Quality',
     'call.qualityV': '1920 px at 16 Mbps',
     'call.codec': 'Codec',
@@ -164,13 +161,9 @@
     'faq.a5':
       'No. Your screen, your screenshots and what you type stay between your computer and your phone. The app only goes online to check GitHub for a new version, and that check carries none of your data.',
 
-    'foot.copy': '© 2026 Masaya, made by Momotombo Devs.',
     'foot.label': 'Footer',
     'foot.guide': 'Guide',
     'foot.privacy': 'Privacy',
-    'foot.oss': 'Open source on GitHub',
-    'foot.local':
-      'Everything stays between your computer and your phone; your data never goes online.',
   };
 
   var textNodes = document.querySelectorAll('[data-i18n]');
@@ -221,13 +214,11 @@
   }
 
   // ---------- download button for the visitor's OS ----------
-  // The HTML says macOS; Windows and Linux visitors get their own label and icon.
+  // The HTML says macOS; Windows and Linux visitors get their own label.
   var ua = navigator.userAgent;
   var os = /Windows/.test(ua) ? 'win' : /Linux|CrOS/.test(ua) && !/Android/.test(ua) ? 'linux' : '';
   if (os) {
     document.querySelectorAll('[data-dl]').forEach(function (a) {
-      var use = a.querySelector('use');
-      if (use) use.setAttribute('href', os === 'win' ? '#i-win' : '#i-linux');
       a.querySelector('[data-i18n]').setAttribute('data-i18n', 'dl.' + os);
     });
     // The secondary buttons offer the other two systems.
