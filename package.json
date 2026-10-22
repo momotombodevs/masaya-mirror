@@ -1,7 +1,7 @@
 {
   "name": "masaya",
   "private": true,
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Android device mirroring and QA workspace for macOS, Windows and Linux",
   "author": "Manuel Duarte",
   "license": "UNLICENSED",
