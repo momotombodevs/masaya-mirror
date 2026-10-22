@@ -21,7 +21,7 @@
   },
   // Generates app-update.yml and the latest*.yml files electron-updater reads from the GitHub Release.
   // Nothing is uploaded from here: the Release workflow publishes the artifacts.
-  publish: [{ provider: 'github', owner: 'donmanueldev', repo: 'manolo-mirror' }],
+  publish: [{ provider: 'github', owner: 'momotombodevs', repo: 'masaya-mirror' }],
   extraResources: [
     {
       from: 'resources/scrcpy-server',

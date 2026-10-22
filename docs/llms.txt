@@ -6,14 +6,14 @@ Masaya muestra la pantalla del teléfono en una ventana del escritorio y permite
 
 ## Documentación
 
-- [Página principal](https://donmanueldev.github.io/manolo-mirror/): funciones, primeros pasos, requisitos, primera apertura en macOS y Windows, atajos, comparativa con Vysor y preguntas frecuentes. En español, con versión en inglés (`?lang=en`).
-- [Texto completo para LLM](https://donmanueldev.github.io/manolo-mirror/llms-full.txt): el contenido de la página en un solo archivo.
-- [Política de privacidad](https://donmanueldev.github.io/manolo-mirror/privacy.html): qué se procesa y qué conexiones hace la app.
+- [Página principal](https://momotombodevs.github.io/masaya-mirror/): funciones, primeros pasos, requisitos, primera apertura en macOS y Windows, atajos, comparativa con Vysor y preguntas frecuentes. En español, con versión en inglés (`?lang=en`).
+- [Texto completo para LLM](https://momotombodevs.github.io/masaya-mirror/llms-full.txt): el contenido de la página en un solo archivo.
+- [Política de privacidad](https://momotombodevs.github.io/masaya-mirror/privacy.html): qué se procesa y qué conexiones hace la app.
 
 ## Descargas y código
 
-- [Última versión](https://github.com/donmanueldev/manolo-mirror/releases/latest): instaladores .dmg (macOS), .exe (Windows), .AppImage y .deb (Linux).
-- [Repositorio en GitHub](https://github.com/donmanueldev/manolo-mirror): código, incidencias y notas de versión.
+- [Última versión](https://github.com/momotombodevs/masaya-mirror/releases/latest): instaladores .dmg (macOS), .exe (Windows), .AppImage y .deb (Linux).
+- [Repositorio en GitHub](https://github.com/momotombodevs/masaya-mirror): código, incidencias y notas de versión.
 
 ## Datos clave
 
@@ -25,4 +25,4 @@ Masaya muestra la pantalla del teléfono en una ventana del escritorio y permite
 
 ## Optional
 
-- [Arquitectura](https://github.com/donmanueldev/manolo-mirror/blob/main/docs/ARCHITECTURE.md): cómo se organizan los procesos y el flujo de video.
+- [Arquitectura](https://github.com/momotombodevs/masaya-mirror/blob/main/docs/ARCHITECTURE.md): cómo se organizan los procesos y el flujo de video.

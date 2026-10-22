@@ -11,4 +11,4 @@ Allow: /
 User-agent: Google-Extended
 Allow: /
 
-Sitemap: https://donmanueldev.github.io/manolo-mirror/sitemap.xml
+Sitemap: https://momotombodevs.github.io/masaya-mirror/sitemap.xml

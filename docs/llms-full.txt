@@ -2,9 +2,9 @@
 
 > Tu Android, en grande. Aplicación de escritorio gratuita para ver y controlar un teléfono Android desde macOS, Windows o Linux con mouse y teclado, y capturar y grabar lo que pasa mientras pruebas. Funciona por USB o por Wi-Fi con un código QR. Sin cuentas, anuncios, nube ni telemetría.
 
-Sitio: https://donmanueldev.github.io/manolo-mirror/ (español; inglés con ?lang=en)
-Descargas: https://github.com/donmanueldev/manolo-mirror/releases/latest
-Código: https://github.com/donmanueldev/manolo-mirror
+Sitio: https://momotombodevs.github.io/masaya-mirror/ (español; inglés con ?lang=en)
+Descargas: https://github.com/momotombodevs/masaya-mirror/releases/latest
+Código: https://github.com/momotombodevs/masaya-mirror
 
 Para Android. Soporte para iPhone y iPad (iOS): próximamente.
 
@@ -87,4 +87,4 @@ No. Tu pantalla, tus capturas y lo que escribes se quedan entre tu equipo y tu t
 
 ## Privacidad
 
-La app no tiene servidores propios y no envía tus datos a ninguna parte. El video viaja del teléfono al equipo por USB o por la red local. Las capturas y grabaciones se guardan solo en la carpeta que elijas. La única conexión a internet que hace la app es la búsqueda de actualizaciones en GitHub Releases (macOS, Windows y AppImage). El sitio web no carga recursos de terceros. Política completa: https://donmanueldev.github.io/manolo-mirror/privacy.html
+La app no tiene servidores propios y no envía tus datos a ninguna parte. El video viaja del teléfono al equipo por USB o por la red local. Las capturas y grabaciones se guardan solo en la carpeta que elijas. La única conexión a internet que hace la app es la búsqueda de actualizaciones en GitHub Releases (macOS, Windows y AppImage). El sitio web no carga recursos de terceros. Política completa: https://momotombodevs.github.io/masaya-mirror/privacy.html
