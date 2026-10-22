@@ -9,6 +9,7 @@ import { runCommand } from '../../utils/runCommand';
 import { mt } from '../../i18n';
 import { adbNotFound, commandFailure } from './adb-error';
 import { resolveAdbPath } from './adb-path.resolver';
+import { DEVICE_NAME_SHELL_COMMAND, friendlyModelName, parseDeviceName } from './device-name';
 
 /**
  * Every state `adb devices` can print. Anything else on a line (daemon chatter, warnings) is
@@ -78,6 +79,7 @@ export function parseAdbDevicesOutput(stdout: string): readonly AndroidDevice[] 
 
 const INSTALL_TIMEOUT_MS = 180_000;
 const NETWORK_TIMEOUT_MS = 20_000;
+const DEVICE_NAME_TIMEOUT_MS = 5_000;
 
 /** Last non-empty line, which is where adb puts its verdict. */
 function lastLine(text: string): string {
@@ -110,6 +112,11 @@ export function parseMdnsServices(stdout: string): readonly MdnsService[] {
 export class AdbService {
   private adbPath: string | null = null;
   private customPath: string | null = null;
+  /**
+   * Marketing names by device id. The list refreshes every 5 s, so each phone is asked once per
+   * connection; failed lookups are dropped and retried on the next refresh.
+   */
+  private readonly deviceNames = new Map<string, Promise<string | undefined>>();
 
   /** Sets (or clears) the `adb` the user picked in the app and forgets the cached lookup. */
   setCustomPath(customPath: string | null): void {
@@ -249,6 +256,50 @@ export class AdbService {
   }
 
   async listDevices(): Promise<Result<readonly AndroidDevice[]>> {
-    return mapResult(await this.run(['devices', '-l']), parseAdbDevicesOutput);
+    const result = mapResult(await this.run(['devices', '-l']), parseAdbDevicesOutput);
+    if (!result.ok) {
+      return result;
+    }
+    const devices = result.value;
+    const listedIds = new Set(devices.map((device) => device.id));
+    for (const id of this.deviceNames.keys()) {
+      if (!listedIds.has(id)) {
+        this.deviceNames.delete(id);
+      }
+    }
+    const names = await Promise.all(devices.map((device) => this.lookUpDeviceName(device)));
+    return ok(
+      devices.map((device, index) => {
+        const displayName =
+          names[index] ??
+          (device.model !== undefined ? friendlyModelName(device.model) : undefined);
+        return displayName ? { ...device, displayName } : device;
+      }),
+    );
+  }
+
+  /** Reads the phone's marketing name once; only a phone that is online can answer. */
+  private lookUpDeviceName(device: AndroidDevice): Promise<string | undefined> {
+    const cached = this.deviceNames.get(device.id);
+    if (cached || device.status !== 'device') {
+      return cached ?? Promise.resolve(undefined);
+    }
+    const lookup = this.run(
+      ['-s', device.id, 'shell', DEVICE_NAME_SHELL_COMMAND],
+      DEVICE_NAME_TIMEOUT_MS,
+    )
+      .catch((error: unknown) => err(String(error)))
+      .then((result) => {
+        if (result.ok) {
+          return parseDeviceName(result.value);
+        }
+        // A phone that has just come online may not answer yet; ask again on the next refresh.
+        if (this.deviceNames.get(device.id) === lookup) {
+          this.deviceNames.delete(device.id);
+        }
+        return undefined;
+      });
+    this.deviceNames.set(device.id, lookup);
+    return lookup;
   }
 }

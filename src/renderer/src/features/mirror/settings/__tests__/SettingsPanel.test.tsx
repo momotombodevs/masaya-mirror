@@ -42,7 +42,7 @@ describe('SettingsPanel', () => {
       value: { showTouches: false, stayAwake: true },
     });
     setDeviceSetting.mockResolvedValue({ ok: true, value: undefined });
-    vi.stubGlobal('manolo', { getDeviceSettings, setDeviceSetting });
+    vi.stubGlobal('masaya', { getDeviceSettings, setDeviceSetting });
   });
 
   afterEach(() => {
@@ -61,8 +61,8 @@ describe('SettingsPanel', () => {
   it('shows the logo and the credits footer', () => {
     renderPanel();
 
-    expect(screen.getByRole('img', { name: 'Manolo Mirror' })).toBeTruthy();
-    expect(screen.getByText('Crafted with passion by Momotombo Devs')).toBeTruthy();
+    expect(screen.getByRole('img', { name: 'Masaya' })).toBeTruthy();
+    expect(screen.getByText('Hecho por Momotombo Devs')).toBeTruthy();
   });
 
   it('changes the app language from the picker', () => {

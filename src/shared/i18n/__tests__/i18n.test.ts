@@ -23,7 +23,7 @@ describe('translate', () => {
   });
 
   it('fills placeholders and leaves unknown ones untouched', () => {
-    expect(translate('en', 'menu.quit', { app: 'Manolo Mirror' })).toBe('Quit Manolo Mirror');
+    expect(translate('en', 'menu.quit', { app: 'Masaya' })).toBe('Quit Masaya');
     expect(translate('es', 'menu.quit')).toBe('Salir de {app}');
   });
 });

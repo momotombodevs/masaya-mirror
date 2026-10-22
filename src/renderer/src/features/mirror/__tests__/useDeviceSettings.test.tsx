@@ -9,7 +9,7 @@ const setDeviceSetting = vi.fn();
 describe('useDeviceSettings', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubGlobal('manolo', { getDeviceSettings, setDeviceSetting });
+    vi.stubGlobal('masaya', { getDeviceSettings, setDeviceSetting });
   });
 
   afterEach(() => {

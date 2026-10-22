@@ -10,7 +10,7 @@
    - empaqueta en macOS (DMG `arm64` y `x64`), Windows (NSIS x64) y Linux (AppImage y `.deb`, `x64` y `arm64`);
    - crea el tag sobre el commit del merge y publica todo en una GitHub Release con notas generadas.
 
-Los nombres siguen `manolo-mirror-<versión>-<os>-<arch>.<ext>`.
+Los nombres siguen `masaya-<versión>-<os>-<arch>.<ext>`.
 
 ## Probar el empaquetado en local
 
@@ -85,7 +85,7 @@ No hace falta subir la app a la App Store para distribuirla así.
 
 - Mientras un instalador salga sin firmar:
   - **macOS:** clic derecho → **Abrir**, o permitirla en Ajustes del Sistema → Privacidad y seguridad. En
-    Apple Silicon puede hacer falta `xattr -cr "/Applications/Manolo Mirror.app"`.
+    Apple Silicon puede hacer falta `xattr -cr "/Applications/Masaya.app"`.
   - **Windows:** SmartScreen avisa; **Más información → Ejecutar de todas formas**.
 
 ## Icono
@@ -107,7 +107,7 @@ instaladores, los archivos `latest.yml`, `latest-mac.yml`, `latest-linux.yml`, l
 
 - Comprueba 10 s después de abrir y cada 4 h, descarga en segundo plano y pregunta si reiniciar. Si el
   usuario elige «Más tarde», se instala al cerrar la app.
-- Menú → **Buscar actualizaciones…** hace una comprobación manual (Manolo Mirror en macOS, Archivo en
+- Menú → **Buscar actualizaciones…** hace una comprobación manual (Masaya en macOS, Archivo en
   Windows y Linux).
 - Solo funciona en la app instalada y firmada: en `pnpm dev`, en un `.deb` o fuera de un AppImage el menú
   no aparece. En macOS la actualización exige que el DMG esté firmado y notarizado.

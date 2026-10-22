@@ -80,15 +80,20 @@ export class MirrorWindowService {
 
     await this.deps.scrcpyService.closeMirror(deviceId);
 
-    const win = createSecureWindow({
-      width: 400,
-      height: 860,
-      minWidth: MIN_CONTENT_WIDTH,
-      minHeight: MIN_CONTENT_HEIGHT,
-      title: deviceLabel,
-      autoHideMenuBar: true,
-      backgroundColor: '#000000',
-    });
+    const win = createSecureWindow(
+      {
+        width: 400,
+        height: 860,
+        minWidth: MIN_CONTENT_WIDTH,
+        minHeight: MIN_CONTENT_HEIGHT,
+        title: deviceLabel,
+        autoHideMenuBar: true,
+        backgroundColor: '#000000',
+      },
+      // A covered window keeps drawing the phone: recordings stay smooth and there is no
+      // catch-up stall when it shows again. Video decoding runs either way.
+      { backgroundThrottling: false },
+    );
 
     this.windows.set(deviceId, win);
 

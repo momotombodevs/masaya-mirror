@@ -4,7 +4,7 @@ import { summarizeDevices } from './features/device/connected-devices';
 import { DEVICE_REFRESH_MS, useDevices } from './features/device/useDevices';
 import { useMirrorStatus } from './features/mirror/useMirrorStatus';
 import { useI18n } from './shared/i18n';
-import { callApi } from './shared/manolo-api';
+import { callApi } from './shared/masaya-api';
 import { useAutoRefresh } from './shared/useAutoRefresh';
 import { useMenuActions } from './shared/useMenuAction';
 
@@ -33,7 +33,7 @@ export default function App(): JSX.Element {
     setWindowError(null);
 
     const result = await callApi(
-      (api) => api.openMirrorWindow(deviceId, device?.model ?? deviceId),
+      (api) => api.openMirrorWindow(deviceId, device?.displayName ?? deviceId),
       t('app.openMirrorFailed'),
     );
     if (!result.ok) {

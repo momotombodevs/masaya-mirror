@@ -35,7 +35,7 @@ describe('useRecording', () => {
     FakeRecorder.instances = [];
     FakeRecorder.supported = new Set(['video/mp4;codecs=avc1', 'video/webm']);
     saveRecording.mockResolvedValue({ ok: true, value: { saved: true } });
-    vi.stubGlobal('manolo', { saveRecording });
+    vi.stubGlobal('masaya', { saveRecording });
     vi.stubGlobal('MediaRecorder', FakeRecorder);
     trackStop.mockClear();
     canvas.captureStream = vi.fn(
@@ -84,7 +84,9 @@ describe('useRecording', () => {
     await act(() => result.current.toggle());
 
     expect(result.current.recording).toBe(false);
-    expect(showStatus).toHaveBeenCalledWith('Este sistema no puede grabar video.');
+    expect(showStatus).toHaveBeenCalledWith(
+      'Este sistema no puede grabar video. Elige GIF en Ajustes.',
+    );
   });
 
   it('refuses to record before the mirror has a canvas', async () => {
@@ -92,7 +94,7 @@ describe('useRecording', () => {
 
     await act(() => result.current.toggle());
 
-    expect(showStatus).toHaveBeenCalledWith('Espejo no listo');
+    expect(showStatus).toHaveBeenCalledWith('Aún no hay imagen');
     expect(FakeRecorder.instances).toHaveLength(0);
   });
 

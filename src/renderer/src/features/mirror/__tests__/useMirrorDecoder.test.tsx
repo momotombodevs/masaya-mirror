@@ -82,7 +82,7 @@ describe('useMirrorDecoder', () => {
     subscriber = null;
     unsubscribe.mockReset();
     setMirrorVideoLayout.mockClear();
-    vi.stubGlobal('manolo', { setMirrorVideoLayout });
+    vi.stubGlobal('masaya', { setMirrorVideoLayout });
     vi.useFakeTimers();
   });
 
@@ -195,7 +195,7 @@ describe('useMirrorDecoder', () => {
 
     const { result } = render();
 
-    expect(result.current.streamError).toBe('API de Manolo Mirror no disponible.');
+    expect(result.current.streamError).toBe('Sin conexión con la app. Reiníciala.');
   });
 
   it('keeps a more specific error when the missing-signal timer fires', () => {

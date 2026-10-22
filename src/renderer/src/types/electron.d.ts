@@ -1,8 +1,8 @@
-import type { ManoloApi } from '../../../preload/manolo.api';
+import type { MasayaApi } from '../../../preload/masaya.api';
 
 declare global {
   interface Window {
-    readonly manolo: ManoloApi;
+    readonly masaya: MasayaApi;
   }
 }
 

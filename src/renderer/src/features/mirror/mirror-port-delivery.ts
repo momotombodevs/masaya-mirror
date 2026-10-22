@@ -25,10 +25,10 @@ function deliverPort(deviceId: string, port: MessagePort): void {
 }
 
 function onWindowMessage(event: MessageEvent): void {
+  // Only the preload of this same window posts ports. The origin is not compared: in a packaged
+  // build the page is a file:// page whose messages arrive with origin "null" while
+  // `location.origin` reads "file://", so an origin check dropped every port and no video showed.
   if (event.source !== window) {
-    return;
-  }
-  if (window.location.origin !== 'null' && event.origin !== window.location.origin) {
     return;
   }
   if (!isMirrorPortWindowMessage(event.data)) {

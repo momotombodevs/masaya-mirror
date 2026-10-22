@@ -16,7 +16,7 @@ import type { MirrorOptions } from '../../../../../shared/mirror/types';
 import { Button } from '../../../components/ui/Button';
 import { Select, type SelectOption } from '../../../components/ui/Select';
 import { cx } from '../../../components/ui/cx';
-import logoUrl from '../../../assets/manolo-logo.svg';
+import logoUrl from '../../../assets/masaya-logo.svg';
 import { useI18n } from '../../../shared/i18n';
 import { usePreferences } from '../../../shared/preferences';
 import { LANGUAGE_PREFERENCES, type LanguagePreference } from '../../../../../shared/i18n/locale';
@@ -140,11 +140,7 @@ export function SettingsPanel({
     >
       <header className="relative flex h-11 shrink-0 items-center justify-center border-b border-line bg-content/80 px-4 backdrop-blur-xl">
         <h2 className="text-base font-semibold">{t('settings.title')}</h2>
-        <Button
-          className="absolute right-2 font-semibold text-accent"
-          variant="plain"
-          onClick={onClose}
-        >
+        <Button className="absolute right-2 font-semibold" variant="link" onClick={onClose}>
           {t('common.close')}
         </Button>
       </header>
@@ -152,8 +148,8 @@ export function SettingsPanel({
       <div className="min-h-0 flex-1 select-none overflow-y-auto p-4">
         <div className="mx-auto flex max-w-xl flex-col gap-6">
           <div className="flex flex-col items-center gap-2 pb-1 pt-2">
-            <img src={logoUrl} alt="Manolo Mirror" className="size-16 drop-shadow-sm" />
-            <p className="text-lg font-semibold">Manolo Mirror</p>
+            <img src={logoUrl} alt="Masaya" className="size-16 drop-shadow-sm" />
+            <p className="text-lg font-semibold">Masaya</p>
           </div>
 
           <SettingsSection title={t('settings.section.window')}>
@@ -315,7 +311,7 @@ export function SettingsPanel({
           </SettingsSection>
 
           <div className="flex justify-center">
-            <Button variant="plain" className="text-danger" onClick={reset} disabled={busy}>
+            <Button variant="danger" onClick={reset} disabled={busy}>
               {t('settings.reset')}
             </Button>
           </div>

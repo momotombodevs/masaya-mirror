@@ -3,6 +3,7 @@ import { err, mapResult, ok, type Result } from '../../../../shared/ipc/result';
 import {
   DEFAULT_MIRROR_OPTIONS,
   MAX_MIRROR_TEXT_BYTES,
+  MAX_SCROLL_NOTCHES,
   type MirrorControlMessage,
   type MirrorOptions,
 } from '../../../../shared/mirror/types';
@@ -20,7 +21,6 @@ const MAX_ANDROID_BUTTON_MASK = 0xffff;
 const MAX_ANDROID_KEYCODE = 400;
 const MAX_KEY_REPEAT = 100;
 const MAX_META_STATE = 0xffffff;
-const MAX_SCROLL_DELTA = 10;
 
 const POINTER_RULES = {
   pointerX: { max: MAX_VIDEO_DIMENSION },
@@ -40,8 +40,8 @@ const TOUCH_RULES = {
 
 const SCROLL_RULES = {
   ...POINTER_RULES,
-  scrollX: { min: -MAX_SCROLL_DELTA, max: MAX_SCROLL_DELTA, fallback: 0, fractional: true },
-  scrollY: { min: -MAX_SCROLL_DELTA, max: MAX_SCROLL_DELTA, fallback: 0, fractional: true },
+  scrollX: { min: -MAX_SCROLL_NOTCHES, max: MAX_SCROLL_NOTCHES, fallback: 0, fractional: true },
+  scrollY: { min: -MAX_SCROLL_NOTCHES, max: MAX_SCROLL_NOTCHES, fallback: 0, fractional: true },
 } satisfies NumericRules;
 
 const KEY_RULES = {

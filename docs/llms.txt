@@ -1,12 +1,12 @@
-# Manolo Mirror
+# Masaya
 
-> Aplicación de escritorio gratuita para espejar y controlar un dispositivo Android desde macOS, Windows y Linux. Funciona por USB o por Wi-Fi con un código QR, graba y captura la pantalla, y no usa cuentas, anuncios ni telemetría.
+> Aplicación de escritorio gratuita para ver y controlar un teléfono Android desde macOS, Windows y Linux. Funciona por USB o por Wi-Fi con un código QR, captura y graba la pantalla, y no usa cuentas, anuncios, nube ni telemetría.
 
-Manolo Mirror muestra la pantalla del teléfono en una ventana del escritorio y permite controlarlo con mouse y teclado. Usa adb (Android platform-tools, que se instala aparte) y el servidor de scrcpy. Es una alternativa gratuita a Vysor.
+Masaya muestra la pantalla del teléfono en una ventana del escritorio y permite controlarlo con mouse y teclado, sin instalar ninguna app en el teléfono. Usa adb (Android platform-tools; si falta, la app ofrece descargarlo) y el servidor de scrcpy. Es una alternativa gratuita a Vysor. Soporte para iPhone y iPad (iOS): próximamente.
 
 ## Documentación
 
-- [Página principal y guía de inicio](https://donmanueldev.github.io/manolo-mirror/): funciones, comparativa, instalación, primeros pasos, atajos y problemas frecuentes.
+- [Página principal](https://donmanueldev.github.io/manolo-mirror/): funciones, primeros pasos, requisitos, primera apertura en macOS y Windows, atajos, comparativa con Vysor y preguntas frecuentes. En español, con versión en inglés (`?lang=en`).
 - [Texto completo para LLM](https://donmanueldev.github.io/manolo-mirror/llms-full.txt): el contenido de la página en un solo archivo.
 - [Política de privacidad](https://donmanueldev.github.io/manolo-mirror/privacy.html): qué se procesa y qué conexiones hace la app.
 
@@ -18,10 +18,10 @@ Manolo Mirror muestra la pantalla del teléfono en una ventana del escritorio y 
 ## Datos clave
 
 - Sistemas: macOS (Apple Silicon e Intel), Windows x64, Linux x64 y arm64.
-- Conexión: USB o Wi-Fi con QR (depuración inalámbrica de Android, requiere mDNS en la red).
-- Funciones: control con mouse y teclado, audio, portapapeles compartido, rotación, captura PNG, grabación MP4 o GIF, instalación de APK, calidad ajustable (H.264 o H.265).
-- Idiomas de la app: español e inglés.
-- Precio: gratis.
+- Conexión: USB o Wi-Fi con QR (depuración inalámbrica de Android; el teléfono y el equipo en la misma red).
+- Funciones: una ventana por dispositivo, control con mouse y teclado (toques, multitouch, arrastre, rueda, acentos), captura y grabación en video o GIF, instalación de APK arrastrando el archivo, calidad ajustable con preajustes de 1280 a 2560 px (H.264 o H.265).
+- Idiomas de la app: español e inglés. Tema claro y oscuro.
+- Precio: gratis, sin funciones bloqueadas.
 
 ## Optional
 

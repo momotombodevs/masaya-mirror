@@ -8,13 +8,13 @@ const waitQrPairing = vi.fn();
 const cancelQrPairing = vi.fn().mockResolvedValue({ ok: true, value: undefined });
 const onConnected = vi.fn();
 
-const PAYLOAD = 'WIFI:T:ADB;S:manolo-a1b2c3;P:Abcdefghjk23;;';
+const PAYLOAD = 'WIFI:T:ADB;S:masaya-a1b2c3;P:Abcdefghjk23;;';
 
 describe('QrPairingPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     startQrPairing.mockResolvedValue({ ok: true, value: { sessionId: 's1', payload: PAYLOAD } });
-    vi.stubGlobal('manolo', { startQrPairing, waitQrPairing, cancelQrPairing });
+    vi.stubGlobal('masaya', { startQrPairing, waitQrPairing, cancelQrPairing });
   });
 
   afterEach(() => {

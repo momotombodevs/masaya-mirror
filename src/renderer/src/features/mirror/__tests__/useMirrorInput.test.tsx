@@ -8,7 +8,7 @@ import {
 } from '../../../../../shared/mirror/types';
 import type { MirrorControlMessage } from '../../../../../shared/mirror/types';
 import { ANDROID_KEYCODE_BACK } from '../android-keycodes';
-import { useMirrorInput } from '../useMirrorInput';
+import { useMirrorInput, wheelDeltaToNotches } from '../useMirrorInput';
 
 const sendControl = vi.fn<(deviceId: string, message: MirrorControlMessage) => Promise<unknown>>();
 let frames: Array<() => void> = [];
@@ -61,7 +61,7 @@ describe('useMirrorInput', () => {
   beforeEach(() => {
     sendControl.mockReset().mockResolvedValue({ ok: true, value: undefined });
     frames = [];
-    vi.stubGlobal('manolo', { sendControl });
+    vi.stubGlobal('masaya', { sendControl });
     vi.stubGlobal('requestAnimationFrame', (callback: () => void) => frames.push(callback));
     vi.stubGlobal('cancelAnimationFrame', () => undefined);
     // The hook calls `window.requestAnimationFrame`, which is the same object under jsdom.
@@ -156,7 +156,7 @@ describe('useMirrorInput', () => {
     expect(sendControl).not.toHaveBeenCalled();
   });
 
-  it('scales wheel deltas by the video size', () => {
+  it('sends one wheel notch on the computer as one notch on the phone', () => {
     const { handlers } = setup();
 
     act(() =>
@@ -165,6 +165,7 @@ describe('useMirrorInput', () => {
         clientY: 200,
         deltaX: 0,
         deltaY: 100,
+        deltaMode: 0,
       } as WheelEvent<HTMLCanvasElement>),
     );
 
@@ -172,9 +173,15 @@ describe('useMirrorInput', () => {
       type: 'scroll',
       pointerX: 500,
       pointerY: 1000,
-      scrollX: -0,
-      scrollY: -100 / 2000,
+      scrollY: -1,
     });
+  });
+
+  it('converts line and page wheel deltas, and caps a huge flick', () => {
+    expect(wheelDeltaToNotches(3, 1)).toBe(-1);
+    expect(wheelDeltaToNotches(-1, 2)).toBe(1);
+    expect(wheelDeltaToNotches(25, 0)).toBe(-0.25);
+    expect(wheelDeltaToNotches(5000, 0)).toBe(-10);
   });
 
   it('types printable characters as text, accents included, and ignores their key-up', () => {
@@ -216,7 +223,7 @@ describe('useMirrorInput', () => {
   });
 
   it('does nothing when the preload bridge is missing', () => {
-    vi.stubGlobal('manolo', undefined);
+    vi.stubGlobal('masaya', undefined);
     const { canvas, handlers } = setup();
 
     expect(() =>

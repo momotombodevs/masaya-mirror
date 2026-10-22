@@ -39,6 +39,17 @@ export default {
         success: token('success'),
         warning: token('warning'),
         danger: token('danger'),
+        // Icon tiles (settings rows, device rows, empty states): always a white glyph on top.
+        tone: {
+          blue: '#0a84ff',
+          indigo: '#4f7cff',
+          green: '#30b050',
+          orange: '#ff9f0a',
+          red: '#ff453a',
+          purple: '#8e5cf7',
+          gray: '#8e8e93',
+          teal: '#30b0c7',
+        },
         mirror: {
           canvas: '#000000',
           bar: '#1e1e1e',

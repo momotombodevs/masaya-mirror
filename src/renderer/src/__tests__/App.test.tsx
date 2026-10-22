@@ -14,7 +14,7 @@ describe('App', () => {
       value: [{ id: 'a', status: 'device', model: 'Pixel' }],
     });
     getMirrorStatus.mockReset().mockResolvedValue({ ok: true, value: { activeDeviceIds: [] } });
-    vi.stubGlobal('manolo', { listDevices, getMirrorStatus, onMenuAction: () => () => undefined });
+    vi.stubGlobal('masaya', { listDevices, getMirrorStatus, onMenuAction: () => () => undefined });
   });
 
   afterEach(() => {
@@ -28,14 +28,14 @@ describe('App', () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(0);
     });
-    expect(screen.queryByText('En espejo')).toBeNull();
+    expect(screen.queryByText('Duplicando')).toBeNull();
 
     getMirrorStatus.mockResolvedValue({ ok: true, value: { activeDeviceIds: ['a'] } });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(5_000);
     });
 
-    expect(screen.getByText('En espejo')).toBeTruthy();
+    expect(screen.getByText('Duplicando')).toBeTruthy();
   });
 
   it('re-reads the mirroring state when the window regains focus', async () => {

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { callApi } from '../manolo-api';
+import { callApi } from '../masaya-api';
 
 describe('callApi', () => {
   afterEach(() => {
@@ -8,7 +8,7 @@ describe('callApi', () => {
   });
 
   it('returns what the bridge answered', async () => {
-    vi.stubGlobal('manolo', { listDevices: () => Promise.resolve({ ok: true, value: [] }) });
+    vi.stubGlobal('masaya', { listDevices: () => Promise.resolve({ ok: true, value: [] }) });
 
     const result = await callApi((api) => api.listDevices(), 'x');
 
@@ -16,7 +16,7 @@ describe('callApi', () => {
   });
 
   it('passes a failed Result through untouched', async () => {
-    vi.stubGlobal('manolo', {
+    vi.stubGlobal('masaya', {
       listDevices: () => Promise.resolve({ ok: false, error: 'busy' }),
     });
 
@@ -26,7 +26,7 @@ describe('callApi', () => {
   });
 
   it('answers with the fallback message when there is no bridge', async () => {
-    vi.stubGlobal('manolo', undefined);
+    vi.stubGlobal('masaya', undefined);
 
     expect(await callApi(() => Promise.reject(new Error('unreachable')), 'no bridge')).toEqual({
       ok: false,
@@ -35,7 +35,7 @@ describe('callApi', () => {
   });
 
   it('answers with the fallback message when the call rejects or throws', async () => {
-    vi.stubGlobal('manolo', {});
+    vi.stubGlobal('masaya', {});
 
     expect(await callApi(() => Promise.reject(new Error('ipc closed')), 'failed')).toEqual({
       ok: false,

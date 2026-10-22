@@ -2,7 +2,7 @@ import { useCallback, useSyncExternalStore } from 'react';
 import type { ScrcpyMediaStreamPacket } from '@yume-chan/scrcpy';
 import { clearPendingMirrorPort, registerMirrorPortHandler } from './mirror-port-delivery';
 import { isValidMessagePort } from '../../../../shared/mirror/port-message';
-import { callApi, getManoloApi } from '../../shared/manolo-api';
+import { callApi, getMasayaApi } from '../../shared/masaya-api';
 import type { MessageKey } from '../../../../shared/i18n/messages';
 import type {
   MirrorStreamCloseMessage,
@@ -106,7 +106,7 @@ export class MirrorStreamClient {
   };
 
   constructor(private readonly deviceId: string) {
-    const api = getManoloApi();
+    const api = getMasayaApi();
     if (!api) {
       this.setState({ lastError: { key: 'mirror.apiUnavailable' } });
       return;

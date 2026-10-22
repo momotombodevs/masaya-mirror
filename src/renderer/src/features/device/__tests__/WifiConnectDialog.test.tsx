@@ -8,7 +8,7 @@ const onClose = vi.fn();
 describe('WifiConnectDialog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubGlobal('manolo', {});
+    vi.stubGlobal('masaya', {});
     render(<WifiConnectDialog onClose={onClose} onConnected={vi.fn()} />);
   });
 

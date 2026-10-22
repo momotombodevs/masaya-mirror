@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { AdbService, parseAdbDevicesOutput, parseMdnsServices } from '../adb.service';
 import { CommandError, runCommand } from '../../../utils/runCommand';
+import { DEVICE_NAME_PROPS, DEVICE_NAME_SHELL_COMMAND } from '../device-name';
 
 vi.mock('../../../utils/runCommand', () => ({
   runCommand: vi.fn(),
@@ -161,6 +162,150 @@ describe('AdbService', () => {
   });
 });
 
+describe('AdbService device names', () => {
+  const S23 = 'R5CX10TVKZJ          device usb:1 product:dm3qxxx model:SM_S918B device:dm3q';
+  const PIXEL = 'PIXEL1          device product:husky model:Pixel_8_Pro device:husky';
+  const props = (values: Record<string, string>): string =>
+    DEVICE_NAME_PROPS.map((prop) => `${prop}=${values[prop] ?? ''}`).join('\n');
+
+  /** Answers `adb devices -l` with `lines` and each name lookup from `names` (by device id). */
+  function fakeAdb(lines: readonly string[], names: Record<string, string | Error>): void {
+    mockedRunCommand.mockImplementation((_path, args) => {
+      if (args[0] === 'devices') {
+        return Promise.resolve({
+          stdout: ['List of devices attached', ...lines].join('\n'),
+          stderr: '',
+        });
+      }
+      const answer = names[args[1] ?? ''];
+      return answer instanceof Error || answer === undefined
+        ? Promise.reject(answer ?? new Error('no such device'))
+        : Promise.resolve({ stdout: answer, stderr: '' });
+    });
+  }
+
+  const nameLookups = (): number =>
+    mockedRunCommand.mock.calls.filter(([, args]) => args[2] === 'shell').length;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('names a Samsung by its model code, since it sets no marketing name', async () => {
+    fakeAdb([S23], { R5CX10TVKZJ: props({ 'ro.product.model': 'SM-S918B' }) });
+
+    const result = await new AdbService().listDevices();
+
+    expect(result).toMatchObject({
+      ok: true,
+      value: [{ model: 'SM_S918B', displayName: 'Galaxy S23 Ultra' }],
+    });
+    expect(mockedRunCommand).toHaveBeenCalledWith(
+      '/usr/local/bin/adb',
+      ['-s', 'R5CX10TVKZJ', 'shell', DEVICE_NAME_SHELL_COMMAND],
+      5_000,
+    );
+  });
+
+  it('prefers the marketing name property over the model', async () => {
+    fakeAdb([S23], {
+      R5CX10TVKZJ: props({
+        'ro.product.vendor.marketname': 'Redmi Note 12',
+        'ro.product.model': '23021RAAEG',
+      }),
+    });
+
+    const result = await new AdbService().listDevices();
+
+    expect(result).toMatchObject({ ok: true, value: [{ displayName: 'Redmi Note 12' }] });
+  });
+
+  it('asks each phone once, however often the list refreshes', async () => {
+    fakeAdb([S23, PIXEL], {
+      R5CX10TVKZJ: props({ 'ro.product.model': 'SM-S918B' }),
+      PIXEL1: props({ 'ro.product.model': 'Pixel 8 Pro' }),
+    });
+    const service = new AdbService();
+
+    await Promise.all([service.listDevices(), service.listDevices()]);
+    const result = await service.listDevices();
+
+    expect(nameLookups()).toBe(2);
+    expect(result).toMatchObject({
+      ok: true,
+      value: [{ displayName: 'Galaxy S23 Ultra' }, { displayName: 'Pixel 8 Pro' }],
+    });
+  });
+
+  it('keeps listing with the adb model when a lookup fails, and retries it later', async () => {
+    fakeAdb([S23, PIXEL], {
+      R5CX10TVKZJ: new Error('device still booting'),
+      PIXEL1: props({ 'ro.product.model': 'Pixel 8 Pro' }),
+    });
+    const service = new AdbService();
+
+    const first = await service.listDevices();
+
+    expect(first).toMatchObject({
+      ok: true,
+      value: [{ displayName: 'Galaxy S23 Ultra' }, { displayName: 'Pixel 8 Pro' }],
+    });
+
+    vi.clearAllMocks();
+    fakeAdb([S23, PIXEL], { R5CX10TVKZJ: props({ 'ro.product.model': 'SM-S918B' }) });
+    await service.listDevices();
+
+    expect(
+      mockedRunCommand.mock.calls.filter(([, args]) => args[1] === 'R5CX10TVKZJ'),
+    ).toHaveLength(1);
+    expect(nameLookups()).toBe(1);
+  });
+
+  it('falls back to the raw adb model when nothing better is known', async () => {
+    fakeAdb([PIXEL], { PIXEL1: props({}) });
+
+    const result = await new AdbService().listDevices();
+
+    expect(result).toMatchObject({ ok: true, value: [{ displayName: 'Pixel_8_Pro' }] });
+  });
+
+  it('does not ask a phone that is not online, but names it from its model', async () => {
+    fakeAdb(['R5CX10TVKZJ          offline model:SM_S918B', 'ABC123          unauthorized'], {});
+
+    const result = await new AdbService().listDevices();
+
+    expect(nameLookups()).toBe(0);
+    expect(result).toEqual({
+      ok: true,
+      value: [
+        {
+          id: 'R5CX10TVKZJ',
+          status: 'offline',
+          model: 'SM_S918B',
+          displayName: 'Galaxy S23 Ultra',
+        },
+        { id: 'ABC123', status: 'unauthorized' },
+      ],
+    });
+  });
+
+  it('keeps a known name while the phone goes offline and asks again after it reconnects', async () => {
+    fakeAdb([S23], { R5CX10TVKZJ: props({ 'ro.product.marketname': 'Galaxy S23 Ultra' }) });
+    const service = new AdbService();
+    await service.listDevices();
+
+    fakeAdb(['R5CX10TVKZJ          offline'], {});
+    const offline = await service.listDevices();
+    fakeAdb([], {});
+    await service.listDevices();
+    fakeAdb([S23], { R5CX10TVKZJ: props({ 'ro.product.marketname': 'Galaxy S23 Ultra' }) });
+    await service.listDevices();
+
+    expect(offline).toMatchObject({ ok: true, value: [{ displayName: 'Galaxy S23 Ultra' }] });
+    expect(nameLookups()).toBe(2);
+  });
+});
+
 describe('AdbService wireless and install commands', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -278,12 +423,12 @@ describe('parseMdnsServices', () => {
   it('reads pairing and connect services from adb mdns output', () => {
     const stdout = [
       'List of discovered mdns services',
-      'manolo-a1b2c3\t_adb-tls-pairing._tcp\t192.168.1.23:41921',
+      'masaya-a1b2c3\t_adb-tls-pairing._tcp\t192.168.1.23:41921',
       'adb-R5CT123456-abcdef\t_adb-tls-connect._tcp\t192.168.1.23:38711',
     ].join('\n');
 
     expect(parseMdnsServices(stdout)).toEqual([
-      { name: 'manolo-a1b2c3', kind: 'pairing', address: '192.168.1.23:41921' },
+      { name: 'masaya-a1b2c3', kind: 'pairing', address: '192.168.1.23:41921' },
       { name: 'adb-R5CT123456-abcdef', kind: 'connect', address: '192.168.1.23:38711' },
     ]);
   });

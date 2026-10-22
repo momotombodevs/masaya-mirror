@@ -13,7 +13,7 @@ function Label(): JSX.Element {
 
 function stubApi(language: LanguagePreference): { emit: (next: LanguagePreference) => void } {
   let listener: (next: LanguagePreference) => void = () => undefined;
-  vi.stubGlobal('manolo', {
+  vi.stubGlobal('masaya', {
     getPreferences: () =>
       Promise.resolve({ ok: true, value: { ...DEFAULT_PREFERENCES, language } }),
     onLanguageChange: (next: (language: LanguagePreference) => void) => {

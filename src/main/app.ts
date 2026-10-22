@@ -5,11 +5,11 @@ import { createSecureWindow } from './secure-window';
 import { getWindowBackground, getWindowMaterial, keepWindowBackgroundInSync } from './system-theme';
 import { registerDevContentSecurityPolicy, registerPermissionPolicy } from './window-security';
 
-const APP_NAME = 'Manolo Mirror';
+const APP_NAME = 'Masaya';
 
 app.setName(APP_NAME);
 if (process.platform === 'win32') {
-  app.setAppUserModelId('com.manolo.mirror');
+  app.setAppUserModelId('com.masaya.app');
 }
 
 export function createWindow(): BrowserWindow {
@@ -34,8 +34,8 @@ export function createWindow(): BrowserWindow {
     void mainWindow.loadFile(path.join(RENDERER_DIST, 'index.html'));
   }
 
-  // DevTools only with `pnpm dev:debug` (MANOLO_OPEN_DEVTOOLS=1).
-  if (VITE_DEV_SERVER_URL && process.env.MANOLO_OPEN_DEVTOOLS === '1') {
+  // DevTools only with `pnpm dev:debug` (MASAYA_OPEN_DEVTOOLS=1).
+  if (VITE_DEV_SERVER_URL && process.env.MASAYA_OPEN_DEVTOOLS === '1') {
     mainWindow.webContents.openDevTools({ mode: 'detach' });
   }
 

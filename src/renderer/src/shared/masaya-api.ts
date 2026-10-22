@@ -1,10 +1,10 @@
 import { err, type Result } from '../../../shared/ipc/result';
 
-export type ManoloApi = Window['manolo'];
+export type MasayaApi = Window['masaya'];
 
 /** Returns the preload-exposed API, or undefined when the bridge is unavailable. */
-export function getManoloApi(): ManoloApi | undefined {
-  return (window as { manolo?: ManoloApi }).manolo;
+export function getMasayaApi(): MasayaApi | undefined {
+  return (window as { masaya?: MasayaApi }).masaya;
 }
 
 /**
@@ -12,10 +12,10 @@ export function getManoloApi(): ManoloApi | undefined {
  * call becomes `err(fallbackMessage)` instead of throwing, so callers only branch on `ok`.
  */
 export async function callApi<T>(
-  call: (api: ManoloApi) => Promise<Result<T>>,
+  call: (api: MasayaApi) => Promise<Result<T>>,
   fallbackMessage: string,
 ): Promise<Result<T>> {
-  const api = getManoloApi();
+  const api = getMasayaApi();
   if (!api) {
     return err(fallbackMessage);
   }

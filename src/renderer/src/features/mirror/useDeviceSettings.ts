@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { DeviceSettingKey, DeviceSettings } from '../../../../shared/device/types';
 import { useI18n } from '../../shared/i18n';
-import { callApi } from '../../shared/manolo-api';
+import { callApi } from '../../shared/masaya-api';
 
 export type UseDeviceSettingsResult = {
   /** Null while the phone is being read, or when it could not be read. */

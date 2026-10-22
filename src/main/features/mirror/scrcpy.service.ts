@@ -376,6 +376,10 @@ export class ScrcpyService {
     return ok(undefined);
   }
 
+  hasOpenSessions(): boolean {
+    return this.sessions.size > 0;
+  }
+
   async closeAll(): Promise<void> {
     await Promise.all([...this.sessions.keys()].map((deviceId) => this.closeMirror(deviceId)));
   }

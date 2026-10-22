@@ -8,7 +8,7 @@ import { DEFAULT_MIRROR_OPTIONS, type MirrorOptions } from '../../../../shared/m
 import { Button } from '../../components/ui/Button';
 import { OverlayError } from '../../components/ui/OverlayError';
 import { useI18n } from '../../shared/i18n';
-import { callApi } from '../../shared/manolo-api';
+import { callApi } from '../../shared/masaya-api';
 import { usePreferences } from '../../shared/preferences';
 
 type MirrorWindowAppProps = {

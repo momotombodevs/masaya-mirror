@@ -17,7 +17,7 @@ function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
 describe('useDevices', () => {
   beforeEach(() => {
     listDevices.mockReset().mockResolvedValue({ ok: true, value: [phone('a')] });
-    vi.stubGlobal('manolo', { listDevices });
+    vi.stubGlobal('masaya', { listDevices });
   });
 
   afterEach(() => {
@@ -51,7 +51,7 @@ describe('useDevices', () => {
     await act(async () => result.current.refresh());
 
     expect(result.current.devices).toEqual([]);
-    expect(result.current.error).toBe('No se pudo cargar la lista.');
+    expect(result.current.error).toBe('No se pudo cargar la lista de dispositivos.');
   });
 
   it('skips a background refresh while another request is running', async () => {

@@ -2,9 +2,9 @@
 // https://www.electron.build/configuration/configuration
 {
   $schema: 'https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json',
-  appId: 'com.manolo.mirror',
-  productName: 'Manolo Mirror',
-  copyright: 'Copyright © 2026 Manolo Mirror',
+  appId: 'com.masaya.app',
+  productName: 'Masaya',
+  copyright: 'Copyright © 2026 Masaya',
   asar: true,
   directories: {
     output: 'release/${version}',
@@ -47,7 +47,7 @@
     notarize: true,
   },
   win: {
-    executableName: 'Manolo Mirror',
+    executableName: 'Masaya',
     target: [{ target: 'nsis', arch: ['x64'] }],
   },
   nsis: {
@@ -57,7 +57,7 @@
     deleteAppDataOnUninstall: false,
     createDesktopShortcut: true,
     createStartMenuShortcut: true,
-    shortcutName: 'Manolo Mirror',
+    shortcutName: 'Masaya',
     runAfterFinish: true,
   },
   linux: {
@@ -71,7 +71,7 @@
     ],
     desktop: {
       entry: {
-        Name: 'Manolo Mirror',
+        Name: 'Masaya',
         Comment: 'Android device mirroring and QA workspace',
         Categories: 'Development;',
       },

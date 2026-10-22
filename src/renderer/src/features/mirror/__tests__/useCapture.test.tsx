@@ -18,7 +18,7 @@ describe('useCapture', () => {
     captureCanvasPng.mockResolvedValue(PNG);
     copyCapture.mockResolvedValue({ ok: true, value: { copied: true } });
     saveCapture.mockResolvedValue({ ok: true, value: { saved: true } });
-    vi.stubGlobal('manolo', { copyCapture, saveCapture });
+    vi.stubGlobal('masaya', { copyCapture, saveCapture });
     URL.createObjectURL = vi.fn(() => 'blob:preview');
     URL.revokeObjectURL = vi.fn();
   });
@@ -74,7 +74,7 @@ describe('useCapture', () => {
 
     await act(async () => result.current.open());
 
-    expect(showStatus).toHaveBeenCalledWith('Espejo no listo');
+    expect(showStatus).toHaveBeenCalledWith('Aún no hay imagen');
     expect(captureCanvasPng).not.toHaveBeenCalled();
   });
 

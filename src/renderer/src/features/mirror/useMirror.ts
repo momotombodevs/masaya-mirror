@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { DEFAULT_MIRROR_OPTIONS, type MirrorOptions } from '../../../../shared/mirror/types';
 import { useI18n } from '../../shared/i18n';
-import { callApi, type ManoloApi } from '../../shared/manolo-api';
+import { callApi, type MasayaApi } from '../../shared/masaya-api';
 import type { Result } from '../../../../shared/ipc/result';
 import { useMirrorStatus } from './useMirrorStatus';
 import { disposeMirrorStreamClient } from './mirror-stream.client';
@@ -36,7 +36,7 @@ export function useMirror(deviceId: string | null): UseMirrorResult {
    */
   const run = useCallback(
     async <T>(
-      call: (api: ManoloApi) => Promise<Result<T>>,
+      call: (api: MasayaApi) => Promise<Result<T>>,
       onSuccess: () => void,
     ): Promise<boolean> => {
       setPending((count) => count + 1);

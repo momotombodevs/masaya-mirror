@@ -5,7 +5,7 @@ import { mirrorApi } from './mirror.api';
 import { preferencesApi } from './preferences.api';
 import { qaApi } from './qa.api';
 
-const manoloApi = {
+const masayaApi = {
   ...deviceApi,
   ...mirrorApi,
   ...qaApi,
@@ -14,9 +14,9 @@ const manoloApi = {
   ...menuApi,
 };
 
-export type ManoloApi = typeof manoloApi;
+export type MasayaApi = typeof masayaApi;
 
-type ApiName = keyof ManoloApi;
+type ApiName = keyof MasayaApi;
 
 /** Calls every window may make. The rest is only exposed to the window that needs it. */
 const COMMON_API: readonly ApiName[] = [
@@ -62,14 +62,14 @@ const unavailable = (): Promise<{ ok: false; error: string }> =>
   Promise.resolve({ ok: false, error: 'API no disponible en esta ventana.' });
 
 /** Keeps the full API shape but replaces calls outside `allowed` with a failing stub. */
-function exposeOnly(allowed: readonly ApiName[]): ManoloApi {
-  const entries = Object.entries(manoloApi).map(([name, call]) => [
+function exposeOnly(allowed: readonly ApiName[]): MasayaApi {
+  const entries = Object.entries(masayaApi).map(([name, call]) => [
     name,
     allowed.includes(name as ApiName) ? call : unavailable,
   ]);
-  return Object.fromEntries(entries) as ManoloApi;
+  return Object.fromEntries(entries) as MasayaApi;
 }
 
-export const createMainWindowApi = (): ManoloApi => exposeOnly(MAIN_WINDOW_API);
+export const createMainWindowApi = (): MasayaApi => exposeOnly(MAIN_WINDOW_API);
 
-export const createMirrorWindowApi = (): ManoloApi => exposeOnly(MIRROR_WINDOW_API);
+export const createMirrorWindowApi = (): MasayaApi => exposeOnly(MIRROR_WINDOW_API);

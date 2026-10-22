@@ -27,7 +27,7 @@ describe('useMirror', () => {
     openMirror.mockResolvedValue(okResult);
     closeMirror.mockResolvedValue({ ok: true, value: undefined });
     setMirrorOptions.mockResolvedValue(okResult);
-    vi.stubGlobal('manolo', { openMirror, closeMirror, setMirrorOptions, getMirrorStatus });
+    vi.stubGlobal('masaya', { openMirror, closeMirror, setMirrorOptions, getMirrorStatus });
   });
 
   afterEach(() => {
@@ -73,18 +73,18 @@ describe('useMirror', () => {
     });
 
     expect(result.current.loading).toBe(false);
-    expect(result.current.error).toBe('API de Manolo Mirror no disponible.');
+    expect(result.current.error).toBe('Sin conexión con la app. Reiníciala.');
   });
 
   it('reports a missing bridge as an error', async () => {
-    vi.stubGlobal('manolo', undefined);
+    vi.stubGlobal('masaya', undefined);
     const { result } = renderHook(() => useMirror('device-1'));
 
     await act(async () => {
       expect(await result.current.closeMirror()).toBe(false);
     });
 
-    expect(result.current.error).toBe('API de Manolo Mirror no disponible.');
+    expect(result.current.error).toBe('Sin conexión con la app. Reiníciala.');
   });
 
   it('stays loading until every running operation has finished', async () => {
