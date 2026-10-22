@@ -58,7 +58,7 @@ jobs:
         include:
           - name: macOS (arm64 + x64)
             runner: macos-14
-            command: pnpm build:mac
+            command: pnpm build:mac --publish never
             artifact: masaya-macos
             files: |
               release/**/*.dmg
@@ -67,7 +67,7 @@ jobs:
               release/**/latest*.yml
           - name: Windows (x64)
             runner: windows-latest
-            command: pnpm build:win
+            command: pnpm build:win --publish never
             artifact: masaya-windows
             files: |
               release/**/*.exe
@@ -75,7 +75,7 @@ jobs:
               release/**/latest*.yml
           - name: Linux (x64 + arm64)
             runner: ubuntu-latest
-            command: pnpm build:linux
+            command: pnpm build:linux --publish never
             artifact: masaya-linux
             files: |
               release/**/*.AppImage
@@ -89,6 +89,7 @@ jobs:
           node-version: 20
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # The publish job uploads the release; without --publish never electron-builder tries to on CI.
       - name: Package
         run: ${{ matrix.command }}
         env:
