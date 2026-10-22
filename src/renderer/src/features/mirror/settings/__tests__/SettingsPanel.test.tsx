@@ -62,7 +62,7 @@ describe('SettingsPanel', () => {
     renderPanel();
 
     expect(screen.getByRole('img', { name: 'Masaya' })).toBeTruthy();
-    expect(screen.getByText('Hecho por Momotombo Devs')).toBeTruthy();
+    expect(screen.getByText('Crafted with passion by Momotombo Devs')).toBeTruthy();
   });
 
   it('changes the app language from the picker', () => {
@@ -137,12 +137,6 @@ describe('SettingsPanel', () => {
     fireEvent.click(within(presets).getByRole('button', { name: 'Máxima' }));
 
     expect(onOptionsChange).toHaveBeenCalledWith({ maxSize: 2560, videoBitRate: 32_000_000 });
-  });
-
-  it('describes the active preset with its size and data rate', () => {
-    renderPanel();
-
-    expect(screen.getByText('1920 px · 16 Mbps')).toBeTruthy();
   });
 
   it('shows custom values with no active preset and keeps them selectable', () => {

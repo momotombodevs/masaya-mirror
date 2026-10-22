@@ -17,6 +17,7 @@ import { Button } from '../../../components/ui/Button';
 import { Select, type SelectOption } from '../../../components/ui/Select';
 import { cx } from '../../../components/ui/cx';
 import logoUrl from '../../../assets/masaya-logo.svg';
+import momotomboUrl from '../../../assets/momotombo-mark.svg';
 import { useI18n } from '../../../shared/i18n';
 import { usePreferences } from '../../../shared/preferences';
 import { LANGUAGE_PREFERENCES, type LanguagePreference } from '../../../../../shared/i18n/locale';
@@ -113,11 +114,6 @@ export function SettingsPanel({
     (value) => ({ value, label: t(LANGUAGE_KEYS[value]) }),
   );
 
-  const presetDetail = (preset: MirrorQualityPreset): string => {
-    const { maxSize, videoBitRate } = MIRROR_QUALITY_PRESETS[preset].values;
-    return t('settings.presets.detail', { size: maxSize, mbps: videoBitRate / 1_000_000 });
-  };
-
   const applyPreset = (preset: MirrorQualityPreset): void =>
     onOptionsChange(MIRROR_QUALITY_PRESETS[preset].values);
 
@@ -155,7 +151,6 @@ export function SettingsPanel({
           <SettingsSection title={t('settings.section.window')}>
             <ToggleRow
               label={t('settings.navigationBar')}
-              hint={t('settings.navigationBar.hint')}
               icon={ROW_ICONS.navigation}
               tone="blue"
               checked={preferences.navigationBar}
@@ -163,7 +158,6 @@ export function SettingsPanel({
             />
             <ToggleRow
               label={t('settings.alwaysOnTop')}
-              hint={t('settings.alwaysOnTop.hint')}
               icon={ROW_ICONS.pin}
               tone="orange"
               checked={preferences.alwaysOnTop}
@@ -193,12 +187,7 @@ export function SettingsPanel({
                 onChange={(recordingFormat) => onPreferenceChange({ recordingFormat })}
               />
             </SettingRow>
-            <SettingRow
-              label={t('settings.language')}
-              hint={t('settings.language.hint')}
-              icon={ROW_ICONS.globe}
-              tone="teal"
-            >
+            <SettingRow label={t('settings.language')} icon={ROW_ICONS.globe} tone="teal">
               <Select
                 label={t('settings.language')}
                 value={preferences.language}
@@ -209,10 +198,7 @@ export function SettingsPanel({
           </SettingsSection>
 
           <SettingsSection title={t('settings.section.quality')}>
-            <SettingRow
-              label={t('settings.presets')}
-              hint={activePreset ? presetDetail(activePreset) : t('settings.presets.custom')}
-            >
+            <SettingRow label={t('settings.presets')}>
               <div
                 role="group"
                 aria-label={t('settings.presets')}
@@ -237,7 +223,7 @@ export function SettingsPanel({
                 ))}
               </div>
             </SettingRow>
-            <SettingRow label={t('settings.maxSize')} hint={t('settings.maxSize.hint')}>
+            <SettingRow label={t('settings.maxSize')}>
               <Select
                 label={t('settings.maxSize')}
                 value={options.maxSize}
@@ -246,7 +232,7 @@ export function SettingsPanel({
                 onChange={(maxSize) => onOptionsChange({ maxSize })}
               />
             </SettingRow>
-            <SettingRow label={t('settings.bitRate')} hint={t('settings.bitRate.hint')}>
+            <SettingRow label={t('settings.bitRate')}>
               <Select
                 label={t('settings.bitRate')}
                 value={options.videoBitRate}
@@ -278,7 +264,6 @@ export function SettingsPanel({
             />
             <ToggleRow
               label={t('settings.clipboard')}
-              hint={t('settings.clipboard.hint')}
               icon={ROW_ICONS.clipboard}
               tone="teal"
               checked={options.clipboardSync}
@@ -296,7 +281,6 @@ export function SettingsPanel({
             />
             <ToggleRow
               label={t('settings.stayAwake')}
-              hint={t('settings.stayAwake.hint')}
               icon={ROW_ICONS.sun}
               tone="orange"
               checked={device.settings?.stayAwake ?? false}
@@ -316,8 +300,9 @@ export function SettingsPanel({
             </Button>
           </div>
 
-          <footer className="pb-2 pt-2 text-center text-sm text-ink-3">
+          <footer className="flex items-center justify-center gap-1.5 pb-2 pt-2 text-sm text-ink-3">
             {t('settings.credits')}
+            <img src={momotomboUrl} alt="" className="size-[18px]" />
           </footer>
         </div>
       </div>
