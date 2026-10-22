@@ -11,7 +11,7 @@ const onRetry = vi.fn();
 describe('AdbSetupPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubGlobal('manolo', { chooseAdb, openAdbDownload });
+    vi.stubGlobal('masaya', { chooseAdb, openAdbDownload });
     render(<AdbSetupPanel onResolved={onResolved} onRetry={onRetry} retrying={false} />);
   });
 
@@ -57,5 +57,21 @@ describe('AdbSetupPanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Reintentar' }));
 
     expect(onRetry).toHaveBeenCalledOnce();
+  });
+
+  it('shows an error instead of failing silently when the picker call rejects', async () => {
+    chooseAdb.mockRejectedValue(new Error('ipc closed'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Elegir adb…' }));
+
+    expect((await screen.findByRole('alert')).textContent).toContain('Sin conexión con la app');
+  });
+
+  it('shows an error when the download page cannot be opened', async () => {
+    openAdbDownload.mockResolvedValueOnce({ ok: false, error: 'No se pudo abrir el navegador.' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Descargar platform-tools' }));
+
+    expect((await screen.findByRole('alert')).textContent).toContain('No se pudo abrir');
   });
 });

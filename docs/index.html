@@ -1,0 +1,852 @@
+<!doctype html>
+<html lang="es" class="no-js">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title data-i18n="meta.title">
+      Masaya: ve y controla tu Android desde macOS, Windows y Linux
+    </title>
+    <meta
+      name="description"
+      content="Ve y controla tu Android desde macOS, Windows o Linux. Mouse, teclado, captura y grabación, por USB o Wi-Fi con un QR. Gratis, sin cuentas ni anuncios."
+    />
+    <meta name="theme-color" content="#18181b" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="canonical" href="https://momotombodevs.github.io/masaya-mirror/" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Masaya" />
+    <meta property="og:locale" content="es_ES" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:url" content="https://momotombodevs.github.io/masaya-mirror/" />
+    <meta property="og:title" content="Masaya: tu Android, en grande" />
+    <meta
+      property="og:description"
+      content="Ve y controla tu Android desde macOS, Windows o Linux. Mouse, teclado, captura y grabación, por USB o Wi-Fi con un QR. Gratis, sin cuentas ni anuncios."
+    />
+    <meta
+      property="og:image"
+      content="https://momotombodevs.github.io/masaya-mirror/og-image.png"
+    />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="El logo de Masaya y el titular «Tu Android, en grande.» junto a la ventana de duplicación de un Pixel 8"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Masaya: tu Android, en grande" />
+    <meta
+      name="twitter:description"
+      content="Ve y controla tu Android desde macOS, Windows o Linux. Mouse, teclado, captura y grabación, por USB o Wi-Fi con un QR. Gratis, sin cuentas ni anuncios."
+    />
+    <meta
+      name="twitter:image"
+      content="https://momotombodevs.github.io/masaya-mirror/og-image.png"
+    />
+    <link
+      rel="alternate"
+      type="text/plain"
+      href="https://momotombodevs.github.io/masaya-mirror/llms.txt"
+      title="llms.txt"
+    />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "@id": "https://momotombodevs.github.io/masaya-mirror/#app",
+        "name": "Masaya",
+        "alternateName": ["Masaya Mirror", "masaya-mirror"],
+        "url": "https://momotombodevs.github.io/masaya-mirror/",
+        "description": "Aplicación de escritorio para ver y controlar un teléfono Android desde macOS, Windows y Linux, por USB o por Wi-Fi con un código QR.",
+        "applicationCategory": "UtilitiesApplication",
+        "applicationSubCategory": "Android screen mirroring",
+        "operatingSystem": "macOS, Windows, Linux",
+        "inLanguage": ["es", "en"],
+        "downloadUrl": "https://github.com/momotombodevs/masaya-mirror/releases/latest",
+        "installUrl": "https://github.com/momotombodevs/masaya-mirror/releases/latest",
+        "image": "https://momotombodevs.github.io/masaya-mirror/og-image.png",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD",
+          "availability": "https://schema.org/InStock"
+        },
+        "featureList": [
+          "Una ventana por dispositivo, con barra de herramientas y navegación",
+          "Control completo: toques, multitouch, arrastre, rueda y teclado con acentos",
+          "Captura de pantalla y grabación a 16 Mbps, desde la barra o con atajos",
+          "Conexión por Wi-Fi con código QR, sin cable ni direcciones IP",
+          "Instalación de APK arrastrando el archivo a la ventana",
+          "Calidad ajustable: preajustes, resolución, velocidad de datos y códec H.264 o H.265",
+          "Tema claro y oscuro, en español e inglés",
+          "Sin cuentas, sin anuncios, sin nube y sin telemetría"
+        ],
+        "author": {
+          "@type": "Organization",
+          "name": "Momotombo Devs",
+          "url": "https://momotombo.dev/"
+        },
+        "softwareRequirements": "adb (Android platform-tools) y un teléfono Android con la depuración USB activada",
+        "isAccessibleForFree": true,
+        "sameAs": ["https://github.com/momotombodevs/masaya-mirror"]
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "@id": "https://momotombodevs.github.io/masaya-mirror/#site",
+        "url": "https://momotombodevs.github.io/masaya-mirror/",
+        "name": "Masaya",
+        "inLanguage": "es",
+        "publisher": {
+          "@type": "Organization",
+          "name": "Momotombo Devs"
+        }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "La app dice «Falta adb»",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Pulsa «Descargar platform-tools» e instálalo, o elige el adb que ya tienes con «Elegir adb…». Luego pulsa «Reintentar»."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Mi teléfono aparece como «Sin autorizar»",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Desbloquea el teléfono y acepta el aviso «¿Permitir depuración USB?». Marca «Permitir siempre desde este equipo» para no repetirlo."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "¿Funciona con iPhone?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Todavía no. El soporte para iPhone y iPad (iOS) está en camino. Por ahora, Masaya funciona con teléfonos y tablets Android."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "¿Necesito cable?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. Puedes vincular por Wi-Fi escaneando un código QR. El teléfono y el equipo deben estar en la misma red."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "¿Envía mis datos a internet?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. Tu pantalla, tus capturas y lo que escribes se quedan entre tu equipo y tu teléfono. La app solo se conecta a internet para consultar en GitHub si hay una versión nueva, y esa consulta no incluye tus datos."
+            }
+          }
+        ]
+      }
+    </script>
+    <link rel="icon" type="image/svg+xml" href="masaya-logo.svg" />
+    <link
+      rel="preload"
+      href="fonts/instrument-sans-latin-600-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="stylesheet" href="style.css?v=6" />
+  </head>
+  <body>
+    <!-- icon sprite: the menu icon is decorative; its label lives on the control -->
+    <svg width="0" height="0" class="d-sprite" aria-hidden="true">
+      <defs>
+        <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" /></symbol>
+      </defs>
+    </svg>
+
+    <a class="d-skip" href="#contenido" data-i18n="nav.skip">Saltar al contenido</a>
+
+    <header class="d-nav">
+      <div class="d-wrap d-nav__in">
+        <a class="d-brand" href="./"
+          ><img src="masaya-logo.svg" alt="" width="28" height="28" />Masaya</a
+        >
+        <nav class="d-links" aria-label="Principal" data-i18n-label="nav.label">
+          <a href="#funciones" data-i18n="nav.features">Funciones</a>
+          <a href="#vysor">Vs. Vysor</a>
+        </nav>
+        <div class="d-lang" role="group" aria-label="Idioma" data-i18n-label="nav.lang">
+          <button type="button" data-lang="es" aria-pressed="true" lang="es">ES</button>
+          <button type="button" data-lang="en" aria-pressed="false" lang="en">EN</button>
+        </div>
+        <a
+          class="d-btn d-btn--main d-btn--sm d-nav__dl"
+          href="https://github.com/momotombodevs/masaya-mirror/releases/latest"
+          data-i18n="nav.download"
+          >Descargar</a
+        >
+        <details class="d-menu">
+          <summary class="d-menu__btn" aria-label="Menú" data-i18n-label="nav.menu">
+            <svg
+              width="20"
+              height="20"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <use href="#i-menu" />
+            </svg>
+          </summary>
+          <div class="d-menu__panel">
+            <nav aria-label="Principal" data-i18n-label="nav.label">
+              <a href="#funciones" data-i18n="nav.features">Funciones</a>
+              <a href="#vysor">Vs. Vysor</a>
+              <a href="#ayuda" data-i18n="nav.help">Ayuda</a>
+            </nav>
+            <div class="d-menu__row">
+              <div class="d-lang" role="group" aria-label="Idioma" data-i18n-label="nav.lang">
+                <button type="button" data-lang="es" aria-pressed="true" lang="es">ES</button>
+                <button type="button" data-lang="en" aria-pressed="false" lang="en">EN</button>
+              </div>
+              <a
+                class="d-btn d-btn--main d-btn--sm"
+                href="https://github.com/momotombodevs/masaya-mirror/releases/latest"
+                data-i18n="nav.download"
+                >Descargar</a
+              >
+            </div>
+          </div>
+        </details>
+      </div>
+    </header>
+
+    <main id="contenido">
+      <section class="d-hero" id="descargar">
+        <div class="d-wrap">
+          <p class="d-cmd">
+            <span class="d-dot" aria-hidden="true"></span
+            ><span data-i18n="hero.status"><b>Galaxy S23 Ultra</b> conectado por USB</span>
+          </p>
+          <div class="d-title">
+            <h1 class="d-h1" data-i18n="hero.title">Tu Android, en grande.</h1>
+            <div class="d-reflbox" aria-hidden="true">
+              <p class="d-h1 d-h1--refl" data-i18n="hero.title">Tu Android, en grande.</p>
+            </div>
+          </div>
+          <p class="d-lead" data-i18n="hero.lead">
+            Controla tu teléfono con mouse y teclado desde macOS, Windows o Linux.
+          </p>
+          <div class="d-dl">
+            <a
+              class="d-btn d-btn--main"
+              href="https://github.com/momotombodevs/masaya-mirror/releases/latest"
+              data-dl
+              ><span data-i18n="dl.mac">Descargar para macOS</span></a
+            >
+            <a
+              class="d-btn d-btn--line"
+              href="https://github.com/momotombodevs/masaya-mirror/releases/latest"
+              data-os="mac"
+              hidden
+              >macOS</a
+            >
+            <a
+              class="d-btn d-btn--line"
+              href="https://github.com/momotombodevs/masaya-mirror/releases/latest"
+              data-os="win"
+              >Windows</a
+            >
+            <a
+              class="d-btn d-btn--line"
+              href="https://github.com/momotombodevs/masaya-mirror/releases/latest"
+              data-os="linux"
+              >Linux</a
+            >
+          </div>
+          <div class="d-mdl">
+            <a
+              class="d-btn d-btn--main"
+              href="https://github.com/momotombodevs/masaya-mirror/releases/latest"
+              data-i18n="hero.downloads"
+              >Ver descargas</a
+            >
+            <a class="d-btn d-btn--line" href="https://github.com/momotombodevs/masaya-mirror"
+              ><span data-i18n="hero.code">Código en GitHub</span></a
+            >
+            <div class="d-mdl__os">
+              <a href="https://github.com/momotombodevs/masaya-mirror/releases/latest">macOS</a>
+              <a href="https://github.com/momotombodevs/masaya-mirror/releases/latest">Windows</a>
+              <a href="https://github.com/momotombodevs/masaya-mirror/releases/latest">Linux</a>
+            </div>
+          </div>
+          <p class="d-hero-note" data-i18n="hero.note">
+            Para Android. <span>iOS próximamente.</span>
+          </p>
+        </div>
+
+        <div class="d-stage">
+          <span class="d-light" aria-hidden="true"></span>
+          <div
+            class="d-win mm"
+            role="img"
+            aria-label="Ventana de Masaya duplicando un Galaxy S23 Ultra con la app Despertá abierta"
+            data-i18n-label="hero.winLabel"
+          >
+            <div class="xx-win">
+              <div class="xx-bar xx-bar--dark">
+                <span class="xx-lights"><i></i><i></i><i></i></span>Galaxy S23 Ultra
+              </div>
+              <div class="xx-win__body">
+                <img
+                  class="d-shot"
+                  src="img/app-mirror.webp"
+                  width="880"
+                  height="1624"
+                  alt=""
+                  fetchpriority="high"
+                />
+              </div>
+            </div>
+          </div>
+          <ul class="d-calls">
+            <li class="d-call" style="top: 110px">
+              <div>
+                <b data-i18n="call.quality">Calidad</b
+                ><span data-i18n="call.qualityV">1920 px a 16 Mbps</span>
+              </div>
+              <i></i>
+            </li>
+            <li class="d-call" style="top: 300px">
+              <div>
+                <b data-i18n="call.codec">Códec</b
+                ><span data-i18n="call.codecV">H.264 o H.265</span>
+              </div>
+              <i></i>
+            </li>
+            <li class="d-call" style="top: 490px">
+              <div>
+                <b data-i18n="call.conn">Conexión</b
+                ><span data-i18n="call.connV">USB o Wi-Fi con QR</span>
+              </div>
+              <i></i>
+            </li>
+            <li class="d-call d-call--r" style="top: 80px">
+              <div><b data-i18n="call.shot">Captura</b><span>⌘⇧4</span></div>
+              <i></i>
+            </li>
+            <li class="d-call d-call--r" style="top: 250px">
+              <div><b data-i18n="call.rec">Grabar o detener</b><span>⌘⇧5</span></div>
+              <i></i>
+            </li>
+            <li class="d-call d-call--r" style="top: 420px">
+              <div>
+                <b data-i18n="call.back">«Atrás» en el teléfono</b
+                ><span data-i18n="call.backV">clic derecho</span>
+              </div>
+              <i></i>
+            </li>
+            <li class="d-call d-call--r" style="top: 560px">
+              <div>
+                <b data-i18n="call.apk">Instalar APK</b
+                ><span data-i18n="call.apkV">arrastra el .apk</span>
+              </div>
+              <i></i>
+            </li>
+          </ul>
+          <span class="d-fade" aria-hidden="true"></span>
+        </div>
+        <ul class="d-chips">
+          <li class="d-chip" data-i18n="call.qualityV">1920 px a 16 Mbps</li>
+          <li class="d-chip" data-i18n="call.connV">USB o Wi-Fi con QR</li>
+          <li class="d-chip" data-i18n="chip.shot">⌘⇧4 captura</li>
+          <li class="d-chip" data-i18n="chip.rec">⌘⇧5 graba</li>
+        </ul>
+      </section>
+
+      <div class="d-wrap">
+        <ul class="d-perks">
+          <li class="d-perk">
+            <div>
+              <b data-i18n="perk.accounts">Sin cuentas</b
+              ><span data-i18n="perk.accountsV">Ni registro ni correo</span>
+            </div>
+          </li>
+          <li class="d-perk">
+            <div>
+              <b data-i18n="perk.ads">Sin anuncios</b
+              ><span data-i18n="perk.adsV">Ni planes de pago</span>
+            </div>
+          </li>
+          <li class="d-perk">
+            <div>
+              <b data-i18n="perk.local">Sin nube</b
+              ><span data-i18n="perk.localV">Ni analítica ni telemetría</span>
+            </div>
+          </li>
+          <li class="d-perk">
+            <div>
+              <b data-i18n="perk.os">Multiplataforma</b
+              ><span data-i18n="perk.osV">macOS, Windows y Linux</span>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <section class="d-sec" id="funciones">
+        <div class="d-wrap">
+          <h2 class="d-h2" data-i18n="feat.title">Hecho para probar apps en un teléfono real</h2>
+          <p class="d-sub" data-i18n="feat.sub">
+            Ves la pantalla, la controlas y guardas lo que pasa. Sin instalar ninguna app en el
+            teléfono.
+          </p>
+          <div class="d-hl">
+            <article class="d-hl__card">
+              <div class="d-hl__ui" aria-hidden="true">
+                <img
+                  class="d-shot d-hl__shot d-hl__shot--devices"
+                  src="img/app-devices.webp"
+                  width="800"
+                  height="236"
+                  alt=""
+                  loading="lazy"
+                />
+              </div>
+              <div class="d-hl__txt">
+                <h3 data-i18n="feat.windows">Una ventana por dispositivo</h3>
+                <p data-i18n="feat.windowsV">
+                  Abre varios teléfonos a la vez, cada uno con su barra y su navegación.
+                </p>
+              </div>
+            </article>
+            <article class="d-hl__card">
+              <div class="d-hl__ui" aria-hidden="true">
+                <img
+                  class="d-shot d-hl__shot d-hl__shot--wifi"
+                  src="img/app-wifi.webp"
+                  width="880"
+                  height="446"
+                  alt=""
+                  loading="lazy"
+                />
+              </div>
+              <div class="d-hl__txt">
+                <h3 data-i18n="feat.qr">Wi-Fi con un QR</h3>
+                <p data-i18n="feat.qrV">
+                  Sin cable ni direcciones IP: escanea el código desde Depuración inalámbrica.
+                </p>
+              </div>
+            </article>
+            <article class="d-hl__card">
+              <div class="d-hl__ui" aria-hidden="true">
+                <div class="mm d-hl__capture">
+                  <img
+                    class="d-shot d-hl__shot d-hl__shot--toolbar"
+                    src="img/app-toolbar.webp"
+                    width="1098"
+                    height="104"
+                    alt=""
+                    loading="lazy"
+                  />
+                  <div class="d-hl__keys">
+                    <span
+                      ><span class="d-cap">⌘⇧4</span><span data-i18n="ui.shot">captura</span></span
+                    >
+                    <span><span class="d-cap">⌘⇧5</span><span data-i18n="ui.rec">graba</span></span>
+                  </div>
+                </div>
+              </div>
+              <div class="d-hl__txt">
+                <h3 data-i18n="feat.capture">Captura y grabación</h3>
+                <p data-i18n="feat.captureV">
+                  Desde la barra o con atajos. Graba en video o en GIF, y elige si cada captura se
+                  muestra, se copia o se guarda.
+                </p>
+              </div>
+            </article>
+          </div>
+          <ul class="d-specs">
+            <li class="d-spec">
+              <div>
+                <h3 data-i18n="spec.control">Control completo</h3>
+                <p data-i18n="spec.controlV">
+                  Toques, multitouch, arrastre, rueda y teclado con acentos.
+                </p>
+              </div>
+            </li>
+            <li class="d-spec">
+              <div>
+                <h3 data-i18n="spec.apk">Instalar APK</h3>
+                <p data-i18n="spec.apkV">Arrastra el archivo a la ventana.</p>
+              </div>
+            </li>
+            <li class="d-spec">
+              <div>
+                <h3 data-i18n="spec.quality">Calidad ajustable</h3>
+                <p data-i18n="spec.qualityV">Preajustes, resolución, velocidad de datos y códec.</p>
+              </div>
+            </li>
+            <li class="d-spec">
+              <div>
+                <h3 data-i18n="spec.theme">Claro y oscuro</h3>
+                <p data-i18n="spec.themeV">Sigue el tema del sistema. En español e inglés.</p>
+              </div>
+            </li>
+            <li class="d-spec">
+              <div>
+                <h3 data-i18n="spec.private">Privado</h3>
+                <p data-i18n="spec.privateV">
+                  Lo que ves y escribes se queda entre tu equipo y tu teléfono.
+                </p>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="d-sec d-sec--tight" id="empezar">
+        <div class="d-wrap d-split">
+          <div>
+            <h2 class="d-h2" data-i18n="start.title">En marcha en tres pasos</h2>
+            <ol class="d-steps">
+              <li class="d-step">
+                <span class="d-step__n" aria-hidden="true">1</span>
+                <div>
+                  <h3 data-i18n="start.s1">Instala</h3>
+                  <p data-i18n="start.s1V">
+                    Descarga el instalador de tu sistema. Aún no está firmado, así que la primera
+                    vez macOS y Windows te piden confirmar.
+                  </p>
+                </div>
+              </li>
+              <li class="d-step">
+                <span class="d-step__n" aria-hidden="true">2</span>
+                <div>
+                  <h3 data-i18n="start.s2">Activa la depuración USB</h3>
+                  <p data-i18n="start.s2V">
+                    En el teléfono: Opciones de desarrollador → Depuración USB. Si falta adb, la app
+                    te ofrece descargarlo.
+                  </p>
+                </div>
+              </li>
+              <li class="d-step">
+                <span class="d-step__n" aria-hidden="true">3</span>
+                <div>
+                  <h3 data-i18n="start.s3">Conecta y abre</h3>
+                  <p data-i18n="start.s3V">
+                    Por cable, o por Wi-Fi escaneando un QR. Haz doble clic en el dispositivo para
+                    abrir su ventana.
+                  </p>
+                </div>
+              </li>
+            </ol>
+          </div>
+          <figure class="d-term">
+            <figcaption class="d-term__bar">
+              <i></i><i></i><i></i><span data-i18n="term.title">terminal — ejemplo</span>
+            </figcaption>
+            <pre class="d-term__body"><span class="p">$</span> <span class="c">adb devices</span>
+List of devices attached
+38211FDJH00XYZ        <span class="ok">device</span>
+192.168.1.42:5555     <span class="ok">device</span>
+
+<span class="p" data-i18n="term.comment"># Masaya los ve igual:</span>
+<span class="b">●</span> Pixel 8        USB     <span class="ok" data-i18n="term.mirroring">duplicando</span>
+<span class="b">●</span> Galaxy S24     Wi-Fi   <span class="ok" data-i18n="term.mirroring">duplicando</span></pre>
+          </figure>
+        </div>
+        <div class="d-wrap">
+          <ul class="d-req">
+            <li>
+              <div>
+                <b data-i18n="req.phone">Un teléfono Android</b
+                ><span data-i18n="req.phoneV"
+                  >Con Opciones de desarrollador y Depuración USB activadas.</span
+                >
+              </div>
+            </li>
+            <li>
+              <div>
+                <b>adb (Android platform-tools)</b
+                ><span data-i18n="req.adbV"
+                  >Si no lo tienes, la app te ofrece descargarlo o elegir el tuyo.</span
+                >
+              </div>
+            </li>
+            <li>
+              <div>
+                <b data-i18n="req.os">macOS, Windows o Linux</b
+                ><span data-i18n="req.osV"
+                  >Apple Silicon e Intel en Mac, x64 en Windows, x64 y arm64 en Linux.</span
+                >
+              </div>
+            </li>
+          </ul>
+          <p class="d-soon">
+            <span class="d-soon__tag" data-i18n="soon.tag">Próximamente</span
+            ><span data-i18n="soon.text"
+              ><b>iPhone y iPad.</b> El soporte para iOS está en camino. Por ahora, Masaya funciona
+              con Android.</span
+            >
+          </p>
+        </div>
+      </section>
+
+      <section class="d-sec d-sec--tight" id="instalar">
+        <div class="d-wrap">
+          <h2 class="d-h2" data-i18n="inst.title">La primera vez que lo abres</h2>
+          <p class="d-sub" data-i18n="inst.sub">
+            Los instaladores aún no están firmados, así que el sistema pide confirmación una sola
+            vez.
+          </p>
+          <div class="d-install">
+            <article class="d-os-card">
+              <h3>macOS</h3>
+              <ol>
+                <li data-i18n="inst.mac1">Abre el <b>.dmg</b> y arrastra Masaya a Aplicaciones.</li>
+                <li data-i18n="inst.mac2">
+                  La primera vez, haz <b>clic derecho → Abrir</b> sobre la app.
+                </li>
+                <li data-i18n="inst.mac3">
+                  Confirma con <b>Abrir</b>. Después se abre sin preguntar.
+                </li>
+              </ol>
+              <div class="d-sys" aria-hidden="true">
+                <b data-i18n="inst.macDlg">¿Abrir «Masaya»?</b
+                ><span data-i18n="inst.macDlgV">macOS no puede verificar al desarrollador.</span>
+                <div class="d-sys__btns">
+                  <span data-i18n="inst.cancel">Cancelar</span
+                  ><span class="on" data-i18n="inst.open">Abrir</span>
+                </div>
+              </div>
+            </article>
+            <article class="d-os-card">
+              <h3>Windows</h3>
+              <ol>
+                <li data-i18n="inst.win1">Ejecuta el instalador <b>.exe</b>.</li>
+                <li data-i18n="inst.win2">
+                  Si aparece «Windows protegió su PC», pulsa <b>Más información</b>.
+                </li>
+                <li data-i18n="inst.win3">Pulsa <b>Ejecutar de todas formas</b>.</li>
+              </ol>
+              <div class="d-sys" aria-hidden="true">
+                <b data-i18n="inst.winDlg">Windows protegió su PC</b
+                ><span data-i18n="inst.winDlgV">Editor desconocido.</span>
+                <div class="d-sys__btns">
+                  <span class="on" data-i18n="inst.runAnyway">Ejecutar de todas formas</span
+                  ><span data-i18n="inst.dontRun">No ejecutar</span>
+                </div>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="d-sec d-sec--tight" id="atajos">
+        <div class="d-wrap">
+          <h2 class="d-h2" data-i18n="keys.title">Todo a mano, sin soltar el teclado</h2>
+          <ul class="d-keys">
+            <li class="d-key">
+              <span data-i18n="keys.refresh">Actualizar lista de dispositivos</span
+              ><kbd class="d-caps"><kbd class="d-cap">⌘</kbd><kbd class="d-cap">R</kbd></kbd>
+            </li>
+            <li class="d-key">
+              <span data-i18n="keys.shot">Captura</span
+              ><kbd class="d-caps"
+                ><kbd class="d-cap">⌘</kbd><kbd class="d-cap">⇧</kbd><kbd class="d-cap">4</kbd></kbd
+              >
+            </li>
+            <li class="d-key">
+              <span data-i18n="keys.rec">Grabar o detener</span
+              ><kbd class="d-caps"
+                ><kbd class="d-cap">⌘</kbd><kbd class="d-cap">⇧</kbd><kbd class="d-cap">5</kbd></kbd
+              >
+            </li>
+            <li class="d-key">
+              <span data-i18n="keys.wifi">Conectar por Wi-Fi</span
+              ><kbd class="d-caps"
+                ><kbd class="d-cap">⌘</kbd><kbd class="d-cap">⇧</kbd><kbd class="d-cap">W</kbd></kbd
+              >
+            </li>
+            <li class="d-key">
+              <span data-i18n="keys.settings">Ajustes</span
+              ><kbd class="d-caps"><kbd class="d-cap">⌘</kbd><kbd class="d-cap">,</kbd></kbd>
+            </li>
+            <li class="d-key">
+              <span data-i18n="keys.back">«Atrás» en el teléfono</span
+              ><kbd class="d-caps"
+                ><kbd class="d-cap" data-i18n="keys.rightClick">Clic derecho</kbd></kbd
+              >
+            </li>
+          </ul>
+          <p class="d-os" data-i18n="keys.note">En Windows y Linux, ⌘ es Ctrl y ⇧ es Shift.</p>
+        </div>
+      </section>
+
+      <section class="d-sec d-sec--tight" id="vysor">
+        <div class="d-wrap">
+          <h2 class="d-h2" data-i18n="vs.title">Lo que Vysor cobra, aquí viene incluido</h2>
+          <div
+            class="d-table-wrap"
+            role="region"
+            tabindex="0"
+            aria-label="Comparativa con Vysor"
+            data-i18n-label="vs.label"
+          >
+            <table class="d-table">
+              <thead>
+                <tr>
+                  <th scope="col" data-i18n="vs.feature">Característica</th>
+                  <th scope="col" class="us">Masaya</th>
+                  <th scope="col" data-i18n="vs.free">Vysor gratis</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th scope="row">Wi-Fi</th>
+                  <td class="us">
+                    <span data-i18n="vs.wifiUs">Incluido</span>
+                  </td>
+                  <td>
+                    <span data-i18n="vs.wifiThem">Solo en Pro</span>
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row" data-i18n="vs.quality">Calidad</th>
+                  <td class="us">
+                    <span data-i18n="vs.qualityUs">Ajustable, hasta 2560 px</span>
+                  </td>
+                  <td>
+                    <span data-i18n="vs.qualityThem">Limitada; HD en Pro</span>
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row" data-i18n="vs.ads">Anuncios</th>
+                  <td class="us">
+                    <span data-i18n="vs.adsUs">Ninguno</span>
+                  </td>
+                  <td>
+                    <span data-i18n="vs.adsThem">Sí; se quitan con Pro</span>
+                  </td>
+                </tr>
+                <tr>
+                  <th scope="row" data-i18n="vs.plans">Planes</th>
+                  <td class="us">
+                    <span data-i18n="vs.plansUs">Sin funciones bloqueadas</span>
+                  </td>
+                  <td>
+                    <span data-i18n="vs.plansThem">Pro de pago</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="d-sec d-sec--tight" id="ayuda">
+        <div class="d-wrap">
+          <h2 class="d-h2" data-i18n="faq.title">Preguntas frecuentes</h2>
+          <div class="d-faq">
+            <details open>
+              <summary data-i18n="faq.q1">La app dice «Falta adb»</summary>
+              <p data-i18n="faq.a1">
+                Pulsa «Descargar platform-tools» e instálalo, o elige el adb que ya tienes con
+                «Elegir adb…». Luego pulsa «Reintentar».
+              </p>
+            </details>
+            <details>
+              <summary data-i18n="faq.q2">Mi teléfono aparece como «Sin autorizar»</summary>
+              <p data-i18n="faq.a2">
+                Desbloquea el teléfono y acepta el aviso «¿Permitir depuración USB?». Marca
+                «Permitir siempre desde este equipo» para no repetirlo.
+              </p>
+            </details>
+            <details>
+              <summary data-i18n="faq.q3">¿Funciona con iPhone?</summary>
+              <p data-i18n="faq.a3">
+                Todavía no. El soporte para iPhone y iPad (iOS) está en camino. Por ahora, Masaya
+                funciona con teléfonos y tablets Android.
+              </p>
+            </details>
+            <details>
+              <summary data-i18n="faq.q4">¿Necesito cable?</summary>
+              <p data-i18n="faq.a4">
+                No. Puedes vincular por Wi-Fi escaneando un código QR. El teléfono y el equipo deben
+                estar en la misma red.
+              </p>
+            </details>
+            <details>
+              <summary data-i18n="faq.q5">¿Envía mis datos a internet?</summary>
+              <p data-i18n="faq.a5">
+                No. Tu pantalla, tus capturas y lo que escribes se quedan entre tu equipo y tu
+                teléfono. La app solo se conecta a internet para consultar en GitHub si hay una
+                versión nueva, y esa consulta no incluye tus datos.
+              </p>
+            </details>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="d-foot">
+      <div class="d-wrap d-foot__in">
+        <a class="d-brand" href="./"
+          ><img src="masaya-logo.svg" alt="" width="28" height="28" />Masaya</a
+        >
+        <p class="d-foot__by">
+          Crafted with passion by
+          <a href="https://momotombo.dev/" target="_blank" rel="noopener noreferrer"
+            >Momotombo Devs
+            <svg viewBox="0 0 108 100" width="18" height="18" fill="none" aria-hidden="true">
+              <defs>
+                <mask id="mt-gap-mask">
+                  <rect width="108" height="100" fill="white" />
+                  <polygon
+                    points="28,49 3,89 53,89"
+                    fill="black"
+                    stroke="black"
+                    stroke-width="14"
+                    stroke-linejoin="round"
+                  />
+                </mask>
+              </defs>
+              <polygon
+                points="60,24 15,89 105,89"
+                fill="#FF6600"
+                stroke="#FF6600"
+                stroke-width="6"
+                stroke-linejoin="round"
+                mask="url(#mt-gap-mask)"
+              />
+              <polygon
+                points="28,49 3,89 53,89"
+                fill="#FF6600"
+                stroke="#FF6600"
+                stroke-width="6"
+                stroke-linejoin="round"
+              /></svg
+          ></a>
+        </p>
+        <nav aria-label="Pie de página" data-i18n-label="foot.label">
+          <a href="#empezar" data-i18n="foot.guide">Guía</a>
+          <a href="#ayuda" data-i18n="nav.help">Ayuda</a>
+          <a href="privacy.html" data-i18n="foot.privacy">Privacidad</a>
+          <a href="https://github.com/momotombodevs/masaya-mirror">GitHub</a>
+        </nav>
+      </div>
+    </footer>
+
+    <script src="site.js?v=6" defer></script>
+  </body>
+</html>

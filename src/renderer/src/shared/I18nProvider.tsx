@@ -1,38 +1,16 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import {
-  DEFAULT_LOCALE,
-  resolveLocale,
-  type LanguagePreference,
-} from '../../../shared/i18n/locale';
+import { useEffect, useMemo, type ReactNode } from 'react';
+import { DEFAULT_LOCALE, resolveLocale } from '../../../shared/i18n/locale';
 import { createTranslator } from '../../../shared/i18n/messages';
 import { I18nContext, type I18n } from './i18n';
-import { getManoloApi } from './manolo-api';
+import { usePreferences } from './preferences';
 
 function systemLocale(): string {
   return typeof navigator === 'undefined' ? DEFAULT_LOCALE : navigator.language;
 }
 
-/** Follows the saved language, including changes made from another window. */
+/** Speaks the saved language; it follows the preferences, including changes from other windows. */
 export function I18nProvider({ children }: { readonly children: ReactNode }): JSX.Element {
-  const [language, setLanguage] = useState<LanguagePreference>('system');
-
-  useEffect(() => {
-    const api = getManoloApi();
-    let cancelled = false;
-    void api
-      ?.getPreferences()
-      .then((result) => {
-        if (!cancelled && result.ok) {
-          setLanguage(result.value.language);
-        }
-      })
-      .catch(() => undefined);
-    const unsubscribe = api?.onLanguageChange(setLanguage);
-    return () => {
-      cancelled = true;
-      unsubscribe?.();
-    };
-  }, []);
+  const { language } = usePreferences().preferences;
 
   const value = useMemo<I18n>(() => {
     const locale = resolveLocale(language, systemLocale());

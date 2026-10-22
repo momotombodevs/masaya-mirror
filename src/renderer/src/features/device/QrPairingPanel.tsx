@@ -1,8 +1,10 @@
 import QRCode from 'qrcode';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '../../components/ui/Button';
+import { IconTile } from '../../components/ui/IconTile';
+import { QrIcon } from '../../components/ui/icons';
 import { useI18n } from '../../shared/i18n';
-import { getManoloApi } from '../../shared/manolo-api';
+import { callApi } from '../../shared/masaya-api';
 
 type QrPairingPanelProps = {
   /** Called once the phone is paired and connected, so the device list can refresh. */
@@ -12,7 +14,7 @@ type QrPairingPanelProps = {
 type QrState =
   | { readonly step: 'idle' }
   | { readonly step: 'starting' }
-  | { readonly step: 'waiting'; readonly sessionId: string; readonly qrUrl: string }
+  | { readonly step: 'waiting'; readonly qrUrl: string }
   | { readonly step: 'done'; readonly message: string }
   | { readonly step: 'error'; readonly message: string };
 
@@ -21,50 +23,66 @@ export function QrPairingPanel({ onConnected }: QrPairingPanelProps): JSX.Elemen
   const { t } = useI18n();
   const [state, setState] = useState<QrState>({ step: 'idle' });
   const activeSession = useRef<string | null>(null);
+  const mountedRef = useRef(true);
 
   const cancel = useCallback((): void => {
     const sessionId = activeSession.current;
     activeSession.current = null;
     if (sessionId) {
-      void getManoloApi()?.cancelQrPairing(sessionId);
+      void callApi((api) => api.cancelQrPairing(sessionId), '');
     }
   }, []);
 
   // Leaving the dialog must stop the search so the phone is not paired in the background.
-  useEffect(() => cancel, [cancel]);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      cancel();
+    };
+  }, [cancel]);
 
   const start = async (): Promise<void> => {
-    const api = getManoloApi();
-    if (!api) {
-      setState({ step: 'error', message: t('common.noBridge') });
-      return;
-    }
     setState({ step: 'starting' });
 
-    const started = await api.startQrPairing();
+    const started = await callApi((api) => api.startQrPairing(), t('common.noBridge'));
     if (!started.ok) {
       setState({ step: 'error', message: started.error });
       return;
     }
     const { sessionId, payload } = started.value;
     activeSession.current = sessionId;
-
-    // SVG is generated without a canvas and shown as an image, so no markup is injected.
-    const svg = await QRCode.toString(payload, {
-      type: 'svg',
-      margin: 1,
-      errorCorrectionLevel: 'M',
-    });
-    if (activeSession.current !== sessionId) {
+    if (!mountedRef.current) {
+      cancel(); // the dialog closed while the session was starting
       return;
     }
-    setState({
-      step: 'waiting',
-      sessionId,
-      qrUrl: `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`,
-    });
 
-    const result = await api.waitQrPairing(sessionId);
+    try {
+      // SVG is generated without a canvas and shown as an image, so no markup is injected.
+      const svg = await QRCode.toString(payload, {
+        type: 'svg',
+        margin: 1,
+        errorCorrectionLevel: 'M',
+      });
+      if (activeSession.current !== sessionId) {
+        return;
+      }
+      setState({
+        step: 'waiting',
+        qrUrl: `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`,
+      });
+    } catch (error: unknown) {
+      cancel();
+      if (mountedRef.current) {
+        setState({
+          step: 'error',
+          message: error instanceof Error ? error.message : t('common.noBridge'),
+        });
+      }
+      return;
+    }
+
+    const result = await callApi((api) => api.waitQrPairing(sessionId), t('common.noBridge'));
     if (activeSession.current !== sessionId) {
       return; // cancelled or replaced while waiting
     }
@@ -103,8 +121,12 @@ export function QrPairingPanel({ onConnected }: QrPairingPanelProps): JSX.Elemen
         </>
       ) : (
         <>
+          <IconTile tone="blue" size="lg" className="mb-1">
+            <QrIcon />
+          </IconTile>
           <p className="text-center text-ink-2">{t('qr.intro')}</p>
           <Button
+            className="mt-1.5"
             variant="primary"
             onClick={() => void start()}
             disabled={state.step === 'starting'}

@@ -4,22 +4,26 @@ import type {
   DeviceSettings,
   DeviceStatus,
 } from '../../../shared/device/types';
-import { err, ok, type Result } from '../../../shared/ipc/result';
+import { err, mapResult, ok, type Result } from '../../../shared/ipc/result';
 import { runCommand } from '../../utils/runCommand';
 import { mt } from '../../i18n';
-import { ADB_NOT_FOUND_MESSAGE, mapCommandError } from './adb-error';
+import { adbNotFound, commandFailure } from './adb-error';
 import { resolveAdbPath } from './adb-path.resolver';
+import { DEVICE_NAME_SHELL_COMMAND, friendlyModelName, parseDeviceName } from './device-name';
 
-const DEVICE_LIST_HEADER = 'List of devices attached';
+/**
+ * Every state `adb devices` can print. Anything else on a line (daemon chatter, warnings) is
+ * not a device. `no permissions` is followed by a reason in parentheses.
+ */
+const DEVICE_LINE_PATTERN =
+  /^(\S+)\s+(device|offline|unauthorized|authorizing|connecting|recovery|sideload|rescue|bootloader|host|no permissions)(?:\s+(.*))?$/;
 
 function parseDeviceStatus(raw: string): DeviceStatus {
   switch (raw) {
     case 'device':
-      return 'device';
     case 'offline':
-      return 'offline';
     case 'unauthorized':
-      return 'unauthorized';
+      return raw;
     default:
       return 'unknown';
   }
@@ -37,19 +41,15 @@ function parseKeyValueToken(token: string): { key: string; value: string } | nul
 }
 
 export function parseAdbDevicesOutput(stdout: string): readonly AndroidDevice[] {
-  const lines = stdout.split('\n');
   const devices: AndroidDevice[] = [];
 
-  for (const line of lines) {
+  for (const line of stdout.split('\n')) {
     const trimmed = line.trim();
-    if (!trimmed || trimmed === DEVICE_LIST_HEADER) {
+    // "* daemon started successfully" and the like are adb talking about itself.
+    if (trimmed.startsWith('*')) {
       continue;
     }
-
-    const parts = trimmed.split(/\s+/);
-    const id = parts[0];
-    const statusRaw = parts[1];
-
+    const [, id, statusRaw, rest = ''] = DEVICE_LINE_PATTERN.exec(trimmed) ?? [];
     if (!id || !statusRaw) {
       continue;
     }
@@ -57,14 +57,11 @@ export function parseAdbDevicesOutput(stdout: string): readonly AndroidDevice[] 
     let model: string | undefined;
     let product: string | undefined;
 
-    for (const token of parts.slice(2)) {
+    for (const token of rest.split(/\s+/)) {
       const parsed = parseKeyValueToken(token);
-      if (!parsed) {
-        continue;
-      }
-      if (parsed.key === 'model') {
+      if (parsed?.key === 'model') {
         model = parsed.value;
-      } else if (parsed.key === 'product') {
+      } else if (parsed?.key === 'product') {
         product = parsed.value;
       }
     }
@@ -82,9 +79,7 @@ export function parseAdbDevicesOutput(stdout: string): readonly AndroidDevice[] 
 
 const INSTALL_TIMEOUT_MS = 180_000;
 const NETWORK_TIMEOUT_MS = 20_000;
-
-/** adb reports most connection failures on stdout with exit code 0. */
-const WIFI_FAILURE_PATTERN = /failed|cannot|unable|refused|error|no route|timed out/i;
+const DEVICE_NAME_TIMEOUT_MS = 5_000;
 
 /** Last non-empty line, which is where adb puts its verdict. */
 function lastLine(text: string): string {
@@ -117,6 +112,11 @@ export function parseMdnsServices(stdout: string): readonly MdnsService[] {
 export class AdbService {
   private adbPath: string | null = null;
   private customPath: string | null = null;
+  /**
+   * Marketing names by device id. The list refreshes every 5 s, so each phone is asked once per
+   * connection; failed lookups are dropped and retried on the next refresh.
+   */
+  private readonly deviceNames = new Map<string, Promise<string | undefined>>();
 
   /** Sets (or clears) the `adb` the user picked in the app and forgets the cached lookup. */
   setCustomPath(customPath: string | null): void {
@@ -148,13 +148,13 @@ export class AdbService {
   ): Promise<Result<string>> {
     const adbPath = await this.getExecutablePath();
     if (!adbPath) {
-      return err(ADB_NOT_FOUND_MESSAGE);
+      return adbNotFound();
     }
     try {
       const { stdout, stderr } = await runCommand(adbPath, args, timeoutMs);
       return ok(`${stdout}\n${stderr}`.trim());
     } catch (error: unknown) {
-      return err(mapCommandError(error));
+      return commandFailure(error);
     }
   }
 
@@ -170,8 +170,7 @@ export class AdbService {
   }
 
   async listMdnsServices(): Promise<Result<readonly MdnsService[]>> {
-    const result = await this.run(['mdns', 'services']);
-    return result.ok ? ok(parseMdnsServices(result.value)) : result;
+    return mapResult(await this.run(['mdns', 'services']), parseMdnsServices);
   }
 
   async pair(address: string, code: string): Promise<Result<string>> {
@@ -190,14 +189,14 @@ export class AdbService {
       return result;
     }
     const verdict = lastLine(result.value);
-    return /^(already )?connected/i.test(verdict) && !WIFI_FAILURE_PATTERN.test(verdict)
+    return /^(already )?connected/i.test(verdict)
       ? ok(mt('main.connectedTo', { address }))
       : err(verdict || mt('main.connectFailed'));
   }
 
   async disconnect(address: string): Promise<Result<string>> {
     const result = await this.run(['disconnect', address]);
-    return result.ok ? ok(`Desconectado de ${address}.`) : result;
+    return mapResult(result, () => mt('main.disconnectedFrom', { address }));
   }
 
   /** Reads the developer options the settings screen shows. Both are plain `settings get` calls. */
@@ -240,7 +239,7 @@ export class AdbService {
       name,
       enabled ? on : '0',
     ]);
-    return result.ok ? ok(undefined) : result;
+    return mapResult(result, () => undefined);
   }
 
   async installApk(deviceId: string, apkPath: string): Promise<Result<void>> {
@@ -257,16 +256,50 @@ export class AdbService {
   }
 
   async listDevices(): Promise<Result<readonly AndroidDevice[]>> {
-    const adbPath = await this.getExecutablePath();
-    if (!adbPath) {
-      return err(ADB_NOT_FOUND_MESSAGE);
+    const result = mapResult(await this.run(['devices', '-l']), parseAdbDevicesOutput);
+    if (!result.ok) {
+      return result;
     }
+    const devices = result.value;
+    const listedIds = new Set(devices.map((device) => device.id));
+    for (const id of this.deviceNames.keys()) {
+      if (!listedIds.has(id)) {
+        this.deviceNames.delete(id);
+      }
+    }
+    const names = await Promise.all(devices.map((device) => this.lookUpDeviceName(device)));
+    return ok(
+      devices.map((device, index) => {
+        const displayName =
+          names[index] ??
+          (device.model !== undefined ? friendlyModelName(device.model) : undefined);
+        return displayName ? { ...device, displayName } : device;
+      }),
+    );
+  }
 
-    try {
-      const { stdout } = await runCommand(adbPath, ['devices', '-l']);
-      return ok(parseAdbDevicesOutput(stdout));
-    } catch (error: unknown) {
-      return err(mapCommandError(error));
+  /** Reads the phone's marketing name once; only a phone that is online can answer. */
+  private lookUpDeviceName(device: AndroidDevice): Promise<string | undefined> {
+    const cached = this.deviceNames.get(device.id);
+    if (cached || device.status !== 'device') {
+      return cached ?? Promise.resolve(undefined);
     }
+    const lookup = this.run(
+      ['-s', device.id, 'shell', DEVICE_NAME_SHELL_COMMAND],
+      DEVICE_NAME_TIMEOUT_MS,
+    )
+      .catch((error: unknown) => err(String(error)))
+      .then((result) => {
+        if (result.ok) {
+          return parseDeviceName(result.value);
+        }
+        // A phone that has just come online may not answer yet; ask again on the next refresh.
+        if (this.deviceNames.get(device.id) === lookup) {
+          this.deviceNames.delete(device.id);
+        }
+        return undefined;
+      });
+    this.deviceNames.set(device.id, lookup);
+    return lookup;
   }
 }

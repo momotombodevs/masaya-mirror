@@ -1,4 +1,4 @@
-export const MIRROR_PORT_WINDOW_MESSAGE = 'manolo-mirror-port' as const;
+export const MIRROR_PORT_WINDOW_MESSAGE = 'masaya-mirror-port' as const;
 
 export type MirrorPortWindowMessage = {
   readonly type: typeof MIRROR_PORT_WINDOW_MESSAGE;

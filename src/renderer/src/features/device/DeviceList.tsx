@@ -1,11 +1,16 @@
 import type { ReactNode } from 'react';
 import type { AndroidDevice } from '../../../../shared/device/types';
 import { Button } from '../../components/ui/Button';
+import { cx } from '../../components/ui/cx';
+import { GROUPED_CARD_CLASSES } from '../../components/ui/card';
+import { IconTile } from '../../components/ui/IconTile';
+import { PhoneIcon } from '../../components/ui/icons';
 import { StatusDot } from '../../components/ui/StatusDot';
 import type { DeviceSummary } from './connected-devices';
 import { isWifiDeviceId } from '../../../../shared/ipc/validators';
 import { useI18n } from '../../shared/i18n';
-import { DEVICE_STATUS_LABEL_KEYS } from './device.ui';
+import { ConnectionChip } from './ConnectionChip';
+import { DEVICE_STATUS_LABEL_KEYS, deviceTone } from './device.ui';
 
 type DeviceListProps = {
   readonly summary: DeviceSummary;
@@ -30,7 +35,7 @@ export function DeviceList({
 }: DeviceListProps): JSX.Element {
   const { t } = useI18n();
   const { connected, unavailable } = summary;
-  const modelCounts = countModels([...connected, ...unavailable]);
+  const nameCounts = countNames([...connected, ...unavailable]);
 
   return (
     <section className="flex flex-col gap-4 p-4">
@@ -48,22 +53,26 @@ export function DeviceList({
 
       {!error && !loading && connected.length === 0 && unavailable.length === 0 && (
         <div className="flex min-h-[60vh] flex-col items-center justify-center gap-2 px-6 text-center">
-          <PhoneIcon className="size-8 text-ink-3" />
-          <p className="font-medium">{t('devices.none')}</p>
+          <IconTile tone="indigo" size="lg">
+            <PhoneIcon />
+          </IconTile>
+          <p className="mt-1.5 text-lg font-medium">{t('devices.none')}</p>
           <p className="text-ink-2">{t('devices.noneHint')}</p>
-          <Button onClick={onConnectWifi}>{t('devices.connectWifi')}</Button>
+          <Button className="mt-1.5" onClick={onConnectWifi}>
+            {t('devices.connectWifi')}
+          </Button>
         </div>
       )}
 
       {connected.length > 0 && (
-        <ul className={LIST_CLASSES}>
+        <ul className={GROUPED_CARD_CLASSES}>
           {connected.map((device) => {
             const isMirroring = activeMirrorIds.includes(device.id);
             return (
               <DeviceRow
                 key={device.id}
                 device={device}
-                showId={isAmbiguous(device, modelCounts)}
+                showId={isAmbiguous(device, nameCounts)}
                 status={
                   isMirroring ? <StatusDot tone="success" label={t('devices.mirroring')} /> : null
                 }
@@ -80,12 +89,12 @@ export function DeviceList({
           <h2 className="-mb-2.5 px-4 text-sm uppercase tracking-wide text-ink-3">
             {t('devices.unavailable')}
           </h2>
-          <ul className={LIST_CLASSES}>
+          <ul className={GROUPED_CARD_CLASSES}>
             {unavailable.map((device) => (
               <DeviceRow
                 key={device.id}
                 device={device}
-                showId={isAmbiguous(device, modelCounts)}
+                showId={isAmbiguous(device, nameCounts)}
                 status={
                   <StatusDot tone="warning" label={t(DEVICE_STATUS_LABEL_KEYS[device.status])} />
                 }
@@ -98,7 +107,7 @@ export function DeviceList({
 
       {(connected.length > 0 || unavailable.length > 0) && (
         <div className="flex justify-center">
-          <Button variant="plain" className="text-accent" onClick={onConnectWifi}>
+          <Button variant="link" onClick={onConnectWifi}>
             {t('devices.connectWifi')}
           </Button>
         </div>
@@ -107,22 +116,18 @@ export function DeviceList({
   );
 }
 
-/** Inset grouped list: rounded card on the window background with hairline dividers. */
-const LIST_CLASSES =
-  'divide-y divide-line overflow-hidden rounded-panel bg-content shadow-control ring-1 ring-line';
-
-function countModels(devices: readonly AndroidDevice[]): ReadonlyMap<string, number> {
+function countNames(devices: readonly AndroidDevice[]): ReadonlyMap<string, number> {
   const counts = new Map<string, number>();
   for (const device of devices) {
-    const name = device.model ?? device.id;
+    const name = device.displayName ?? device.id;
     counts.set(name, (counts.get(name) ?? 0) + 1);
   }
   return counts;
 }
 
-/** The raw adb id is only shown when the model alone cannot tell two devices apart. */
-function isAmbiguous(device: AndroidDevice, modelCounts: ReadonlyMap<string, number>): boolean {
-  return device.model !== undefined && (modelCounts.get(device.model) ?? 0) > 1;
+/** The raw adb id is only shown when the name alone cannot tell two devices apart. */
+function isAmbiguous(device: AndroidDevice, nameCounts: ReadonlyMap<string, number>): boolean {
+  return device.displayName !== undefined && (nameCounts.get(device.displayName) ?? 0) > 1;
 }
 
 type DeviceRowProps = {
@@ -135,56 +140,54 @@ type DeviceRowProps = {
 
 function DeviceRow({ device, showId, status, onOpen, onDisconnect }: DeviceRowProps): JSX.Element {
   const { t } = useI18n();
-  const name = device.model ?? device.id;
+  const name = device.displayName ?? device.id;
 
   return (
     <li
-      className={`group flex min-h-[48px] items-center gap-3 px-4 py-2 ${onOpen ? 'hover:bg-hover' : 'text-ink-2'}`}
+      className={cx(
+        'group relative flex min-h-[48px] items-center gap-3 px-4 py-2',
+        onOpen ? 'focus-within:bg-hover hover:bg-hover' : 'text-ink-2',
+      )}
       onDoubleClick={onOpen}
     >
-      <PhoneIcon className="size-5 shrink-0 text-ink-3" />
-      <div className="min-w-0 flex-1">
-        <p className="truncate">{name}</p>
-        {showId && <p className="truncate text-sm text-ink-3">{device.id}</p>}
+      <IconTile
+        tone={onOpen ? deviceTone(device.id) : 'gray'}
+        className={onOpen ? '' : 'opacity-50'}
+      >
+        <PhoneIcon />
+      </IconTile>
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div className="min-w-0">
+          <p className="truncate">{name}</p>
+          {showId && <p className="truncate text-sm text-ink-3">{device.id}</p>}
+        </div>
+        <ConnectionChip deviceId={device.id} />
       </div>
       {status}
-      {onDisconnect && (
-        <Button
-          variant="plain"
-          className="opacity-0 focus-visible:opacity-100 group-hover:opacity-100"
-          aria-label={t('devices.disconnectNamed', { name })}
-          onClick={onDisconnect}
+      {(onOpen || onDisconnect) && (
+        // The actions cover the status on hover or focus, so the status keeps its place.
+        <div
+          className={cx(
+            'absolute inset-y-0 right-4 flex items-center gap-1 pl-3 opacity-0 transition-opacity duration-100 focus-within:opacity-100 group-hover:opacity-100',
+            onOpen ? 'bg-hover' : 'bg-content',
+          )}
         >
-          {t('devices.disconnect')}
-        </Button>
-      )}
-      {onOpen && (
-        <Button
-          className="opacity-0 focus-visible:opacity-100 group-hover:opacity-100"
-          aria-label={t('devices.openNamed', { name })}
-          onClick={onOpen}
-        >
-          {t('devices.open')}
-        </Button>
+          {onDisconnect && (
+            <Button
+              variant="plain"
+              aria-label={t('devices.disconnectNamed', { name })}
+              onClick={onDisconnect}
+            >
+              {t('devices.disconnect')}
+            </Button>
+          )}
+          {onOpen && (
+            <Button aria-label={t('devices.openNamed', { name })} onClick={onOpen}>
+              {t('devices.open')}
+            </Button>
+          )}
+        </div>
       )}
     </li>
-  );
-}
-
-function PhoneIcon({ className }: { readonly className?: string }): JSX.Element {
-  return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <rect x="7" y="2.5" width="10" height="19" rx="2.5" />
-      <path d="M11 18.5h2" />
-    </svg>
   );
 }

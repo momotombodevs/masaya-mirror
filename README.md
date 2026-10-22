@@ -1,4 +1,4 @@
-# Manolo Mirror
+# Masaya
 
 Espeja y controla dispositivos Android desde el escritorio (macOS, Windows y Linux). Pensada para QA:
 captura de pantalla, grabación de video y control con mouse y teclado, sin instalar scrcpy.
@@ -6,14 +6,21 @@ captura de pantalla, grabación de video y control con mouse y teclado, sin inst
 - **Espejo en ventana propia** por dispositivo, con calidad ajustable (Equilibrada, Alta, Máxima).
 - **Control completo:** toques, multitouch, arrastre, rueda, teclado (incluye acentos y símbolos) y
   clic derecho como «Atrás».
+- **Rotación:** la ventana gira con el teléfono y un botón de la barra gira la pantalla del dispositivo.
 - **Barra superior** con captura, grabación, pantalla completa y un menú con volumen, encendido de pantalla,
   instalar APK y Ajustes. **Barra de navegación** (Atrás, Inicio, Recientes) bajo la pantalla.
 - **Pantalla de Ajustes** (⌘/Ctrl+,): ventana (barra de navegación, siempre visible, mostrar clics, qué hacer al capturar),
   calidad de imagen (preajustes, resolución, velocidad de datos, códec) y dispositivo (mostrar toques,
   mantener pantalla encendida).
 - **Instalar APK** desde la barra o arrastrando el archivo a la ventana del espejo.
+- **Portapapeles compartido:** lo que copias en el teléfono llega al equipo y al revés (se puede desactivar
+  en Ajustes).
+- **Audio del dispositivo** (Android 11 o superior), activable en Ajustes.
+- **Reconexión automática:** si se desconecta el cable o se cae el Wi-Fi, el espejo reintenta durante
+  aproximadamente un minuto y vuelve solo.
 - **Conexión por Wi-Fi sin cable:** escanea un código QR desde el teléfono y listo.
-- **Captura y grabación** desde la barra del espejo o con atajos.
+- **Captura y grabación** desde la barra del espejo o con atajos. El video sale en **MP4 (H.264)** y, si
+  lo prefieres, en **GIF animado** (hasta 30 s, 480 px de ancho); se elige en Ajustes.
 - **Recuerda** tus ajustes y la carpeta donde guardas capturas y grabaciones.
 - **Tema claro/oscuro** y color de acento del sistema.
 
@@ -43,13 +50,12 @@ pnpm dev:debug      # igual, con DevTools
 | Comando                                      | Qué hace                                           |
 | -------------------------------------------- | -------------------------------------------------- |
 | `pnpm check`                                 | Typecheck, lint, formato y tests (lo mismo que CI) |
-| `pnpm test:e2e`                              | Compila y prueba la app real con un `adb` simulado |
 | `pnpm typecheck` · `pnpm lint` · `pnpm test` | Cada comprobación por separado                     |
 | `pnpm format`                                | Formatea con Prettier                              |
 | `pnpm build:app`                             | Compila main, preload y renderer (sin empaquetar)  |
 | `pnpm build:mac`                             | DMG para Apple Silicon e Intel (solo en macOS)     |
 | `pnpm build:win`                             | Instalador NSIS x64 (en Windows)                   |
-| `pnpm build:linux`                           | AppImage x64 (en Linux)                            |
+| `pnpm build:linux`                           | AppImage y .deb, x64 y arm64 (en Linux)            |
 | `pnpm pack:dir`                              | Empaqueta sin instalador, para probar la config    |
 
 Los instaladores quedan en `release/<versión>/`. Detalles de versionado y firma en
@@ -76,7 +82,7 @@ src/
   preload/    Puente seguro: expone a cada ventana solo las llamadas que necesita
   renderer/   Interfaz React + Tailwind: lista de dispositivos y ventana del espejo
   shared/     Tipos y contratos IPC compartidos entre procesos
-docs/         Arquitectura, decisiones (ADR), publicación y deuda técnica
+docs/         Sitio web (inicio y privacidad), arquitectura, decisiones (ADR) y publicación
 ```
 
 Para el detalle de flujos y decisiones, lee [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).

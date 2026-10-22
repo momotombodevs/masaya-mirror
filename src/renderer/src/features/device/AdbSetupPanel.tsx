@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Button } from '../../components/ui/Button';
+import { IconTile } from '../../components/ui/IconTile';
+import { WarningIcon } from '../../components/ui/icons';
 import { useI18n } from '../../shared/i18n';
-import { getManoloApi } from '../../shared/manolo-api';
+import { callApi } from '../../shared/masaya-api';
 
 type AdbSetupPanelProps = {
   /** Called once adb is available, so the device list can load. */
@@ -17,22 +19,30 @@ export function AdbSetupPanel({ onResolved, onRetry, retrying }: AdbSetupPanelPr
 
   const choose = async (): Promise<void> => {
     setError(null);
-    const result = await getManoloApi()?.chooseAdb();
-    if (!result) {
-      setError(t('common.noBridge'));
-    } else if (!result.ok) {
+    const result = await callApi((api) => api.chooseAdb(), t('common.noBridge'));
+    if (!result.ok) {
       setError(result.error);
     } else if (result.value.path !== null) {
       onResolved();
     }
   };
 
+  const openDownload = async (): Promise<void> => {
+    const result = await callApi((api) => api.openAdbDownload(), t('common.noBridge'));
+    if (!result.ok) {
+      setError(result.error);
+    }
+  };
+
   return (
     <section className="mx-auto flex min-h-[60vh] max-w-sm flex-col items-center justify-center gap-3 px-6 text-center">
+      <IconTile tone="orange" size="lg">
+        <WarningIcon />
+      </IconTile>
       <p className="text-lg font-semibold">{t('adb.missing')}</p>
       <p className="text-ink-2">{t('adb.missingBody')}</p>
       <div className="flex flex-wrap justify-center gap-2">
-        <Button variant="primary" onClick={() => void getManoloApi()?.openAdbDownload()}>
+        <Button variant="primary" onClick={() => void openDownload()}>
           {t('adb.download')}
         </Button>
         <Button onClick={() => void choose()}>{t('adb.choose')}</Button>

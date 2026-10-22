@@ -3,7 +3,7 @@ import type { Locale } from '../shared/i18n/locale';
 import { createTranslator, type Translate } from '../shared/i18n/messages';
 import { MENU_ACTION_CHANNEL, type MenuAction } from '../shared/ipc/menu.contract';
 
-const APP_NAME = 'Manolo Mirror';
+const APP_NAME = 'Masaya';
 
 /** Sends a menu command to the focused window, which decides whether it applies. */
 function sendToFocusedWindow(action: MenuAction): void {
@@ -69,13 +69,27 @@ function buildViewMenu(t: Translate): MenuItemConstructorOptions {
   };
 }
 
-function buildDarwinMenu(t: Translate): MenuItemConstructorOptions[] {
+/** The "Check for Updates" entry, only present in builds that can update themselves. */
+function buildUpdateItems(
+  t: Translate,
+  onCheckForUpdates?: () => void,
+): MenuItemConstructorOptions[] {
+  return onCheckForUpdates
+    ? [{ label: t('update.check'), click: onCheckForUpdates }, { type: 'separator' }]
+    : [];
+}
+
+function buildDarwinMenu(
+  t: Translate,
+  onCheckForUpdates?: () => void,
+): MenuItemConstructorOptions[] {
   return [
     {
       label: APP_NAME,
       submenu: [
         { role: 'about', label: t('menu.about', { app: APP_NAME }) },
         { type: 'separator' },
+        ...buildUpdateItems(t, onCheckForUpdates),
         { role: 'services', label: t('menu.services') },
         { type: 'separator' },
         { role: 'hide', label: t('menu.hide', { app: APP_NAME }) },
@@ -100,11 +114,15 @@ function buildDarwinMenu(t: Translate): MenuItemConstructorOptions[] {
   ];
 }
 
-function buildDefaultMenu(t: Translate): MenuItemConstructorOptions[] {
+function buildDefaultMenu(
+  t: Translate,
+  onCheckForUpdates?: () => void,
+): MenuItemConstructorOptions[] {
   return [
     {
       label: t('menu.file'),
       submenu: [
+        ...buildUpdateItems(t, onCheckForUpdates),
         { role: 'close', label: t('menu.closeWindow') },
         { role: 'quit', label: t('menu.quit', { app: APP_NAME }) },
       ],
@@ -115,10 +133,11 @@ function buildDefaultMenu(t: Translate): MenuItemConstructorOptions[] {
   ];
 }
 
-export function installApplicationMenu(locale: Locale): void {
-  app.setName(APP_NAME);
-
+export function installApplicationMenu(locale: Locale, onCheckForUpdates?: () => void): void {
   const t = createTranslator(locale);
-  const template = process.platform === 'darwin' ? buildDarwinMenu(t) : buildDefaultMenu(t);
+  const template =
+    process.platform === 'darwin'
+      ? buildDarwinMenu(t, onCheckForUpdates)
+      : buildDefaultMenu(t, onCheckForUpdates);
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
 }

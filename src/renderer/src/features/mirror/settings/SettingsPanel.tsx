@@ -2,9 +2,9 @@ import { useEffect } from 'react';
 import {
   CAPTURE_ACTIONS,
   DEFAULT_PREFERENCES,
+  RECORDING_FORMATS,
   type CaptureAction,
-  type MirrorVideoPreferences,
-  type Preferences,
+  type RecordingFormat,
 } from '../../../../../shared/preferences/types';
 import {
   MIRROR_QUALITY_ORDER,
@@ -15,25 +15,25 @@ import {
 import type { MirrorOptions } from '../../../../../shared/mirror/types';
 import { Button } from '../../../components/ui/Button';
 import { Select, type SelectOption } from '../../../components/ui/Select';
-import { Toggle } from '../../../components/ui/Toggle';
 import { cx } from '../../../components/ui/cx';
-import logoUrl from '../../../assets/manolo-logo.svg';
+import logoUrl from '../../../assets/masaya-logo.svg';
+import momotomboUrl from '../../../assets/momotombo-mark.svg';
 import { useI18n } from '../../../shared/i18n';
+import { usePreferences } from '../../../shared/preferences';
 import { LANGUAGE_PREFERENCES, type LanguagePreference } from '../../../../../shared/i18n/locale';
 import type { MessageKey } from '../../../../../shared/i18n/messages';
 import { useDeviceSettings } from '../useDeviceSettings';
-import { SettingRow, SettingsSection } from './settings-layout';
+import { SettingRow, SettingsSection, ToggleRow } from './settings-layout';
 import { ROW_ICONS } from './row-icons';
 
 type SettingsPanelProps = {
   readonly deviceId: string;
-  readonly preferences: Preferences;
   /** The video settings the mirror is running with right now. */
   readonly options: MirrorOptions;
-  /** True while the stream restarts after a video change. */
+  /** True while the stream restarts after a change of options. */
   readonly busy: boolean;
-  readonly onPreferenceChange: (patch: Partial<Preferences>) => void;
-  readonly onVideoChange: (patch: Partial<MirrorVideoPreferences>) => void;
+  /** Restarts the stream with the changed options and remembers them as preferences. */
+  readonly onOptionsChange: (patch: Partial<MirrorOptions>) => void;
   readonly onClose: () => void;
 };
 
@@ -41,6 +41,11 @@ const CAPTURE_ACTION_KEYS: Record<CaptureAction, MessageKey> = {
   preview: 'settings.captureAction.preview',
   copy: 'settings.captureAction.copy',
   save: 'settings.captureAction.save',
+};
+
+const RECORDING_FORMAT_KEYS: Record<RecordingFormat, MessageKey> = {
+  video: 'settings.recordingFormat.video',
+  gif: 'settings.recordingFormat.gif',
 };
 
 const LANGUAGE_KEYS: Record<LanguagePreference, MessageKey> = {
@@ -66,14 +71,13 @@ function withCurrent(values: readonly number[], current: number): readonly numbe
 /** Full-size settings screen over the mirror, grouped like the rest of the app: window, image, device. */
 export function SettingsPanel({
   deviceId,
-  preferences,
   options,
   busy,
-  onPreferenceChange,
-  onVideoChange,
+  onOptionsChange,
   onClose,
 }: SettingsPanelProps): JSX.Element {
   const { t } = useI18n();
+  const { preferences, update: onPreferenceChange } = usePreferences();
   const device = useDeviceSettings(deviceId);
   const activePreset = qualityPresetOf(options);
 
@@ -99,6 +103,9 @@ export function SettingsPanel({
     value,
     label: t(CAPTURE_ACTION_KEYS[value]),
   }));
+  const recordingOptions: readonly SelectOption<RecordingFormat>[] = RECORDING_FORMATS.map(
+    (value) => ({ value, label: t(RECORDING_FORMAT_KEYS[value]) }),
+  );
   const codecOptions: readonly SelectOption<MirrorOptions['videoCodec']>[] = [
     { value: 'h264', label: t('settings.codec.h264') },
     { value: 'h265', label: t('settings.codec.h265') },
@@ -108,7 +115,7 @@ export function SettingsPanel({
   );
 
   const applyPreset = (preset: MirrorQualityPreset): void =>
-    onVideoChange(MIRROR_QUALITY_PRESETS[preset].values);
+    onOptionsChange(MIRROR_QUALITY_PRESETS[preset].values);
 
   const reset = (): void => {
     onPreferenceChange({
@@ -116,8 +123,9 @@ export function SettingsPanel({
       alwaysOnTop: DEFAULT_PREFERENCES.alwaysOnTop,
       showClicks: DEFAULT_PREFERENCES.showClicks,
       captureAction: DEFAULT_PREFERENCES.captureAction,
+      recordingFormat: DEFAULT_PREFERENCES.recordingFormat,
     });
-    onVideoChange(DEFAULT_PREFERENCES.mirror);
+    onOptionsChange(DEFAULT_PREFERENCES.mirror);
   };
 
   return (
@@ -128,11 +136,7 @@ export function SettingsPanel({
     >
       <header className="relative flex h-11 shrink-0 items-center justify-center border-b border-line bg-content/80 px-4 backdrop-blur-xl">
         <h2 className="text-base font-semibold">{t('settings.title')}</h2>
-        <Button
-          className="absolute right-2 font-semibold text-accent"
-          variant="plain"
-          onClick={onClose}
-        >
+        <Button className="absolute right-2 font-semibold" variant="link" onClick={onClose}>
           {t('common.close')}
         </Button>
       </header>
@@ -140,47 +144,33 @@ export function SettingsPanel({
       <div className="min-h-0 flex-1 select-none overflow-y-auto p-4">
         <div className="mx-auto flex max-w-xl flex-col gap-6">
           <div className="flex flex-col items-center gap-2 pb-1 pt-2">
-            <img src={logoUrl} alt="Manolo Mirror" className="size-16 drop-shadow-sm" />
-            <p className="text-lg font-semibold">Manolo Mirror</p>
+            <img src={logoUrl} alt="Masaya" className="size-16 drop-shadow-sm" />
+            <p className="text-lg font-semibold">Masaya</p>
           </div>
 
           <SettingsSection title={t('settings.section.window')}>
-            <SettingRow
+            <ToggleRow
               label={t('settings.navigationBar')}
-              hint={t('settings.navigationBar.hint')}
               icon={ROW_ICONS.navigation}
               tone="blue"
-            >
-              <Toggle
-                label={t('settings.navigationBar')}
-                checked={preferences.navigationBar}
-                onChange={(navigationBar) => onPreferenceChange({ navigationBar })}
-              />
-            </SettingRow>
-            <SettingRow
+              checked={preferences.navigationBar}
+              onChange={(navigationBar) => onPreferenceChange({ navigationBar })}
+            />
+            <ToggleRow
               label={t('settings.alwaysOnTop')}
-              hint={t('settings.alwaysOnTop.hint')}
               icon={ROW_ICONS.pin}
               tone="orange"
-            >
-              <Toggle
-                label={t('settings.alwaysOnTop')}
-                checked={preferences.alwaysOnTop}
-                onChange={(alwaysOnTop) => onPreferenceChange({ alwaysOnTop })}
-              />
-            </SettingRow>
-            <SettingRow
+              checked={preferences.alwaysOnTop}
+              onChange={(alwaysOnTop) => onPreferenceChange({ alwaysOnTop })}
+            />
+            <ToggleRow
               label={t('settings.showClicks')}
               hint={t('settings.showClicks.hint')}
               icon={ROW_ICONS.pointer}
               tone="purple"
-            >
-              <Toggle
-                label={t('settings.showClicks')}
-                checked={preferences.showClicks}
-                onChange={(showClicks) => onPreferenceChange({ showClicks })}
-              />
-            </SettingRow>
+              checked={preferences.showClicks}
+              onChange={(showClicks) => onPreferenceChange({ showClicks })}
+            />
             <SettingRow label={t('settings.captureAction')} icon={ROW_ICONS.camera} tone="red">
               <Select
                 label={t('settings.captureAction')}
@@ -189,12 +179,15 @@ export function SettingsPanel({
                 onChange={(captureAction) => onPreferenceChange({ captureAction })}
               />
             </SettingRow>
-            <SettingRow
-              label={t('settings.language')}
-              hint={t('settings.language.hint')}
-              icon={ROW_ICONS.globe}
-              tone="teal"
-            >
+            <SettingRow label={t('settings.recordingFormat')} icon={ROW_ICONS.camera} tone="red">
+              <Select
+                label={t('settings.recordingFormat')}
+                value={preferences.recordingFormat}
+                options={recordingOptions}
+                onChange={(recordingFormat) => onPreferenceChange({ recordingFormat })}
+              />
+            </SettingRow>
+            <SettingRow label={t('settings.language')} icon={ROW_ICONS.globe} tone="teal">
               <Select
                 label={t('settings.language')}
                 value={preferences.language}
@@ -205,14 +198,7 @@ export function SettingsPanel({
           </SettingsSection>
 
           <SettingsSection title={t('settings.section.quality')}>
-            <SettingRow
-              label={t('settings.presets')}
-              hint={
-                activePreset
-                  ? MIRROR_QUALITY_PRESETS[activePreset].detail
-                  : t('settings.presets.custom')
-              }
-            >
+            <SettingRow label={t('settings.presets')}>
               <div
                 role="group"
                 aria-label={t('settings.presets')}
@@ -237,22 +223,22 @@ export function SettingsPanel({
                 ))}
               </div>
             </SettingRow>
-            <SettingRow label={t('settings.maxSize')} hint={t('settings.maxSize.hint')}>
+            <SettingRow label={t('settings.maxSize')}>
               <Select
                 label={t('settings.maxSize')}
                 value={options.maxSize}
                 options={resolutionOptions}
                 disabled={busy}
-                onChange={(maxSize) => onVideoChange({ maxSize })}
+                onChange={(maxSize) => onOptionsChange({ maxSize })}
               />
             </SettingRow>
-            <SettingRow label={t('settings.bitRate')} hint={t('settings.bitRate.hint')}>
+            <SettingRow label={t('settings.bitRate')}>
               <Select
                 label={t('settings.bitRate')}
                 value={options.videoBitRate}
                 options={bitRateOptions}
                 disabled={busy}
-                onChange={(videoBitRate) => onVideoChange({ videoBitRate })}
+                onChange={(videoBitRate) => onOptionsChange({ videoBitRate })}
               />
             </SettingRow>
             <SettingRow label={t('settings.codec')}>
@@ -261,38 +247,46 @@ export function SettingsPanel({
                 value={options.videoCodec}
                 options={codecOptions}
                 disabled={busy}
-                onChange={(videoCodec) => onVideoChange({ videoCodec })}
+                onChange={(videoCodec) => onOptionsChange({ videoCodec })}
               />
             </SettingRow>
           </SettingsSection>
 
           <SettingsSection title={t('settings.section.device')}>
-            <SettingRow
+            <ToggleRow
+              label={t('settings.audio')}
+              hint={t('settings.audio.hint')}
+              icon={ROW_ICONS.speaker}
+              tone="blue"
+              checked={options.audioEnabled}
+              disabled={busy}
+              onChange={(audioEnabled) => onOptionsChange({ audioEnabled })}
+            />
+            <ToggleRow
+              label={t('settings.clipboard')}
+              icon={ROW_ICONS.clipboard}
+              tone="teal"
+              checked={options.clipboardSync}
+              disabled={busy}
+              onChange={(clipboardSync) => onOptionsChange({ clipboardSync })}
+            />
+            <ToggleRow
               label={t('settings.showTouches')}
               hint={t('settings.showTouches.hint')}
               icon={ROW_ICONS.touch}
               tone="green"
-            >
-              <Toggle
-                label={t('settings.showTouches')}
-                checked={device.settings?.showTouches ?? false}
-                disabled={device.settings === null}
-                onChange={(enabled) => void device.set('showTouches', enabled)}
-              />
-            </SettingRow>
-            <SettingRow
+              checked={device.settings?.showTouches ?? false}
+              disabled={device.settings === null}
+              onChange={(enabled) => void device.set('showTouches', enabled)}
+            />
+            <ToggleRow
               label={t('settings.stayAwake')}
-              hint={t('settings.stayAwake.hint')}
               icon={ROW_ICONS.sun}
               tone="orange"
-            >
-              <Toggle
-                label={t('settings.stayAwake')}
-                checked={device.settings?.stayAwake ?? false}
-                disabled={device.settings === null}
-                onChange={(enabled) => void device.set('stayAwake', enabled)}
-              />
-            </SettingRow>
+              checked={device.settings?.stayAwake ?? false}
+              disabled={device.settings === null}
+              onChange={(enabled) => void device.set('stayAwake', enabled)}
+            />
             {device.error && (
               <p role="alert" className="px-4 py-2.5 text-sm text-danger">
                 {device.error}
@@ -301,13 +295,14 @@ export function SettingsPanel({
           </SettingsSection>
 
           <div className="flex justify-center">
-            <Button variant="plain" className="text-danger" onClick={reset} disabled={busy}>
+            <Button variant="danger" onClick={reset} disabled={busy}>
               {t('settings.reset')}
             </Button>
           </div>
 
-          <footer className="pb-2 pt-2 text-center text-sm text-ink-3">
+          <footer className="flex items-center justify-center gap-1.5 pb-2 pt-2 text-sm text-ink-3">
             {t('settings.credits')}
+            <img src={momotomboUrl} alt="" className="size-[18px]" />
           </footer>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { MenuAction } from '../../../shared/ipc/menu.contract';
-import { getManoloApi } from './manolo-api';
+import { getMasayaApi } from './masaya-api';
 
 type MenuHandlers = Partial<Record<MenuAction, () => void>>;
 
@@ -10,6 +10,6 @@ export function useMenuActions(handlers: MenuHandlers): void {
   handlersRef.current = handlers;
 
   useEffect(() => {
-    return getManoloApi()?.onMenuAction((action) => handlersRef.current[action]?.());
+    return getMasayaApi()?.onMenuAction((action) => handlersRef.current[action]?.());
   }, []);
 }

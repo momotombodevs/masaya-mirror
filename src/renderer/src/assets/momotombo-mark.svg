@@ -1,0 +1,10 @@
+<svg viewBox="0 0 108 100" width="18" height="18" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <mask id="mt-gap-mask">
+      <rect width="108" height="100" fill="white" />
+      <polygon points="28,49 3,89 53,89" fill="black" stroke="black" stroke-width="14" stroke-linejoin="round" />
+    </mask>
+  </defs>
+  <polygon points="60,24 15,89 105,89" fill="#FF6600" stroke="#FF6600" stroke-width="6" stroke-linejoin="round" mask="url(#mt-gap-mask)" />
+  <polygon points="28,49 3,89 53,89" fill="#FF6600" stroke="#FF6600" stroke-width="6" stroke-linejoin="round" />
+</svg>

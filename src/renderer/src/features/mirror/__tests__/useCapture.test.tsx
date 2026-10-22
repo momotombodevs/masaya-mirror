@@ -18,7 +18,7 @@ describe('useCapture', () => {
     captureCanvasPng.mockResolvedValue(PNG);
     copyCapture.mockResolvedValue({ ok: true, value: { copied: true } });
     saveCapture.mockResolvedValue({ ok: true, value: { saved: true } });
-    vi.stubGlobal('manolo', { copyCapture, saveCapture });
+    vi.stubGlobal('masaya', { copyCapture, saveCapture });
     URL.createObjectURL = vi.fn(() => 'blob:preview');
     URL.revokeObjectURL = vi.fn();
   });
@@ -74,7 +74,70 @@ describe('useCapture', () => {
 
     await act(async () => result.current.open());
 
-    expect(showStatus).toHaveBeenCalledWith('Espejo no listo');
+    expect(showStatus).toHaveBeenCalledWith('Aún no hay imagen');
     expect(captureCanvasPng).not.toHaveBeenCalled();
+  });
+
+  it('revokes the preview URL once when it is closed, replaced or unmounted', async () => {
+    URL.createObjectURL = vi.fn().mockReturnValueOnce('blob:one').mockReturnValueOnce('blob:two');
+    const { result, unmount } = renderHook(() => useCapture(canvas, showStatus));
+
+    await act(async () => result.current.open());
+    await act(async () => result.current.open());
+    expect(URL.revokeObjectURL).toHaveBeenCalledTimes(1);
+    expect(URL.revokeObjectURL).toHaveBeenLastCalledWith('blob:one');
+
+    act(() => result.current.close());
+    expect(result.current.preview).toBeNull();
+    expect(URL.revokeObjectURL).toHaveBeenCalledTimes(2);
+    expect(URL.revokeObjectURL).toHaveBeenLastCalledWith('blob:two');
+
+    unmount();
+    expect(URL.revokeObjectURL).toHaveBeenCalledTimes(2);
+  });
+
+  it('revokes the preview URL when the hook unmounts with a preview open', async () => {
+    const { result, unmount } = renderHook(() => useCapture(canvas, showStatus));
+    await act(async () => result.current.open());
+
+    unmount();
+
+    expect(URL.revokeObjectURL).toHaveBeenCalledOnce();
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:preview');
+  });
+
+  it('copies from the preview, closes it and is not busy afterwards', async () => {
+    const { result } = renderHook(() => useCapture(canvas, showStatus));
+    await act(async () => result.current.open());
+
+    await act(async () => result.current.copy());
+
+    expect(copyCapture).toHaveBeenCalledWith(PNG);
+    expect(showStatus).toHaveBeenCalledWith('Copiado al portapapeles');
+    expect(result.current.preview).toBeNull();
+    expect(result.current.busy).toBe(false);
+  });
+
+  it('keeps the preview open when the save dialog is cancelled', async () => {
+    saveCapture.mockResolvedValue({ ok: true, value: { saved: false } });
+    const { result } = renderHook(() => useCapture(canvas, showStatus));
+    await act(async () => result.current.open());
+
+    await act(async () => result.current.save());
+
+    expect(showStatus).toHaveBeenLastCalledWith('Guardado cancelado');
+    expect(result.current.preview).not.toBeNull();
+    expect(result.current.busy).toBe(false);
+  });
+
+  it('is not left busy when the bridge call rejects', async () => {
+    saveCapture.mockRejectedValue(new Error('ipc closed'));
+    const { result } = renderHook(() => useCapture(canvas, showStatus));
+    await act(async () => result.current.open());
+
+    await act(async () => result.current.save());
+
+    expect(result.current.busy).toBe(false);
+    expect(showStatus).toHaveBeenLastCalledWith('Sin conexión con la app. Reiníciala.');
   });
 });

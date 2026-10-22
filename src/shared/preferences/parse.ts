@@ -1,21 +1,19 @@
 import { LANGUAGE_PREFERENCES } from '../i18n/locale';
+import { isRecord } from '../ipc/is-record';
 import { err, ok, type Result } from '../ipc/result';
 import { MIRROR_QUALITY_ORDER, MIRROR_QUALITY_PRESETS } from '../mirror/quality';
 import {
   CAPTURE_ACTIONS,
+  RECORDING_FORMATS,
   DEFAULT_PREFERENCES,
   type MirrorVideoPreferences,
   type Preferences,
 } from './types';
 
-const MIN_MAX_SIZE = 256;
-const MAX_MAX_SIZE = 8192;
-const MIN_BIT_RATE = 1_000_000;
-const MAX_BIT_RATE = 100_000_000;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
+export const MIN_MAX_SIZE = 256;
+export const MAX_MAX_SIZE = 8192;
+export const MIN_BIT_RATE = 1_000_000;
+export const MAX_BIT_RATE = 100_000_000;
 
 function integerInRange(value: unknown, min: number, max: number): number | undefined {
   return typeof value === 'number' && Number.isInteger(value) && value >= min && value <= max
@@ -42,6 +40,9 @@ const parseBoolean = (value: unknown): boolean | undefined =>
 const parseCaptureAction = (value: unknown): Preferences['captureAction'] | undefined =>
   CAPTURE_ACTIONS.find((action) => action === value);
 
+const parseRecordingFormat = (value: unknown): Preferences['recordingFormat'] | undefined =>
+  RECORDING_FORMATS.find((format) => format === value);
+
 const parseLanguage = (value: unknown): Preferences['language'] | undefined =>
   LANGUAGE_PREFERENCES.find((language) => language === value);
 
@@ -54,6 +55,9 @@ const FIELD_PARSERS: {
   alwaysOnTop: parseBoolean,
   showClicks: parseBoolean,
   captureAction: parseCaptureAction,
+  recordingFormat: parseRecordingFormat,
+  audio: parseBoolean,
+  clipboardSync: parseBoolean,
   language: parseLanguage,
 };
 
@@ -62,7 +66,7 @@ const FIELDS = Object.keys(FIELD_PARSERS) as readonly (keyof Preferences)[];
 /** Strict: for a request from a window. Any known field with a bad value rejects the whole patch. */
 export function parsePreferencesPatch(payload: unknown): Result<Partial<Preferences>> {
   if (!isRecord(payload)) {
-    return err('Preferencia inválida.');
+    return err('Invalid preference.');
   }
   const patch: Record<string, unknown> = {};
   for (const field of FIELDS) {
@@ -71,7 +75,7 @@ export function parsePreferencesPatch(payload: unknown): Result<Partial<Preferen
     }
     const parsed = FIELD_PARSERS[field](payload[field]);
     if (parsed === undefined) {
-      return err('Preferencia inválida.');
+      return err('Invalid preference.');
     }
     patch[field] = parsed;
   }
@@ -99,6 +103,9 @@ export function readPreferences(raw: unknown): Preferences {
     alwaysOnTop: field('alwaysOnTop'),
     showClicks: field('showClicks'),
     captureAction: field('captureAction'),
+    recordingFormat: field('recordingFormat'),
+    audio: field('audio'),
+    clipboardSync: field('clipboardSync'),
     language: field('language'),
   };
 }

@@ -2,9 +2,9 @@
 // https://www.electron.build/configuration/configuration
 {
   $schema: 'https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json',
-  appId: 'com.manolo.mirror',
-  productName: 'Manolo Mirror',
-  copyright: 'Copyright © 2026 Manolo Mirror',
+  appId: 'com.masaya.app',
+  productName: 'Masaya',
+  copyright: 'Copyright © 2026 Masaya',
   asar: true,
   directories: {
     output: 'release/${version}',
@@ -19,6 +19,9 @@
     enableNodeCliInspectArguments: false,
     onlyLoadAppFromAsar: true,
   },
+  // Generates app-update.yml and the latest*.yml files electron-updater reads from the GitHub Release.
+  // Nothing is uploaded from here: the Release workflow publishes the artifacts.
+  publish: [{ provider: 'github', owner: 'momotombodevs', repo: 'masaya-mirror' }],
   extraResources: [
     {
       from: 'resources/scrcpy-server',
@@ -30,7 +33,11 @@
   artifactName: '${name}-${version}-${os}-${arch}.${ext}',
   mac: {
     category: 'public.app-category.developer-tools',
-    target: [{ target: 'dmg', arch: ['arm64', 'x64'] }],
+    // The zip is what Squirrel.Mac installs on update; the dmg is for the first download.
+    target: [
+      { target: 'dmg', arch: ['arm64', 'x64'] },
+      { target: 'zip', arch: ['arm64', 'x64'] },
+    ],
     // Required for notarization. Signing only happens when a Developer ID certificate is configured.
     hardenedRuntime: true,
     gatekeeperAssess: false,
@@ -40,7 +47,7 @@
     notarize: true,
   },
   win: {
-    executableName: 'Manolo Mirror',
+    executableName: 'Masaya',
     target: [{ target: 'nsis', arch: ['x64'] }],
   },
   nsis: {
@@ -50,15 +57,21 @@
     deleteAppDataOnUninstall: false,
     createDesktopShortcut: true,
     createStartMenuShortcut: true,
-    shortcutName: 'Manolo Mirror',
+    shortcutName: 'Masaya',
     runAfterFinish: true,
   },
   linux: {
     category: 'Development',
-    target: ['AppImage'],
+    // The deb requires a maintainer email; this is GitHub's private noreply address.
+    maintainer: 'Manuel Duarte <46093689+donmanueldev@users.noreply.github.com>',
+    // AppImage updates itself; the deb is for apt-based systems and is updated by reinstalling.
+    target: [
+      { target: 'AppImage', arch: ['x64', 'arm64'] },
+      { target: 'deb', arch: ['x64', 'arm64'] },
+    ],
     desktop: {
       entry: {
-        Name: 'Manolo Mirror',
+        Name: 'Masaya',
         Comment: 'Android device mirroring and QA workspace',
         Categories: 'Development;',
       },

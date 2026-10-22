@@ -5,7 +5,7 @@ import type { ScrcpyMediaStreamPacket } from '@yume-chan/scrcpy';
  * stale data packets are dropped until the next keyframe so the picture catches
  * up with the device instead of drifting further behind over time.
  */
-export const MAX_PENDING_VIDEO_PACKETS = 4;
+const MAX_PENDING_VIDEO_PACKETS = 4;
 
 export type PacketQueue = {
   /** Adds a packet. Configuration packets are never dropped. */

@@ -5,7 +5,7 @@ import {
 } from '../../../../shared/ipc/device.contract';
 import { DEVICE_SETTING_KEYS } from '../../../../shared/device/types';
 import { err } from '../../../../shared/ipc/result';
-import { handleOwnedDevice } from '../../mirror/ipc/device-handler';
+import { handleOwnedDevice } from '../../../ipc/handle-ipc';
 import type { MirrorWindowService } from '../../mirror/mirror-window.service';
 import type { AdbService } from '../adb.service';
 import { mt } from '../../../i18n';

@@ -72,7 +72,7 @@ export class QrPairingService {
     }
     const session: Session = {
       id: randomBytes(8).toString('hex'),
-      name: `manolo-${randomBytes(3).toString('hex')}`,
+      name: `masaya-${randomBytes(3).toString('hex')}`,
       password: randomPassword(),
       cancelled: false,
     };

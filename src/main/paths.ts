@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url';
 const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 
 /** Project root in development, and the asar root once packaged. */
-export const APP_ROOT = path.join(moduleDir, '..');
+const APP_ROOT = path.join(moduleDir, '..');
 
 // The scrcpy-server resolver reads this to find `resources/` during development.
 process.env.APP_ROOT = APP_ROOT;

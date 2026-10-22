@@ -5,6 +5,8 @@ export type MirrorOptions = {
   readonly videoBitRate: number;
   readonly videoCodec: 'h264' | 'h265';
   readonly audioEnabled: boolean;
+  /** Keeps the computer and device clipboards equal. */
+  readonly clipboardSync: boolean;
 };
 
 /** maxSize 1920 = longest edge capped at Full HD. */
@@ -13,6 +15,7 @@ export const DEFAULT_MIRROR_OPTIONS: MirrorOptions = {
   videoBitRate: 16_000_000,
   videoCodec: 'h264',
   audioEnabled: false,
+  clipboardSync: true,
 };
 
 export type MirrorVideoMetadata = {
@@ -36,6 +39,8 @@ export type MirrorStreamPacketMessage = {
     readonly type: 'configuration' | 'data';
     readonly data: Uint8Array;
     readonly keyframe?: boolean;
+    /** Presentation time in microseconds, as the device stamped it. */
+    readonly pts?: bigint;
   };
 };
 
@@ -47,7 +52,7 @@ export type MirrorStreamCloseMessage = {
 export type MirrorStreamMessage =
   MirrorStreamInitMessage | MirrorStreamPacketMessage | MirrorStreamCloseMessage;
 
-export type MirrorTouchControl = {
+type MirrorTouchControl = {
   readonly type: 'touch';
   readonly action: number;
   readonly pointerId: number;
@@ -60,18 +65,22 @@ export type MirrorTouchControl = {
   readonly actionButton: number;
 };
 
-export type MirrorScrollControl = {
+type MirrorScrollControl = {
   readonly type: 'scroll';
   readonly pointerX: number;
   readonly pointerY: number;
   readonly videoWidth: number;
   readonly videoHeight: number;
+  /** In wheel notches, as scrcpy counts them: 1 scrolls as far as one notch of a mouse wheel. */
   readonly scrollX: number;
   readonly scrollY: number;
   readonly buttons: number;
 };
 
-export type MirrorKeyControl = {
+/** Largest scroll, in notches, a single message may carry. */
+export const MAX_SCROLL_NOTCHES = 10;
+
+type MirrorKeyControl = {
   readonly type: 'key';
   readonly action: number;
   readonly keyCode: number;
@@ -91,13 +100,22 @@ export const ANDROID_KEY_EVENT_ACTION = {
   up: 1,
 } as const;
 
-export type MirrorTextControl = {
+type MirrorTextControl = {
   readonly type: 'text';
   readonly text: string;
 };
 
+/** Turns the device screen 90°, like the rotate button of the system navigation. */
+type MirrorRotateControl = {
+  readonly type: 'rotate';
+};
+
 export type MirrorControlMessage =
-  MirrorTouchControl | MirrorScrollControl | MirrorKeyControl | MirrorTextControl;
+  | MirrorTouchControl
+  | MirrorScrollControl
+  | MirrorKeyControl
+  | MirrorTextControl
+  | MirrorRotateControl;
 
 /** scrcpy rejects text payloads longer than 300 bytes of UTF-8. */
 export const MAX_MIRROR_TEXT_BYTES = 300;

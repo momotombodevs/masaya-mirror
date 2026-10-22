@@ -2,8 +2,8 @@ import { BrowserWindow, dialog } from 'electron';
 import { stat } from 'node:fs/promises';
 import path from 'node:path';
 import { DEVICE_CHANNELS, type InstallApkResponse } from '../../../../shared/ipc/device.contract';
-import { err, ok, type Result } from '../../../../shared/ipc/result';
-import { handleOwnedDevice } from '../../mirror/ipc/device-handler';
+import { err, mapResult, ok, type Result } from '../../../../shared/ipc/result';
+import { handleOwnedDevice } from '../../../ipc/handle-ipc';
 import type { MirrorWindowService } from '../../mirror/mirror-window.service';
 import type { AdbService } from '../adb.service';
 import { mt } from '../../../i18n';
@@ -53,7 +53,7 @@ export function registerApkIpcHandlers(
         return apkPath;
       }
       const installed = await adbService.installApk(deviceId, apkPath.value);
-      return installed.ok ? ok({ installed: true }) : installed;
+      return mapResult(installed, () => ({ installed: true }));
     },
   );
 }

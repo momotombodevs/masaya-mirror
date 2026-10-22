@@ -8,13 +8,13 @@ const waitQrPairing = vi.fn();
 const cancelQrPairing = vi.fn().mockResolvedValue({ ok: true, value: undefined });
 const onConnected = vi.fn();
 
-const PAYLOAD = 'WIFI:T:ADB;S:manolo-a1b2c3;P:Abcdefghjk23;;';
+const PAYLOAD = 'WIFI:T:ADB;S:masaya-a1b2c3;P:Abcdefghjk23;;';
 
 describe('QrPairingPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     startQrPairing.mockResolvedValue({ ok: true, value: { sessionId: 's1', payload: PAYLOAD } });
-    vi.stubGlobal('manolo', { startQrPairing, waitQrPairing, cancelQrPairing });
+    vi.stubGlobal('masaya', { startQrPairing, waitQrPairing, cancelQrPairing });
   });
 
   afterEach(() => {
@@ -90,5 +90,25 @@ describe('QrPairingPanel', () => {
     cleanup();
 
     expect(cancelQrPairing).toHaveBeenCalledWith('s1');
+  });
+
+  it('cancels the session when the dialog closes while it is still starting', async () => {
+    let finishStart: (value: unknown) => void = () => undefined;
+    startQrPairing.mockReturnValue(new Promise((resolve) => (finishStart = resolve)));
+    const { unmount } = render(<QrPairingPanel onConnected={onConnected} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Mostrar código QR' }));
+
+    unmount();
+    finishStart({ ok: true, value: { sessionId: 's1', payload: PAYLOAD } });
+
+    await waitFor(() => expect(cancelQrPairing).toHaveBeenCalledWith('s1'));
+    expect(waitQrPairing).not.toHaveBeenCalled();
+  });
+
+  it('shows an error instead of sticking when the start call throws', async () => {
+    startQrPairing.mockRejectedValue(new Error('bridge down'));
+    show();
+
+    expect((await screen.findByRole('alert')).textContent).toContain('Sin conexión con la app');
   });
 });

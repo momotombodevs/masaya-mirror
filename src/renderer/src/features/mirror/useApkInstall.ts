@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getManoloApi } from '../../shared/manolo-api';
+import { useI18n } from '../../shared/i18n';
+import { callApi } from '../../shared/masaya-api';
 
 export type ApkInstall = {
   readonly installing: boolean;
@@ -12,36 +13,44 @@ const isFileDrag = (event: DragEvent): boolean =>
 
 /**
  * Installs APKs on the mirrored device, from a file picker or by dropping a file anywhere
- * on the window. `report` shows the outcome in the toolbar.
+ * on the window. `report` shows the outcome in the toolbar and `clear` removes the message
+ * (nothing to say when the user cancels the file picker).
  */
-export function useApkInstall(deviceId: string, report: (message: string) => void): ApkInstall {
+export function useApkInstall(
+  deviceId: string,
+  report: (message: string) => void,
+  clear: () => void,
+): ApkInstall {
+  const { t } = useI18n();
   const [installing, setInstalling] = useState(false);
   const installingRef = useRef(false);
 
   const install = useCallback(
     async (file?: File): Promise<void> => {
-      const api = getManoloApi();
-      if (!api || installingRef.current) {
+      if (installingRef.current) {
         return;
       }
       installingRef.current = true;
       setInstalling(true);
-      report('Instalando…');
+      report(t('status.installing'));
       try {
-        const result = await api.installApk(deviceId, file ? api.getPathForFile(file) : undefined);
+        const result = await callApi(
+          (api) => api.installApk(deviceId, file ? api.getPathForFile(file) : undefined),
+          t('common.noBridge'),
+        );
         if (!result.ok) {
           report(result.error);
         } else if (result.value.installed) {
-          report('APK instalado');
+          report(t('status.apkInstalled'));
         } else {
-          report('');
+          clear();
         }
       } finally {
         installingRef.current = false;
         setInstalling(false);
       }
     },
-    [deviceId, report],
+    [deviceId, report, clear, t],
   );
 
   useEffect(() => {

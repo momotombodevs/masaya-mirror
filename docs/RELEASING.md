@@ -2,22 +2,15 @@
 
 ## Pasos
 
-1. Actualiza `version` en `package.json` (por ejemplo `0.4.0`, **sin** prefijo `v`).
-2. Asegúrate de que `pnpm check` pasa.
-3. Haz merge a `main`, crea y empuja el tag:
-
-   ```bash
-   git tag v0.4.0
-   git push origin v0.4.0
-   ```
-
-4. El workflow **Release** (`.github/workflows/release.yml`):
-   - comprueba que el tag coincide con `package.json`;
+1. En tu rama, actualiza `version` en `package.json` (por ejemplo `0.4.0`, **sin** prefijo `v`).
+2. Asegúrate de que `pnpm check` pasa y abre un PR hacia `main`. CI falla si esa versión ya tiene tag.
+3. Al hacer merge a `main`, el workflow **Release** (`.github/workflows/release.yml`) se dispara solo:
+   - si el tag `v<versión>` ya existe, no hace nada (un merge sin subir la versión no publica);
    - ejecuta typecheck, lint y tests;
-   - empaqueta en macOS (DMG `arm64` y `x64`), Windows (NSIS x64) y Linux (AppImage);
-   - publica todo en una GitHub Release con notas generadas.
+   - empaqueta en macOS (DMG `arm64` y `x64`), Windows (NSIS x64) y Linux (AppImage y `.deb`, `x64` y `arm64`);
+   - crea el tag sobre el commit del merge y publica todo en una GitHub Release con notas generadas.
 
-Los nombres siguen `manolo-mirror-<versión>-<os>-<arch>.<ext>`.
+Los nombres siguen `masaya-<versión>-<os>-<arch>.<ext>`.
 
 ## Probar el empaquetado en local
 
@@ -92,7 +85,7 @@ No hace falta subir la app a la App Store para distribuirla así.
 
 - Mientras un instalador salga sin firmar:
   - **macOS:** clic derecho → **Abrir**, o permitirla en Ajustes del Sistema → Privacidad y seguridad. En
-    Apple Silicon puede hacer falta `xattr -cr "/Applications/Manolo Mirror.app"`.
+    Apple Silicon puede hacer falta `xattr -cr "/Applications/Masaya.app"`.
   - **Windows:** SmartScreen avisa; **Más información → Ejecutar de todas formas**.
 
 ## Icono
@@ -105,3 +98,17 @@ reemplaza ese archivo.
 `resources/scrcpy-server/scrcpy-server.jar` está versionado y se verifica por SHA-256 en
 `scripts/setup-scrcpy.mjs`. Para actualizarlo, cambia `SCRCPY_SERVER_VERSION` y `SCRCPY_SERVER_SHA256` en
 ese script, ejecuta `pnpm setup:tools` y prueba el espejo con un dispositivo real.
+
+## Actualizaciones automáticas
+
+La app usa `electron-updater` con las GitHub Releases como fuente. Cada release publica, además de los
+instaladores, los archivos `latest.yml`, `latest-mac.yml`, `latest-linux.yml`, los `.zip` de macOS y los
+`.blockmap`; sin ellos las instalaciones existentes no ven la versión nueva.
+
+- Comprueba 10 s después de abrir y cada 4 h, descarga en segundo plano y pregunta si reiniciar. Si el
+  usuario elige «Más tarde», se instala al cerrar la app.
+- Menú → **Buscar actualizaciones…** hace una comprobación manual (Masaya en macOS, Archivo en
+  Windows y Linux).
+- Solo funciona en la app instalada y firmada: en `pnpm dev`, en un `.deb` o fuera de un AppImage el menú
+  no aparece. En macOS la actualización exige que el DMG esté firmado y notarizado.
+- No borres ni renombres los archivos de una release publicada: las versiones instaladas los leen.

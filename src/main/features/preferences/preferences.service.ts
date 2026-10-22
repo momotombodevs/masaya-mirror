@@ -1,4 +1,4 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { readPreferences } from '../../../shared/preferences/parse';
 import type { Preferences } from '../../../shared/preferences/types';
@@ -34,25 +34,57 @@ export class PreferencesService {
   private load(): StoredSettings {
     try {
       return sanitize(JSON.parse(readFileSync(this.filePath, 'utf8')));
-    } catch {
+    } catch (error: unknown) {
+      // No file yet is the normal first run; anything else means settings are being dropped.
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        console.error('[preferences] could not read the settings file, using defaults', error);
+      }
       return sanitize(null);
     }
   }
 
   private update(patch: Partial<StoredSettings>): void {
     this.settings = sanitize({ ...this.settings, ...patch });
+    // Written beside the target and renamed over it, so a crash never leaves a half-written file.
+    const tempPath = `${this.filePath}.${process.pid}.tmp`;
     try {
       mkdirSync(path.dirname(this.filePath), { recursive: true });
-      writeFileSync(this.filePath, JSON.stringify(this.settings, null, 2));
-    } catch {
+      writeFileSync(tempPath, JSON.stringify(this.settings, null, 2));
+      renameSync(tempPath, this.filePath);
+    } catch (error: unknown) {
       // Losing a preference is not worth interrupting the user; it stays in memory for this run.
+      console.error('[preferences] could not save the settings file', error);
+      try {
+        rmSync(tempPath, { force: true });
+      } catch {
+        // Best effort: the temp file may never have been created.
+      }
     }
   }
 
   get(): Preferences {
-    const { mirror, navigationBar, alwaysOnTop, showClicks, captureAction, language } =
-      this.settings;
-    return { mirror, navigationBar, alwaysOnTop, showClicks, captureAction, language };
+    const {
+      mirror,
+      navigationBar,
+      alwaysOnTop,
+      showClicks,
+      captureAction,
+      recordingFormat,
+      audio,
+      clipboardSync,
+      language,
+    } = this.settings;
+    return {
+      mirror,
+      navigationBar,
+      alwaysOnTop,
+      showClicks,
+      captureAction,
+      recordingFormat,
+      audio,
+      clipboardSync,
+      language,
+    };
   }
 
   /** Applies a patch already validated by `parsePreferencesPatch`. */

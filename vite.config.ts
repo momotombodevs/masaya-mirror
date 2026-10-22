@@ -27,7 +27,8 @@ export default defineConfig({
         vite: {
           build: {
             rollupOptions: {
-              external: ['electron'],
+              // electron-updater is CommonJS with lazy requires, so it ships from node_modules.
+              external: ['electron', 'electron-updater'],
             },
           },
         },

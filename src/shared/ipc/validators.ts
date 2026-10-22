@@ -1,23 +1,25 @@
 import { err, ok, type Result } from './result';
 
+const INVALID_DEVICE_ID = 'Invalid device identifier.';
+
 /** ADB serial (alphanumeric, dots, dashes) or TCP address (host:port). */
 const DEVICE_ID_PATTERN = /^[\w.-]+(?::\d+)?$/;
 
 export function parseDeviceId(payload: unknown): Result<string> {
   if (typeof payload !== 'object' || payload === null || !('deviceId' in payload)) {
-    return err('Identificador de dispositivo inválido.');
+    return err(INVALID_DEVICE_ID);
   }
 
   const { deviceId } = payload as { deviceId: unknown };
 
   if (typeof deviceId !== 'string') {
-    return err('Identificador de dispositivo inválido.');
+    return err(INVALID_DEVICE_ID);
   }
 
   const trimmed = deviceId.trim();
 
   if (!trimmed || !DEVICE_ID_PATTERN.test(trimmed)) {
-    return err('Identificador de dispositivo inválido.');
+    return err(INVALID_DEVICE_ID);
   }
 
   return ok(trimmed);

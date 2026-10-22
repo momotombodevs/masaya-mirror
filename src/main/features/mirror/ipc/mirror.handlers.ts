@@ -1,27 +1,44 @@
 import { ipcMain } from 'electron';
 import { MIRROR_CHANNELS, type MirrorStatusResponse } from '../../../../shared/ipc/mirror.contract';
-import { err, ok } from '../../../../shared/ipc/result';
+import { err, ok, type Result } from '../../../../shared/ipc/result';
 import { parseDeviceId } from '../../../../shared/ipc/validators';
+import {
+  fromMainWindow,
+  handleIpc,
+  handleOwnedDevice,
+  type DeviceRequest,
+} from '../../../ipc/handle-ipc';
 import type { MirrorWindowService } from '../mirror-window.service';
 import type { ScrcpyService } from '../scrcpy.service';
-import { handleOwnedDevice, type DeviceHandler } from './device-handler';
 import { parseControlMessage, parseMirrorOptions, parseVideoLayout } from './mirror-parsers';
 import { mt } from '../../../i18n';
+
+type DeviceHandler<T> = (request: DeviceRequest) => Result<T> | Promise<Result<T>>;
+
+/** A device label is only a window title; anything longer is noise or abuse. */
+export const MAX_DEVICE_LABEL_LENGTH = 200;
 
 export function registerMirrorIpcHandlers(
   scrcpyService: ScrcpyService,
   mirrorWindowService: MirrorWindowService,
 ): void {
   // Opening a window is requested from the device list, so it has no owning window yet.
-  ipcMain.handle(MIRROR_CHANNELS.openWindow, async (_event, request: unknown) => {
-    const device = parseDeviceId(request);
-    if (!device.ok) {
-      return device;
-    }
-    const { deviceLabel } = request as { deviceLabel?: unknown };
-    const label = typeof deviceLabel === 'string' ? deviceLabel.trim() : '';
-    return mirrorWindowService.open(device.value, label || device.value);
-  });
+  handleIpc(
+    MIRROR_CHANNELS.openWindow,
+    fromMainWindow(mirrorWindowService),
+    async ({ payload }): Promise<Result<void>> => {
+      const device = parseDeviceId(payload);
+      if (!device.ok) {
+        return device;
+      }
+      const { deviceLabel } = payload as { deviceLabel?: unknown };
+      const label = typeof deviceLabel === 'string' ? deviceLabel.trim() : '';
+      return mirrorWindowService.open(
+        device.value,
+        label.slice(0, MAX_DEVICE_LABEL_LENGTH) || device.value,
+      );
+    },
+  );
 
   ipcMain.handle(MIRROR_CHANNELS.status, async (): Promise<MirrorStatusResponse> =>
     ok({ activeDeviceIds: mirrorWindowService.getOpenDeviceIds() }),

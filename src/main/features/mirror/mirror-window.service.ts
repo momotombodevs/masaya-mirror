@@ -2,10 +2,17 @@ import { type BrowserWindow, screen } from 'electron';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { ok, err, type Result } from '../../../shared/ipc/result';
-import { createSecureWindow } from '../../app';
+import { createSecureWindow } from '../../secure-window';
 import { RENDERER_DIST, VITE_DEV_SERVER_URL } from '../../paths';
 import type { ScrcpyService } from './scrcpy.service';
-import { computeStageSize, NAVIGATION_BAR_HEIGHT, TOOLBAR_CONTENT_HEIGHT } from './mirror-layout';
+import {
+  computeStageSize,
+  NAVIGATION_BAR_HEIGHT,
+  orientationOf,
+  rotatedStageSize,
+  TOOLBAR_CONTENT_HEIGHT,
+  type Orientation,
+} from './mirror-layout';
 
 export type MirrorWindowServiceDeps = {
   readonly scrcpyService: ScrcpyService;
@@ -23,38 +30,78 @@ function buildMirrorUrl(deviceId: string, deviceLabel: string): string {
 
 const MIN_CONTENT_WIDTH = 280;
 const MIN_CONTENT_HEIGHT = 480;
+/** A landscape phone is short, so its window may be shorter than a portrait one. */
+const MIN_CONTENT_HEIGHT_LANDSCAPE = 300;
 
 export class MirrorWindowService {
   private readonly windows = new Map<string, BrowserWindow>();
   private readonly layoutApplied = new Set<string>();
+  private readonly orientations = new Map<string, Orientation>();
+  /** Tail of the open queue per device, so two opens never interleave. */
+  private readonly openChains = new Map<string, Promise<unknown>>();
 
   constructor(private readonly deps: MirrorWindowServiceDeps) {}
 
-  async open(deviceId: string, deviceLabel: string): Promise<Result<void>> {
+  /** Opens (or replaces) the window of a device. Calls for the same device run one at a time. */
+  open(deviceId: string, deviceLabel: string): Promise<Result<void>> {
+    const run = (this.openChains.get(deviceId) ?? Promise.resolve()).then(() =>
+      this.openNow(deviceId, deviceLabel),
+    );
+    const tail = run.then(
+      () => undefined,
+      () => undefined,
+    );
+    this.openChains.set(deviceId, tail);
+    void tail.then(() => {
+      if (this.openChains.get(deviceId) === tail) {
+        this.openChains.delete(deviceId);
+      }
+    });
+    return run;
+  }
+
+  /** Drops everything remembered about a device's window, so a new one starts from scratch. */
+  private forget(deviceId: string): void {
+    this.windows.delete(deviceId);
+    this.layoutApplied.delete(deviceId);
+    this.orientations.delete(deviceId);
+  }
+
+  private async openNow(deviceId: string, deviceLabel: string): Promise<Result<void>> {
     const existing = this.windows.get(deviceId);
-    if (existing && !existing.isDestroyed()) {
+    if (existing) {
+      // Its 'closed' handler would otherwise forget the window that replaces it.
       existing.removeAllListeners('closed');
-      existing.close();
-      this.windows.delete(deviceId);
+      this.forget(deviceId);
+      if (!existing.isDestroyed()) {
+        existing.close();
+      }
     }
 
     await this.deps.scrcpyService.closeMirror(deviceId);
 
-    const win = createSecureWindow({
-      width: 400,
-      height: 860,
-      minWidth: MIN_CONTENT_WIDTH,
-      minHeight: MIN_CONTENT_HEIGHT,
-      title: deviceLabel,
-      autoHideMenuBar: true,
-      backgroundColor: '#000000',
-    });
+    const win = createSecureWindow(
+      {
+        width: 400,
+        height: 860,
+        minWidth: MIN_CONTENT_WIDTH,
+        minHeight: MIN_CONTENT_HEIGHT,
+        title: deviceLabel,
+        autoHideMenuBar: true,
+        backgroundColor: '#000000',
+      },
+      // A covered window keeps drawing the phone: recordings stay smooth and there is no
+      // catch-up stall when it shows again. Video decoding runs either way.
+      { backgroundThrottling: false },
+    );
 
     this.windows.set(deviceId, win);
 
+    // Whatever was copied on the computer while the window was in the background goes to the phone.
+    win.on('focus', () => void this.deps.scrcpyService.syncClipboardToDevice(deviceId));
+
     win.on('closed', () => {
-      this.windows.delete(deviceId);
-      this.layoutApplied.delete(deviceId);
+      this.forget(deviceId);
       void this.deps.scrcpyService.closeMirror(deviceId);
     });
 
@@ -94,24 +141,48 @@ export class MirrorWindowService {
 
     win.setAspectRatio(0);
 
+    const video = { width: videoWidth, height: videoHeight };
+    const orientation = orientationOf(video);
+    const previousOrientation = this.orientations.get(deviceId);
+    this.orientations.set(deviceId, orientation);
+
+    const navigationBarHeight = this.deps.isNavigationBarShown?.() ? NAVIGATION_BAR_HEIGHT : 0;
+    const chromeHeight = TOOLBAR_CONTENT_HEIGHT + navigationBarHeight;
+    const { workAreaSize } = screen.getDisplayMatching(win.getBounds());
+
     if (!this.layoutApplied.has(deviceId)) {
       this.layoutApplied.add(deviceId);
-      const { workAreaSize } = screen.getDisplayMatching(win.getBounds());
-      const navigationBarHeight = this.deps.isNavigationBarShown?.() ? NAVIGATION_BAR_HEIGHT : 0;
-      const stage = computeStageSize(
-        { width: videoWidth, height: videoHeight },
-        workAreaSize,
-        navigationBarHeight,
-      );
-      const contentWidth = Math.max(MIN_CONTENT_WIDTH, stage.width);
-      const contentHeight = Math.max(
-        MIN_CONTENT_HEIGHT,
-        stage.height + TOOLBAR_CONTENT_HEIGHT + navigationBarHeight,
-      );
-      win.setContentSize(contentWidth, contentHeight);
+      const stage = computeStageSize(video, workAreaSize, navigationBarHeight);
+      this.resizeContent(win, stage, chromeHeight, orientation);
+    } else if (previousOrientation && previousOrientation !== orientation) {
+      // The phone turned: turn the window with it, unless the user has it full screen.
+      if (!win.isFullScreen() && !win.isMaximized()) {
+        const [contentWidth, contentHeight] = win.getContentSize();
+        const currentStage = {
+          width: contentWidth ?? 0,
+          height: Math.max(0, (contentHeight ?? 0) - chromeHeight),
+        };
+        const stage = rotatedStageSize(currentStage, video, workAreaSize, navigationBarHeight);
+        this.resizeContent(win, stage, chromeHeight, orientation);
+      }
     }
 
     return ok(undefined);
+  }
+
+  private resizeContent(
+    win: BrowserWindow,
+    stage: { readonly width: number; readonly height: number },
+    chromeHeight: number,
+    orientation: Orientation,
+  ): void {
+    const minHeight =
+      orientation === 'landscape' ? MIN_CONTENT_HEIGHT_LANDSCAPE : MIN_CONTENT_HEIGHT;
+    win.setMinimumSize(MIN_CONTENT_WIDTH, minHeight);
+    win.setContentSize(
+      Math.max(MIN_CONTENT_WIDTH, stage.width),
+      Math.max(minHeight, stage.height + chromeHeight),
+    );
   }
 
   setAlwaysOnTop(deviceId: string, enabled: boolean): Result<void> {
@@ -125,12 +196,11 @@ export class MirrorWindowService {
   }
 
   closeAll(): void {
-    for (const deviceId of [...this.windows.keys()]) {
-      const win = this.windows.get(deviceId);
-      if (win && !win.isDestroyed()) {
+    for (const [deviceId, win] of [...this.windows]) {
+      this.forget(deviceId);
+      if (!win.isDestroyed()) {
         win.close();
       }
     }
-    this.windows.clear();
   }
 }

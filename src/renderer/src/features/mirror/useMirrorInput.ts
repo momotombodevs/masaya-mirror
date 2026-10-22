@@ -1,5 +1,6 @@
 import {
   useCallback,
+  useEffect,
   useMemo,
   useRef,
   type KeyboardEvent,
@@ -10,11 +11,13 @@ import {
 import {
   ANDROID_KEY_EVENT_ACTION,
   ANDROID_MOTION_EVENT_ACTION,
+  MAX_SCROLL_NOTCHES,
   type MirrorControlMessage,
 } from '../../../../shared/mirror/types';
-import { getManoloApi } from '../../shared/manolo-api';
+import { callApi } from '../../shared/masaya-api';
 import { ANDROID_KEYCODE_BACK, resolveKeyInput, type KeyInput } from './android-keycodes';
 import { createControlCoalescer, type ControlCoalescer } from './control-coalescer';
+import { keyEvent, keyPressMessages } from './key-press';
 
 export type VideoSize = { width: number; height: number };
 
@@ -29,6 +32,24 @@ export type MirrorInputHandlers = {
 };
 
 const MOUSE_BUTTON_RIGHT = 2;
+
+/** Chromium reports one mouse-wheel notch as 100 px, or as 3 lines in line mode. */
+const PIXELS_PER_NOTCH = 100;
+const LINES_PER_NOTCH = 3;
+
+/**
+ * Converts a wheel delta to Android scroll notches, the unit scrcpy sends (1 = one wheel notch),
+ * so one notch on the computer scrolls the phone as far as one notch of a mouse on the phone.
+ */
+export function wheelDeltaToNotches(delta: number, deltaMode: number): number {
+  const notches =
+    deltaMode === WheelEvent.DOM_DELTA_LINE
+      ? delta / LINES_PER_NOTCH
+      : deltaMode === WheelEvent.DOM_DELTA_PAGE
+        ? delta
+        : delta / PIXELS_PER_NOTCH;
+  return Math.max(-MAX_SCROLL_NOTCHES, Math.min(MAX_SCROLL_NOTCHES, -notches));
+}
 
 function toKeyInput(event: KeyboardEvent<HTMLDivElement>): KeyInput {
   return {
@@ -49,13 +70,11 @@ export function useMirrorInput(
   canvasRef: MutableRefObject<HTMLCanvasElement | null>,
   videoSizeRef: MutableRefObject<VideoSize>,
 ): MirrorInputHandlers {
+  // A single lost input event (touch move, key) is not worth interrupting the user for, so the
+  // Result is dropped on purpose; callApi keeps a rejection from becoming an unhandled one.
   const sendControl = useCallback(
     (message: MirrorControlMessage): void => {
-      const api = getManoloApi();
-      if (!api) {
-        return;
-      }
-      void api.sendControl(deviceId, message);
+      void callApi((api) => api.sendControl(deviceId, message), '');
     },
     [deviceId],
   );
@@ -121,20 +140,7 @@ export function useMirrorInput(
 
   const sendBack = useCallback((): void => {
     moveCoalescer.flush();
-    sendControl({
-      type: 'key',
-      action: ANDROID_KEY_EVENT_ACTION.down,
-      keyCode: ANDROID_KEYCODE_BACK,
-      repeat: 0,
-      metaState: 0,
-    });
-    sendControl({
-      type: 'key',
-      action: ANDROID_KEY_EVENT_ACTION.up,
-      keyCode: ANDROID_KEYCODE_BACK,
-      repeat: 0,
-      metaState: 0,
-    });
+    keyPressMessages(ANDROID_KEYCODE_BACK).forEach(sendControl);
   }, [moveCoalescer, sendControl]);
 
   const onPointerDown = useCallback(
@@ -217,8 +223,8 @@ export function useMirrorInput(
         pointerY: coords.y,
         videoWidth: width,
         videoHeight: height,
-        scrollX: -event.deltaX / width,
-        scrollY: -event.deltaY / height,
+        scrollX: wheelDeltaToNotches(event.deltaX, event.deltaMode),
+        scrollY: wheelDeltaToNotches(event.deltaY, event.deltaMode),
         buttons: 0,
       });
     },
@@ -227,6 +233,27 @@ export function useMirrorInput(
 
   // Codes whose key-down was sent as text. Their key-up must not send a key code.
   const textKeyCodesRef = useRef(new Set<string>());
+  // Keys pressed on the device and not yet released, by physical key (`event.code`).
+  const heldKeysRef = useRef(new Map<string, { keyCode: number; metaState: number }>());
+
+  // When the window loses focus the key-up never arrives; losing the device's keys held down
+  // would leave them stuck. The same cleanup runs when the device changes or the view closes,
+  // and delivers the last pending move first so a drag ends where the finger was.
+  useEffect(() => {
+    const releaseHeldKeys = (): void => {
+      for (const { keyCode, metaState } of heldKeysRef.current.values()) {
+        sendControl(keyEvent(ANDROID_KEY_EVENT_ACTION.up, keyCode, metaState));
+      }
+      heldKeysRef.current.clear();
+      textKeyCodesRef.current.clear();
+    };
+    window.addEventListener('blur', releaseHeldKeys);
+    return () => {
+      window.removeEventListener('blur', releaseHeldKeys);
+      moveCoalescer.flush();
+      releaseHeldKeys();
+    };
+  }, [moveCoalescer, sendControl]);
 
   const onKeyDown = useCallback(
     (event: KeyboardEvent<HTMLDivElement>): void => {
@@ -243,13 +270,11 @@ export function useMirrorInput(
         sendControl({ type: 'text', text: resolved.text });
         return;
       }
-      sendControl({
-        type: 'key',
-        action: ANDROID_KEY_EVENT_ACTION.down,
+      heldKeysRef.current.set(event.code, {
         keyCode: resolved.keyCode,
-        repeat: 0,
         metaState: resolved.metaState,
       });
+      sendControl(keyEvent(ANDROID_KEY_EVENT_ACTION.down, resolved.keyCode, resolved.metaState));
     },
     [sendControl],
   );
@@ -263,13 +288,8 @@ export function useMirrorInput(
       if (!resolved || resolved.kind !== 'keycode') {
         return;
       }
-      sendControl({
-        type: 'key',
-        action: ANDROID_KEY_EVENT_ACTION.up,
-        keyCode: resolved.keyCode,
-        repeat: 0,
-        metaState: resolved.metaState,
-      });
+      heldKeysRef.current.delete(event.code);
+      sendControl(keyEvent(ANDROID_KEY_EVENT_ACTION.up, resolved.keyCode, resolved.metaState));
     },
     [sendControl],
   );

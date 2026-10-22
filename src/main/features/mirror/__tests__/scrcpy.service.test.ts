@@ -1,6 +1,6 @@
 import type { WebContents } from 'electron';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ScrcpyService } from '../scrcpy.service';
+import { MAX_PENDING_CONTROLS, ScrcpyService } from '../scrcpy.service';
 import type { AdbService } from '../../device/adb.service';
 import { DEFAULT_MIRROR_OPTIONS } from '../../../../shared/mirror/types';
 
@@ -29,9 +29,35 @@ vi.mock('../scrcpy-server-path.resolver', () => ({
   getExpectedScrcpyServerPath: vi.fn().mockReturnValue('/tmp/scrcpy-server.jar'),
 }));
 
+vi.mock('electron', () => ({
+  MessageChannelMain: class {
+    port1 = { start: () => undefined };
+    port2 = {};
+  },
+}));
+
+const streamSessionClose = vi.fn();
+vi.mock('../mirror-stream.session', () => ({
+  MirrorStreamSession: class {
+    close = streamSessionClose;
+    onRendererReady = vi.fn();
+  },
+}));
+
+const tango = vi.hoisted(() => ({
+  createAdbServerClient: vi.fn(),
+  createDeviceAdb: vi.fn(),
+  pushScrcpyServer: vi.fn(),
+  startScrcpyClient: vi.fn(),
+}));
+vi.mock('../mirror-tango.js', () => tango);
+
 vi.mock('node:fs/promises', () => ({
   readFile: vi.fn().mockResolvedValue(Buffer.from('server')),
 }));
+
+const adbClose = vi.fn();
+const tick = () => new Promise((resolve) => setImmediate(resolve));
 
 describe('ScrcpyService', () => {
   const adbService = {
@@ -40,11 +66,64 @@ describe('ScrcpyService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    tango.createAdbServerClient.mockResolvedValue({});
+    tango.createDeviceAdb.mockRejectedValue(new Error('no device'));
+    adbClose.mockReset().mockResolvedValue(undefined);
+    tango.pushScrcpyServer.mockResolvedValue(undefined);
   });
 
-  it('returns active mirrors from session map', () => {
+  function startedClient() {
+    const close = vi.fn().mockResolvedValue(undefined);
+    tango.startScrcpyClient.mockResolvedValue({
+      client: { close, exited: new Promise<void>(() => undefined), controller: undefined },
+      metadata: { codec: 'h264', width: 1, height: 1 },
+      audioCodec: null,
+      audioWebCodecId: null,
+      videoStream: new ReadableStream(),
+      audioStream: null,
+      clipboard: null,
+    });
+    return close;
+  }
+
+  it('starts two opens for the same device one after the other', async () => {
+    let inFlight = 0;
+    let maxInFlight = 0;
+    tango.createDeviceAdb.mockImplementation(async () => {
+      inFlight += 1;
+      maxInFlight = Math.max(maxInFlight, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      inFlight -= 1;
+      return { close: adbClose };
+    });
+    startedClient();
     const service = new ScrcpyService(adbService);
-    expect(service.getActiveMirrors()).toEqual([]);
+    const webContents = {
+      postMessage: vi.fn(),
+      isDestroyed: () => false,
+    } as unknown as WebContents;
+
+    await Promise.all([
+      service.openMirror('device1', webContents),
+      service.openMirror('device1', webContents),
+    ]);
+
+    expect(tango.createDeviceAdb).toHaveBeenCalledTimes(2);
+    expect(maxInFlight).toBe(1);
+  });
+
+  it('closes the client instead of storing a session when the window died during startup', async () => {
+    tango.createDeviceAdb.mockResolvedValue({ close: adbClose });
+    const closeClient = startedClient();
+    const service = new ScrcpyService(adbService);
+    const webContents = { postMessage: vi.fn(), isDestroyed: () => true } as unknown as WebContents;
+
+    const result = await service.openMirror('device1', webContents);
+
+    expect(result.ok).toBe(false);
+    expect(closeClient).toHaveBeenCalledTimes(1);
+    expect(adbClose).toHaveBeenCalledTimes(1);
+    expect((service as unknown as { sessions: Map<string, unknown> }).sessions.size).toBe(0);
   });
 
   it('closes existing session before opening a new mirror', async () => {
@@ -54,11 +133,15 @@ describe('ScrcpyService', () => {
       deviceId: 'device1',
       stream: { close: vi.fn() },
       client: { close: vi.fn().mockResolvedValue(undefined) },
+      adb: { close: vi.fn() },
     });
     (service as unknown as { sessions: Map<string, unknown> }).sessions = sessions;
 
     const closeSpy = vi.spyOn(service, 'closeMirror');
-    const webContents = { postMessage: vi.fn() } as unknown as WebContents;
+    const webContents = {
+      postMessage: vi.fn(),
+      isDestroyed: () => false,
+    } as unknown as WebContents;
     await service.openMirror('device1', webContents);
 
     expect(closeSpy).toHaveBeenCalledWith('device1');
@@ -73,13 +156,17 @@ describe('ScrcpyService', () => {
       deviceId: 'device1',
       stream: { close },
       client: { close: vi.fn().mockResolvedValue(undefined) },
+      adb: { close: vi.fn() },
     });
     (service as unknown as { sessions: Map<string, unknown> }).sessions = sessions;
     const openSpy = vi
-      .spyOn(service, 'openMirror')
+      .spyOn(service as unknown as { startMirror: () => unknown }, 'startMirror')
       .mockResolvedValue({ ok: true, value: {} as never });
 
-    const webContents = { postMessage: vi.fn() } as unknown as WebContents;
+    const webContents = {
+      postMessage: vi.fn(),
+      isDestroyed: () => false,
+    } as unknown as WebContents;
     await service.setOptions('device1', webContents, { ...DEFAULT_MIRROR_OPTIONS, maxSize: 2560 });
 
     expect(close).toHaveBeenCalledWith(undefined, { notifyRenderer: false });
@@ -91,7 +178,10 @@ describe('ScrcpyService', () => {
     vi.mocked(resolveScrcpyServerPath).mockResolvedValueOnce(null);
 
     const service = new ScrcpyService(adbService);
-    const webContents = { postMessage: vi.fn() } as unknown as WebContents;
+    const webContents = {
+      postMessage: vi.fn(),
+      isDestroyed: () => false,
+    } as unknown as WebContents;
     const result = await service.openMirror('device1', webContents);
     expect(result.ok).toBe(false);
   });
@@ -122,5 +212,247 @@ describe('ScrcpyService', () => {
     const service = new ScrcpyService(adbService);
     const result = await service.closeMirror('unknown');
     expect(result.ok).toBe(true);
+  });
+
+  describe('clipboard', () => {
+    const key = (keyCode: number, metaState: number, action = 0) =>
+      ({ type: 'key', action, keyCode, repeat: 0, metaState }) as const;
+
+    function serviceWithSession() {
+      const order: string[] = [];
+      const pushToDevice = vi.fn(() => {
+        order.push('push');
+        return Promise.resolve();
+      });
+      const injectKeyCode = vi.fn(() => {
+        order.push('key');
+        return Promise.resolve();
+      });
+      const service = new ScrcpyService(adbService);
+      (service as unknown as { sessions: Map<string, unknown> }).sessions = new Map([
+        [
+          'device1',
+          {
+            deviceId: 'device1',
+            controller: { injectKeyCode },
+            clipboard: { pushToDevice, stop: vi.fn() },
+            controlChain: Promise.resolve(),
+            pendingControls: 0,
+          },
+        ],
+      ]);
+      return { service, order, pushToDevice };
+    }
+
+    it('sends the computer clipboard before a Ctrl+V or Cmd+V reaches the device', async () => {
+      const { service, order, pushToDevice } = serviceWithSession();
+
+      await service.sendControl('device1', key(50, 0x1000));
+      await service.sendControl('device1', key(50, 0x10000));
+
+      expect(pushToDevice).toHaveBeenCalledTimes(2);
+      expect(order).toEqual(['push', 'key', 'push', 'key']);
+    });
+
+    it('leaves other keys and the key release alone', async () => {
+      const { service, pushToDevice } = serviceWithSession();
+
+      await service.sendControl('device1', key(50, 0));
+      await service.sendControl('device1', key(31, 0x1000));
+      await service.sendControl('device1', key(50, 0x1000, 1));
+
+      expect(pushToDevice).not.toHaveBeenCalled();
+    });
+
+    it('syncs on demand for a window that gained focus, and ignores unknown devices', async () => {
+      const { service, pushToDevice } = serviceWithSession();
+
+      await service.syncClipboardToDevice('device1');
+      await service.syncClipboardToDevice('missing');
+
+      expect(pushToDevice).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('device connection', () => {
+    const webContents = {
+      postMessage: vi.fn(),
+      isDestroyed: () => false,
+    } as unknown as WebContents;
+
+    it('closes the device connection with the session', async () => {
+      tango.createDeviceAdb.mockResolvedValue({ close: adbClose });
+      const closeClient = startedClient();
+      const service = new ScrcpyService(adbService);
+
+      await service.openMirror('device1', webContents);
+      expect(adbClose).not.toHaveBeenCalled();
+      await service.closeMirror('device1');
+
+      expect(closeClient).toHaveBeenCalledTimes(1);
+      expect(adbClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('closes the device connection when starting scrcpy fails', async () => {
+      tango.createDeviceAdb.mockResolvedValue({ close: adbClose });
+      tango.startScrcpyClient.mockRejectedValue(new Error('server crashed'));
+      const service = new ScrcpyService(adbService);
+
+      const result = await service.openMirror('device1', webContents);
+
+      expect(result).toEqual({ ok: false, error: 'server crashed' });
+      expect(adbClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('closes the device connection when pushing the server fails', async () => {
+      tango.createDeviceAdb.mockResolvedValue({ close: adbClose });
+      tango.pushScrcpyServer.mockRejectedValue(new Error('push failed'));
+      const service = new ScrcpyService(adbService);
+
+      await service.openMirror('device1', webContents);
+
+      expect(adbClose).toHaveBeenCalledTimes(1);
+    });
+
+    it('still finishes closing when the connection is already gone', async () => {
+      adbClose.mockRejectedValue(new Error('already closed'));
+      tango.createDeviceAdb.mockResolvedValue({ close: adbClose });
+      startedClient();
+      const service = new ScrcpyService(adbService);
+      await service.openMirror('device1', webContents);
+
+      await expect(service.closeMirror('device1')).resolves.toEqual({ ok: true, value: undefined });
+      expect((service as unknown as { sessions: Map<string, unknown> }).sessions.size).toBe(0);
+    });
+
+    it('reports a missing adb with its code', async () => {
+      const { runCommand } = await import('../../../utils/runCommand');
+      vi.mocked(runCommand).mockResolvedValueOnce({ stdout: '', stderr: '' });
+      vi.mocked(adbService.getExecutablePath).mockResolvedValueOnce(null);
+      const service = new ScrcpyService(adbService);
+
+      const result = await service.openMirror('device1', webContents);
+
+      expect(result).toMatchObject({ ok: false, code: 'ADB_NOT_FOUND' });
+    });
+
+    it('loads the scrcpy libraries only once', async () => {
+      tango.createDeviceAdb.mockResolvedValue({ close: adbClose });
+      startedClient();
+      const service = new ScrcpyService(adbService);
+
+      await service.openMirror('device1', webContents);
+      await service.openMirror('device2', webContents);
+
+      const internals = service as unknown as { getTango: () => Promise<unknown> };
+      expect(internals.getTango()).toBe(internals.getTango());
+    });
+  });
+
+  describe('control queue', () => {
+    const touch = (action: number) =>
+      ({
+        type: 'touch',
+        action,
+        pointerId: 0,
+        pointerX: 1,
+        pointerY: 1,
+        videoWidth: 100,
+        videoHeight: 100,
+        pressure: 1,
+        buttons: 0,
+        actionButton: 0,
+      }) as const;
+
+    function serviceWithSlowDevice() {
+      const release: (() => void)[] = [];
+      const injectTouch = vi.fn(
+        (_event: { action: number }) => new Promise<void>((resolve) => release.push(resolve)),
+      );
+      const injectKeyCode = vi.fn().mockResolvedValue(undefined);
+      const service = new ScrcpyService(adbService);
+      (service as unknown as { sessions: Map<string, unknown> }).sessions = new Map([
+        [
+          'device1',
+          {
+            controller: { injectTouch, injectKeyCode },
+            controlChain: Promise.resolve(),
+            pendingControls: 0,
+          },
+        ],
+      ]);
+      return { service, injectTouch, injectKeyCode, release };
+    }
+
+    it('drops pointer moves once too many controls are waiting, but never presses or releases', async () => {
+      const { service, injectTouch, release } = serviceWithSlowDevice();
+
+      const pending = [service.sendControl('device1', touch(0))];
+      for (let i = 1; i < MAX_PENDING_CONTROLS; i += 1) {
+        pending.push(service.sendControl('device1', touch(2)));
+      }
+      const dropped = await service.sendControl('device1', touch(2));
+      pending.push(service.sendControl('device1', touch(1)));
+      pending.push(
+        service.sendControl('device1', {
+          type: 'key',
+          action: 0,
+          keyCode: 4,
+          repeat: 0,
+          metaState: 0,
+        }),
+      );
+
+      expect(dropped).toEqual({ ok: true, value: undefined });
+      // Drain the queue: the dropped move never reaches the device, the up does.
+      for (let i = 0; i < MAX_PENDING_CONTROLS + 1; i += 1) {
+        await tick();
+        expect(release.length).toBeGreaterThan(i);
+        release[i]?.();
+      }
+      await Promise.all(pending);
+
+      const actions = injectTouch.mock.calls.map(([event]) => event.action);
+      expect(actions).toHaveLength(MAX_PENDING_CONTROLS + 1);
+      expect(actions.filter((action) => action === 1)).toHaveLength(1);
+    });
+
+    it('accepts moves again once the queue drains', async () => {
+      const { service, injectTouch, release } = serviceWithSlowDevice();
+      const first = service.sendControl('device1', touch(0));
+      await tick();
+      expect(release).toHaveLength(1);
+      release[0]?.();
+      await first;
+
+      const next = service.sendControl('device1', touch(2));
+      await tick();
+      expect(release).toHaveLength(2);
+      release[1]?.();
+      await next;
+
+      expect(injectTouch).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('rotates the device when asked', async () => {
+    const rotateDevice = vi.fn().mockResolvedValue(undefined);
+    const service = new ScrcpyService(adbService);
+    (service as unknown as { sessions: Map<string, unknown> }).sessions = new Map([
+      [
+        'device1',
+        {
+          deviceId: 'device1',
+          controller: { rotateDevice },
+          controlChain: Promise.resolve(),
+          pendingControls: 0,
+        },
+      ],
+    ]);
+
+    const result = await service.sendControl('device1', { type: 'rotate' });
+
+    expect(result.ok).toBe(true);
+    expect(rotateDevice).toHaveBeenCalledTimes(1);
   });
 });

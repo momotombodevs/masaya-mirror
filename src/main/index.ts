@@ -5,7 +5,6 @@ import { setMainLocale } from './i18n';
 import { claimSingleInstance, createWindow, registerAppLifecycle } from './app';
 import { augmentProcessPath } from './features/device/adb-path.resolver';
 import { AdbService } from './features/device/adb.service';
-import { DeviceService } from './features/device/device.service';
 import { registerApkIpcHandlers } from './features/device/ipc/apk.handlers';
 import { registerDeviceSettingsIpcHandlers } from './features/device/ipc/device-settings.handlers';
 import { registerDeviceIpcHandlers } from './features/device/ipc/device.handlers';
@@ -19,12 +18,12 @@ import { PreferencesService } from './features/preferences/preferences.service';
 import { resolveLocale } from '../shared/i18n/locale';
 import { PREFERENCES_CHANNELS } from '../shared/ipc/preferences.contract';
 import { registerQaIpcHandlers } from './features/qa/ipc/qa.handlers';
+import { createUpdaterService } from './features/updates/register-updater';
 
 function bootstrap(): void {
   augmentProcessPath();
 
   const adbService = new AdbService();
-  const deviceService = new DeviceService(adbService);
   const scrcpyService = new ScrcpyService(adbService);
   const preferences = new PreferencesService(path.join(app.getPath('userData'), 'settings.json'));
   adbService.setCustomPath(preferences.getAdbPath());
@@ -34,17 +33,30 @@ function bootstrap(): void {
   });
   registerAppLifecycle();
 
-  app.on('will-quit', () => {
+  let sessionsClosed = false;
+  app.on('will-quit', (event) => {
     mirrorWindowService.closeAll();
-    void scrcpyService.closeAll();
+    if (sessionsClosed || !scrcpyService.hasOpenSessions()) {
+      return;
+    }
+    // Let scrcpy servers and adb sockets release before the process exits.
+    event.preventDefault();
+    void scrcpyService.closeAll().finally(() => {
+      sessionsClosed = true;
+      // On a later turn: app.quit() called while Electron is still finishing this quit is ignored,
+      // which left the app running with no windows.
+      setTimeout(() => app.quit(), 0);
+    });
   });
 
   void app.whenReady().then(() => {
     // getLocale is only reliable once the app is ready.
     const locale = resolveLocale(preferences.get().language, app.getLocale());
     setMainLocale(locale);
-    installApplicationMenu(locale);
-    registerDeviceIpcHandlers(deviceService);
+    const updater = createUpdaterService();
+    const onCheckForUpdates = updater ? () => void updater.checkNow() : undefined;
+    installApplicationMenu(locale, onCheckForUpdates);
+    registerDeviceIpcHandlers(adbService);
     registerSetupIpcHandlers(
       adbService,
       preferences,
@@ -57,7 +69,7 @@ function bootstrap(): void {
       onLanguageChange: (language) => {
         const locale = resolveLocale(language, app.getLocale());
         setMainLocale(locale);
-        installApplicationMenu(locale);
+        installApplicationMenu(locale, onCheckForUpdates);
         for (const window of BrowserWindow.getAllWindows()) {
           window.webContents.send(PREFERENCES_CHANNELS.languageChanged, language);
         }
@@ -66,6 +78,7 @@ function bootstrap(): void {
     registerMirrorIpcHandlers(scrcpyService, mirrorWindowService);
     registerQaIpcHandlers(mirrorWindowService, preferences);
     createWindow();
+    updater?.start();
   });
 }
 

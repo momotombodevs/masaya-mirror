@@ -65,7 +65,7 @@ describe('QrPairingService', () => {
     if (first.ok && second.ok) {
       const a = parsePayload(first.value.payload);
       const b = parsePayload(second.value.payload);
-      expect(a.name).toMatch(/^manolo-[0-9a-f]{6}$/);
+      expect(a.name).toMatch(/^masaya-[0-9a-f]{6}$/);
       expect(a.password).toMatch(/^[A-Za-z0-9]{12}$/);
       expect(a.name).not.toBe(b.name);
       expect(a.password).not.toBe(b.password);

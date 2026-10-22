@@ -1,6 +1,6 @@
 import { err, ok, type Result } from '../../../../shared/ipc/result';
 
-export type NumericRule = {
+type NumericRule = {
   readonly min?: number;
   readonly max: number;
   /** Used when the field is absent. Fields without a default are required. */

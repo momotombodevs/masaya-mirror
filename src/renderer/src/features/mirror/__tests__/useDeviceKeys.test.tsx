@@ -1,15 +1,15 @@
 // @vitest-environment jsdom
-import { cleanup, renderHook } from '@testing-library/react';
+import { cleanup, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ANDROID_KEYCODE } from '../android-keycodes';
 import { useDeviceKeys } from '../useDeviceKeys';
 
-const sendControl = vi.fn().mockResolvedValue({ ok: true, value: undefined });
+const sendControl = vi.fn();
 
 describe('useDeviceKeys', () => {
   beforeEach(() => {
-    sendControl.mockClear();
-    vi.stubGlobal('manolo', { sendControl });
+    sendControl.mockReset().mockResolvedValue({ ok: true, value: undefined });
+    vi.stubGlobal('masaya', { sendControl });
   });
 
   afterEach(() => {
@@ -28,6 +28,28 @@ describe('useDeviceKeys', () => {
     ]);
   });
 
+  it('reports why a press did not reach the device', async () => {
+    sendControl.mockResolvedValueOnce({ ok: false, error: 'device offline' });
+    const onError = vi.fn();
+    const { result } = renderHook(() => useDeviceKeys('device-1', onError));
+
+    result.current(ANDROID_KEYCODE.home);
+
+    await waitFor(() => expect(onError).toHaveBeenCalledExactlyOnceWith('device offline'));
+  });
+
+  it('reports a rejected bridge call instead of leaving it unhandled', async () => {
+    sendControl.mockRejectedValue(new Error('ipc closed'));
+    const onError = vi.fn();
+    const { result } = renderHook(() => useDeviceKeys('device-1', onError));
+
+    result.current(ANDROID_KEYCODE.home);
+
+    await waitFor(() =>
+      expect(onError).toHaveBeenCalledWith('Sin conexión con la app. Reiníciala.'),
+    );
+  });
+
   it('uses the Android codes for navigation, volume and power', () => {
     expect(ANDROID_KEYCODE).toEqual({
       home: 3,
@@ -40,7 +62,7 @@ describe('useDeviceKeys', () => {
   });
 
   it('is a no-op without the preload bridge', () => {
-    vi.stubGlobal('manolo', undefined);
+    vi.stubGlobal('masaya', undefined);
     const { result } = renderHook(() => useDeviceKeys('device-1'));
 
     expect(() => result.current(ANDROID_KEYCODE.back)).not.toThrow();

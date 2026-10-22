@@ -1,10 +1,19 @@
-import { err, ok, type Result } from '../../../../shared/ipc/result';
+import { isRecord } from '../../../../shared/ipc/is-record';
+import { err, mapResult, ok, type Result } from '../../../../shared/ipc/result';
 import {
   DEFAULT_MIRROR_OPTIONS,
   MAX_MIRROR_TEXT_BYTES,
+  MAX_SCROLL_NOTCHES,
   type MirrorControlMessage,
   type MirrorOptions,
 } from '../../../../shared/mirror/types';
+import {
+  MAX_BIT_RATE,
+  MAX_MAX_SIZE,
+  MIN_BIT_RATE,
+  MIN_MAX_SIZE,
+} from '../../../../shared/preferences/parse';
+import { utf8ByteLength } from '../../../../shared/text/utf8';
 import { parseNumericFields, type NumericRules } from './numeric-fields';
 
 const MAX_VIDEO_DIMENSION = 10_000;
@@ -12,7 +21,6 @@ const MAX_ANDROID_BUTTON_MASK = 0xffff;
 const MAX_ANDROID_KEYCODE = 400;
 const MAX_KEY_REPEAT = 100;
 const MAX_META_STATE = 0xffffff;
-const MAX_SCROLL_DELTA = 10;
 
 const POINTER_RULES = {
   pointerX: { max: MAX_VIDEO_DIMENSION },
@@ -32,8 +40,8 @@ const TOUCH_RULES = {
 
 const SCROLL_RULES = {
   ...POINTER_RULES,
-  scrollX: { min: -MAX_SCROLL_DELTA, max: MAX_SCROLL_DELTA, fallback: 0, fractional: true },
-  scrollY: { min: -MAX_SCROLL_DELTA, max: MAX_SCROLL_DELTA, fallback: 0, fractional: true },
+  scrollX: { min: -MAX_SCROLL_NOTCHES, max: MAX_SCROLL_NOTCHES, fallback: 0, fractional: true },
+  scrollY: { min: -MAX_SCROLL_NOTCHES, max: MAX_SCROLL_NOTCHES, fallback: 0, fractional: true },
 } satisfies NumericRules;
 
 const KEY_RULES = {
@@ -44,17 +52,13 @@ const KEY_RULES = {
 } satisfies NumericRules;
 
 const OPTION_RULES = {
-  maxSize: { min: 256, max: 8192, fallback: DEFAULT_MIRROR_OPTIONS.maxSize },
+  maxSize: { min: MIN_MAX_SIZE, max: MAX_MAX_SIZE, fallback: DEFAULT_MIRROR_OPTIONS.maxSize },
   videoBitRate: {
-    min: 1_000_000,
-    max: 100_000_000,
+    min: MIN_BIT_RATE,
+    max: MAX_BIT_RATE,
     fallback: DEFAULT_MIRROR_OPTIONS.videoBitRate,
   },
 } satisfies NumericRules;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
 
 export function parseMirrorOptions(value: unknown): Result<MirrorOptions> {
   if (value === undefined || value === null) {
@@ -79,6 +83,10 @@ export function parseMirrorOptions(value: unknown): Result<MirrorOptions> {
       typeof value.audioEnabled === 'boolean'
         ? value.audioEnabled
         : DEFAULT_MIRROR_OPTIONS.audioEnabled,
+    clipboardSync:
+      typeof value.clipboardSync === 'boolean'
+        ? value.clipboardSync
+        : DEFAULT_MIRROR_OPTIONS.clipboardSync,
   });
 }
 
@@ -100,21 +108,23 @@ export function parseControlMessage(value: unknown): Result<MirrorControlMessage
   switch (value.type) {
     case 'touch': {
       const fields = parseNumericFields(value, TOUCH_RULES, 'Invalid touch message.');
-      return fields.ok ? ok({ type: 'touch', ...fields.value }) : fields;
+      return mapResult(fields, (value) => ({ type: 'touch', ...value }) as const);
     }
     case 'scroll': {
       const fields = parseNumericFields(value, SCROLL_RULES, 'Invalid scroll message.');
-      return fields.ok ? ok({ type: 'scroll', ...fields.value }) : fields;
+      return mapResult(fields, (value) => ({ type: 'scroll', ...value }) as const);
     }
     case 'key': {
       const fields = parseNumericFields(value, KEY_RULES, 'Invalid key message.');
-      return fields.ok ? ok({ type: 'key', ...fields.value }) : fields;
+      return mapResult(fields, (value) => ({ type: 'key', ...value }) as const);
     }
+    case 'rotate':
+      return ok({ type: 'rotate' });
     case 'text': {
       if (typeof value.text !== 'string' || value.text.length === 0) {
         return err('Invalid text message.');
       }
-      if (new TextEncoder().encode(value.text).byteLength > MAX_MIRROR_TEXT_BYTES) {
+      if (utf8ByteLength(value.text) > MAX_MIRROR_TEXT_BYTES) {
         return err('Text message is too long.');
       }
       return ok({ type: 'text', text: value.text });

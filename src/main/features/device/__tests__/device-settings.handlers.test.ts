@@ -82,7 +82,7 @@ describe('registerDeviceSettingsIpcHandlers', () => {
       ...body,
     });
 
-    expect(result).toEqual({ ok: false, error: 'Ajuste inválido.' });
+    expect(result).toEqual({ ok: false, error: 'Ajuste no válido.' });
     expect(adbService.setDeviceSetting).not.toHaveBeenCalled();
   });
 });

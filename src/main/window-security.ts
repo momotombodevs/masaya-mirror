@@ -32,6 +32,23 @@ export function attachWindowSecurity(window: BrowserWindow): void {
 }
 
 /**
+ * The app never needs camera, microphone, notifications, geolocation or clipboard access from
+ * a page, so every permission request and check is refused. The one exception is the HTML
+ * fullscreen API, which the mirror window uses for its fullscreen button.
+ */
+const ALLOWED_PERMISSIONS: ReadonlySet<string> = new Set(['fullscreen']);
+
+export function registerPermissionPolicy(): void {
+  const { defaultSession } = session;
+  defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
+    callback(ALLOWED_PERMISSIONS.has(permission));
+  });
+  defaultSession.setPermissionCheckHandler((_webContents, permission) =>
+    ALLOWED_PERMISSIONS.has(permission),
+  );
+}
+
+/**
  * Packaged builds load `index.html` from disk and get their Content-Security-Policy from the
  * meta tag in that file. The dev server also needs inline scripts and a websocket for HMR, so
  * in development the policy is sent as a header instead.

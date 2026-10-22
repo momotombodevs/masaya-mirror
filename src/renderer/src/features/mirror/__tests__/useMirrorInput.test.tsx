@@ -8,7 +8,7 @@ import {
 } from '../../../../../shared/mirror/types';
 import type { MirrorControlMessage } from '../../../../../shared/mirror/types';
 import { ANDROID_KEYCODE_BACK } from '../android-keycodes';
-import { useMirrorInput } from '../useMirrorInput';
+import { useMirrorInput, wheelDeltaToNotches } from '../useMirrorInput';
 
 const sendControl = vi.fn<(deviceId: string, message: MirrorControlMessage) => Promise<unknown>>();
 let frames: Array<() => void> = [];
@@ -20,7 +20,7 @@ function setup() {
   const canvasRef = { current: canvas };
   const videoSizeRef = { current: { width: 1000, height: 2000 } };
   const hook = renderHook(() => useMirrorInput('device-1', canvasRef, videoSizeRef));
-  return { canvas, videoSizeRef, handlers: hook.result.current };
+  return { canvas, videoSizeRef, handlers: hook.result.current, hook };
 }
 
 function pointerEvent(
@@ -61,7 +61,7 @@ describe('useMirrorInput', () => {
   beforeEach(() => {
     sendControl.mockReset().mockResolvedValue({ ok: true, value: undefined });
     frames = [];
-    vi.stubGlobal('manolo', { sendControl });
+    vi.stubGlobal('masaya', { sendControl });
     vi.stubGlobal('requestAnimationFrame', (callback: () => void) => frames.push(callback));
     vi.stubGlobal('cancelAnimationFrame', () => undefined);
     // The hook calls `window.requestAnimationFrame`, which is the same object under jsdom.
@@ -156,7 +156,7 @@ describe('useMirrorInput', () => {
     expect(sendControl).not.toHaveBeenCalled();
   });
 
-  it('scales wheel deltas by the video size', () => {
+  it('sends one wheel notch on the computer as one notch on the phone', () => {
     const { handlers } = setup();
 
     act(() =>
@@ -165,6 +165,7 @@ describe('useMirrorInput', () => {
         clientY: 200,
         deltaX: 0,
         deltaY: 100,
+        deltaMode: 0,
       } as WheelEvent<HTMLCanvasElement>),
     );
 
@@ -172,9 +173,15 @@ describe('useMirrorInput', () => {
       type: 'scroll',
       pointerX: 500,
       pointerY: 1000,
-      scrollX: -0,
-      scrollY: -100 / 2000,
+      scrollY: -1,
     });
+  });
+
+  it('converts line and page wheel deltas, and caps a huge flick', () => {
+    expect(wheelDeltaToNotches(3, 1)).toBe(-1);
+    expect(wheelDeltaToNotches(-1, 2)).toBe(1);
+    expect(wheelDeltaToNotches(25, 0)).toBe(-0.25);
+    expect(wheelDeltaToNotches(5000, 0)).toBe(-10);
   });
 
   it('types printable characters as text, accents included, and ignores their key-up', () => {
@@ -216,11 +223,70 @@ describe('useMirrorInput', () => {
   });
 
   it('does nothing when the preload bridge is missing', () => {
-    vi.stubGlobal('manolo', undefined);
+    vi.stubGlobal('masaya', undefined);
     const { canvas, handlers } = setup();
 
     expect(() =>
       act(() => handlers.onPointerDown(pointerEvent(canvas, { clientX: 1, clientY: 1 }))),
     ).not.toThrow();
+  });
+
+  it('releases the keys still held down when the window loses focus', () => {
+    const { handlers } = setup();
+    act(() => handlers.onKeyDown(keyEvent({ key: 'Enter', code: 'Enter' })));
+    sendControl.mockClear();
+
+    act(() => {
+      window.dispatchEvent(new Event('blur'));
+    });
+    expect(sent()).toEqual([
+      { type: 'key', action: ANDROID_KEY_EVENT_ACTION.up, keyCode: 66, repeat: 0, metaState: 0 },
+    ]);
+
+    // The key-up that follows once focus is back would be a second release.
+    act(() => window.dispatchEvent(new Event('blur')));
+    expect(sendControl).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not release a key that was already released', () => {
+    const { handlers } = setup();
+    act(() => handlers.onKeyDown(keyEvent({ key: 'Enter', code: 'Enter' })));
+    act(() => handlers.onKeyUp(keyEvent({ key: 'Enter', code: 'Enter' })));
+    sendControl.mockClear();
+
+    act(() => window.dispatchEvent(new Event('blur')));
+
+    expect(sendControl).not.toHaveBeenCalled();
+  });
+
+  it('delivers the pending move and releases held keys when the view goes away', () => {
+    const { canvas, handlers, hook } = setup();
+    act(() => {
+      handlers.onKeyDown(keyEvent({ key: 'Enter', code: 'Enter' }));
+      handlers.onPointerDown(pointerEvent(canvas, { clientX: 0, clientY: 0 }));
+      handlers.onPointerMove(pointerEvent(canvas, { clientX: 10, clientY: 10 }));
+    });
+    sendControl.mockClear();
+
+    hook.unmount();
+
+    expect(sent()).toEqual([
+      expect.objectContaining({ type: 'touch', action: ANDROID_MOTION_EVENT_ACTION.move }),
+      expect.objectContaining({ type: 'key', action: ANDROID_KEY_EVENT_ACTION.up, keyCode: 66 }),
+    ]);
+    // A frame callback scheduled before unmount must not send anything later.
+    act(() => frames.forEach((frame) => frame()));
+    expect(sendControl).toHaveBeenCalledTimes(2);
+  });
+
+  it('survives a rejected bridge call', async () => {
+    sendControl.mockRejectedValue(new Error('ipc closed'));
+    const { canvas, handlers } = setup();
+
+    // Vitest fails the run on an unhandled rejection, so reaching the end is the assertion.
+    act(() => handlers.onPointerDown(pointerEvent(canvas, { clientX: 10, clientY: 10 })));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(sendControl).toHaveBeenCalledOnce();
   });
 });
