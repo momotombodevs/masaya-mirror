@@ -22,9 +22,11 @@ const MAX_ANDROID_KEYCODE = 400;
 const MAX_KEY_REPEAT = 100;
 const MAX_META_STATE = 0xffffff;
 
+// A captured drag keeps reporting past the screen edge, so a pointer can be negative (scrcpy sends
+// it as a signed int). Rejecting it would drop the release and leave a finger held on the phone.
 const POINTER_RULES = {
-  pointerX: { max: MAX_VIDEO_DIMENSION },
-  pointerY: { max: MAX_VIDEO_DIMENSION },
+  pointerX: { min: -MAX_VIDEO_DIMENSION, max: MAX_VIDEO_DIMENSION },
+  pointerY: { min: -MAX_VIDEO_DIMENSION, max: MAX_VIDEO_DIMENSION },
   videoWidth: { min: 1, max: MAX_VIDEO_DIMENSION },
   videoHeight: { min: 1, max: MAX_VIDEO_DIMENSION },
   buttons: { max: MAX_ANDROID_BUTTON_MASK, fallback: 0 },
