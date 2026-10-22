@@ -33,7 +33,7 @@ export default function App(): JSX.Element {
     setWindowError(null);
 
     const result = await callApi(
-      (api) => api.openMirrorWindow(deviceId, device?.model ?? deviceId),
+      (api) => api.openMirrorWindow(deviceId, device?.displayName ?? deviceId),
       t('app.openMirrorFailed'),
     );
     if (!result.ok) {

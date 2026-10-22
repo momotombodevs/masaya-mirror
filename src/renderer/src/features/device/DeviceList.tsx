@@ -32,7 +32,7 @@ export function DeviceList({
 }: DeviceListProps): JSX.Element {
   const { t } = useI18n();
   const { connected, unavailable } = summary;
-  const modelCounts = countModels([...connected, ...unavailable]);
+  const nameCounts = countNames([...connected, ...unavailable]);
 
   return (
     <section className="flex flex-col gap-4 p-4">
@@ -65,7 +65,7 @@ export function DeviceList({
               <DeviceRow
                 key={device.id}
                 device={device}
-                showId={isAmbiguous(device, modelCounts)}
+                showId={isAmbiguous(device, nameCounts)}
                 status={
                   isMirroring ? <StatusDot tone="success" label={t('devices.mirroring')} /> : null
                 }
@@ -87,7 +87,7 @@ export function DeviceList({
               <DeviceRow
                 key={device.id}
                 device={device}
-                showId={isAmbiguous(device, modelCounts)}
+                showId={isAmbiguous(device, nameCounts)}
                 status={
                   <StatusDot tone="warning" label={t(DEVICE_STATUS_LABEL_KEYS[device.status])} />
                 }
@@ -109,18 +109,18 @@ export function DeviceList({
   );
 }
 
-function countModels(devices: readonly AndroidDevice[]): ReadonlyMap<string, number> {
+function countNames(devices: readonly AndroidDevice[]): ReadonlyMap<string, number> {
   const counts = new Map<string, number>();
   for (const device of devices) {
-    const name = device.model ?? device.id;
+    const name = device.displayName ?? device.id;
     counts.set(name, (counts.get(name) ?? 0) + 1);
   }
   return counts;
 }
 
-/** The raw adb id is only shown when the model alone cannot tell two devices apart. */
-function isAmbiguous(device: AndroidDevice, modelCounts: ReadonlyMap<string, number>): boolean {
-  return device.model !== undefined && (modelCounts.get(device.model) ?? 0) > 1;
+/** The raw adb id is only shown when the name alone cannot tell two devices apart. */
+function isAmbiguous(device: AndroidDevice, nameCounts: ReadonlyMap<string, number>): boolean {
+  return device.displayName !== undefined && (nameCounts.get(device.displayName) ?? 0) > 1;
 }
 
 type DeviceRowProps = {
@@ -133,7 +133,7 @@ type DeviceRowProps = {
 
 function DeviceRow({ device, showId, status, onOpen, onDisconnect }: DeviceRowProps): JSX.Element {
   const { t } = useI18n();
-  const name = device.model ?? device.id;
+  const name = device.displayName ?? device.id;
 
   return (
     <li
