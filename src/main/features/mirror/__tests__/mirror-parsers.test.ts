@@ -33,6 +33,15 @@ describe('parseControlMessage', () => {
     expect(parseControlMessage({ ...touch, action: '0' }).ok).toBe(false);
   });
 
+  it('accepts a release past the top or left edge, so a drag off the screen still lifts the finger', () => {
+    const release = { ...touch, action: 1, pointerX: -300, pointerY: -40, pressure: 0 };
+    expect(parseControlMessage(release)).toMatchObject({
+      ok: true,
+      value: { pointerX: -300, pointerY: -40 },
+    });
+    expect(parseControlMessage({ ...touch, pointerX: -10_001 }).ok).toBe(false);
+  });
+
   it('rounds integer fields but keeps fractional ones', () => {
     const result = parseControlMessage({ ...touch, pointerX: 10.6, pressure: 0.25 });
     expect(result).toMatchObject({ ok: true, value: { pointerX: 11, pressure: 0.25 } });
