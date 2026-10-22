@@ -1,5 +1,5 @@
 /** Channel the main process uses to forward application menu commands to a window. */
-export const MENU_ACTION_CHANNEL = 'manolo:menu-action';
+export const MENU_ACTION_CHANNEL = 'masaya:menu-action';
 
 const MENU_ACTIONS = ['refresh', 'capture', 'record', 'wifi', 'settings'] as const;
 

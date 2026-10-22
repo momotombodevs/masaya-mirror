@@ -8,7 +8,7 @@ const sendControl = vi.fn().mockResolvedValue({ ok: true, value: undefined });
 describe('NavigationBar', () => {
   beforeEach(() => {
     sendControl.mockClear();
-    vi.stubGlobal('manolo', { sendControl });
+    vi.stubGlobal('masaya', { sendControl });
   });
 
   afterEach(() => {

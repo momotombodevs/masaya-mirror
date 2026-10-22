@@ -4,7 +4,7 @@ import { summarizeDevices } from './features/device/connected-devices';
 import { DEVICE_REFRESH_MS, useDevices } from './features/device/useDevices';
 import { useMirrorStatus } from './features/mirror/useMirrorStatus';
 import { useI18n } from './shared/i18n';
-import { callApi } from './shared/manolo-api';
+import { callApi } from './shared/masaya-api';
 import { useAutoRefresh } from './shared/useAutoRefresh';
 import { useMenuActions } from './shared/useMenuAction';
 

@@ -1,13 +1,16 @@
 import type { ReactNode } from 'react';
 import type { AndroidDevice } from '../../../../shared/device/types';
 import { Button } from '../../components/ui/Button';
+import { cx } from '../../components/ui/cx';
 import { GROUPED_CARD_CLASSES } from '../../components/ui/card';
+import { IconTile } from '../../components/ui/IconTile';
 import { PhoneIcon } from '../../components/ui/icons';
 import { StatusDot } from '../../components/ui/StatusDot';
 import type { DeviceSummary } from './connected-devices';
 import { isWifiDeviceId } from '../../../../shared/ipc/validators';
 import { useI18n } from '../../shared/i18n';
-import { DEVICE_STATUS_LABEL_KEYS } from './device.ui';
+import { ConnectionChip } from './ConnectionChip';
+import { DEVICE_STATUS_LABEL_KEYS, deviceTone } from './device.ui';
 
 type DeviceListProps = {
   readonly summary: DeviceSummary;
@@ -50,10 +53,14 @@ export function DeviceList({
 
       {!error && !loading && connected.length === 0 && unavailable.length === 0 && (
         <div className="flex min-h-[60vh] flex-col items-center justify-center gap-2 px-6 text-center">
-          <PhoneIcon className="size-8 text-ink-3" />
-          <p className="font-medium">{t('devices.none')}</p>
+          <IconTile tone="indigo" size="lg">
+            <PhoneIcon />
+          </IconTile>
+          <p className="mt-1.5 text-lg font-medium">{t('devices.none')}</p>
           <p className="text-ink-2">{t('devices.noneHint')}</p>
-          <Button onClick={onConnectWifi}>{t('devices.connectWifi')}</Button>
+          <Button className="mt-1.5" onClick={onConnectWifi}>
+            {t('devices.connectWifi')}
+          </Button>
         </div>
       )}
 
@@ -100,7 +107,7 @@ export function DeviceList({
 
       {(connected.length > 0 || unavailable.length > 0) && (
         <div className="flex justify-center">
-          <Button variant="plain" className="text-accent" onClick={onConnectWifi}>
+          <Button variant="link" onClick={onConnectWifi}>
             {t('devices.connectWifi')}
           </Button>
         </div>
@@ -137,33 +144,49 @@ function DeviceRow({ device, showId, status, onOpen, onDisconnect }: DeviceRowPr
 
   return (
     <li
-      className={`group flex min-h-[48px] items-center gap-3 px-4 py-2 ${onOpen ? 'hover:bg-hover' : 'text-ink-2'}`}
+      className={cx(
+        'group relative flex min-h-[48px] items-center gap-3 px-4 py-2',
+        onOpen ? 'focus-within:bg-hover hover:bg-hover' : 'text-ink-2',
+      )}
       onDoubleClick={onOpen}
     >
-      <PhoneIcon className="size-5 shrink-0 text-ink-3" />
-      <div className="min-w-0 flex-1">
-        <p className="truncate">{name}</p>
-        {showId && <p className="truncate text-sm text-ink-3">{device.id}</p>}
+      <IconTile
+        tone={onOpen ? deviceTone(device.id) : 'gray'}
+        className={onOpen ? '' : 'opacity-50'}
+      >
+        <PhoneIcon />
+      </IconTile>
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div className="min-w-0">
+          <p className="truncate">{name}</p>
+          {showId && <p className="truncate text-sm text-ink-3">{device.id}</p>}
+        </div>
+        <ConnectionChip deviceId={device.id} />
       </div>
       {status}
-      {onDisconnect && (
-        <Button
-          variant="plain"
-          className="opacity-0 focus-visible:opacity-100 group-hover:opacity-100"
-          aria-label={t('devices.disconnectNamed', { name })}
-          onClick={onDisconnect}
+      {(onOpen || onDisconnect) && (
+        // The actions cover the status on hover or focus, so the status keeps its place.
+        <div
+          className={cx(
+            'absolute inset-y-0 right-4 flex items-center gap-1 pl-3 opacity-0 transition-opacity duration-100 focus-within:opacity-100 group-hover:opacity-100',
+            onOpen ? 'bg-hover' : 'bg-content',
+          )}
         >
-          {t('devices.disconnect')}
-        </Button>
-      )}
-      {onOpen && (
-        <Button
-          className="opacity-0 focus-visible:opacity-100 group-hover:opacity-100"
-          aria-label={t('devices.openNamed', { name })}
-          onClick={onOpen}
-        >
-          {t('devices.open')}
-        </Button>
+          {onDisconnect && (
+            <Button
+              variant="plain"
+              aria-label={t('devices.disconnectNamed', { name })}
+              onClick={onDisconnect}
+            >
+              {t('devices.disconnect')}
+            </Button>
+          )}
+          {onOpen && (
+            <Button aria-label={t('devices.openNamed', { name })} onClick={onOpen}>
+              {t('devices.open')}
+            </Button>
+          )}
+        </div>
       )}
     </li>
   );

@@ -36,14 +36,16 @@ function bootstrap(): void {
   let sessionsClosed = false;
   app.on('will-quit', (event) => {
     mirrorWindowService.closeAll();
-    if (sessionsClosed) {
+    if (sessionsClosed || !scrcpyService.hasOpenSessions()) {
       return;
     }
     // Let scrcpy servers and adb sockets release before the process exits.
     event.preventDefault();
     void scrcpyService.closeAll().finally(() => {
       sessionsClosed = true;
-      app.quit();
+      // On a later turn: app.quit() called while Electron is still finishing this quit is ignored,
+      // which left the app running with no windows.
+      setTimeout(() => app.quit(), 0);
     });
   });
 

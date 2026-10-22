@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useI18n } from '../../shared/i18n';
-import { callApi } from '../../shared/manolo-api';
+import { callApi } from '../../shared/masaya-api';
 import { keyPressMessages } from './key-press';
 
 /**

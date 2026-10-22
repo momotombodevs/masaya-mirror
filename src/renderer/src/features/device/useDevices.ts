@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { ErrorCode } from '../../../../shared/ipc/result';
 import type { AndroidDevice } from '../../../../shared/device/types';
 import { useI18n } from '../../shared/i18n';
-import { callApi } from '../../shared/manolo-api';
+import { callApi } from '../../shared/masaya-api';
 import { sameFields } from '../../shared/same-items';
 import { useAutoRefresh } from '../../shared/useAutoRefresh';
 

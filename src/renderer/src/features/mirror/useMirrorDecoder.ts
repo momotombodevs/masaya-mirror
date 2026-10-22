@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
 import type { MirrorStreamInitMessage } from '../../../../shared/mirror/types';
 import { useI18n } from '../../shared/i18n';
-import { callApi } from '../../shared/manolo-api';
+import { callApi } from '../../shared/masaya-api';
 import { getMirrorStreamClient, useMirrorStream } from './mirror-stream.client';
 import { createVideoPipeline, isVideoDecodingSupported } from './video-pipeline';
 import type { VideoSize } from './useMirrorInput';
@@ -40,9 +40,14 @@ export function useMirrorDecoder(
 
   onCloseRef.current = options.onClose;
 
+  // The decoder reports the size with every frame (up to 120 a second); only a new size is sent,
+  // since each one is a round trip to the main process, which lays out the window.
+  const sentLayoutRef = useRef<VideoSize>({ width: 0, height: 0 });
   const syncVideoLayout = useCallback(
     (width: number, height: number): void => {
-      if (width > 0 && height > 0) {
+      const sent = sentLayoutRef.current;
+      if (width > 0 && height > 0 && (width !== sent.width || height !== sent.height)) {
+        sentLayoutRef.current = { width, height };
         void callApi((api) => api.setMirrorVideoLayout(deviceId, width, height), '');
       }
     },

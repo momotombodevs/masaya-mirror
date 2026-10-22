@@ -47,7 +47,7 @@ describe('MirrorStreamClient ports', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubGlobal('window', {
-      manolo: {
+      masaya: {
         notifyMirrorStreamReady: vi.fn().mockResolvedValue({ ok: true, value: undefined }),
       },
     });

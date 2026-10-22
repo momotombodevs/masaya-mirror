@@ -9,7 +9,7 @@ const sendControl = vi.fn();
 describe('useDeviceKeys', () => {
   beforeEach(() => {
     sendControl.mockReset().mockResolvedValue({ ok: true, value: undefined });
-    vi.stubGlobal('manolo', { sendControl });
+    vi.stubGlobal('masaya', { sendControl });
   });
 
   afterEach(() => {
@@ -62,7 +62,7 @@ describe('useDeviceKeys', () => {
   });
 
   it('is a no-op without the preload bridge', () => {
-    vi.stubGlobal('manolo', undefined);
+    vi.stubGlobal('masaya', undefined);
     const { result } = renderHook(() => useDeviceKeys('device-1'));
 
     expect(() => result.current(ANDROID_KEYCODE.back)).not.toThrow();

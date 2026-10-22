@@ -11,9 +11,10 @@ import {
 import {
   ANDROID_KEY_EVENT_ACTION,
   ANDROID_MOTION_EVENT_ACTION,
+  MAX_SCROLL_NOTCHES,
   type MirrorControlMessage,
 } from '../../../../shared/mirror/types';
-import { callApi } from '../../shared/manolo-api';
+import { callApi } from '../../shared/masaya-api';
 import { ANDROID_KEYCODE_BACK, resolveKeyInput, type KeyInput } from './android-keycodes';
 import { createControlCoalescer, type ControlCoalescer } from './control-coalescer';
 import { keyEvent, keyPressMessages } from './key-press';
@@ -31,6 +32,24 @@ export type MirrorInputHandlers = {
 };
 
 const MOUSE_BUTTON_RIGHT = 2;
+
+/** Chromium reports one mouse-wheel notch as 100 px, or as 3 lines in line mode. */
+const PIXELS_PER_NOTCH = 100;
+const LINES_PER_NOTCH = 3;
+
+/**
+ * Converts a wheel delta to Android scroll notches, the unit scrcpy sends (1 = one wheel notch),
+ * so one notch on the computer scrolls the phone as far as one notch of a mouse on the phone.
+ */
+export function wheelDeltaToNotches(delta: number, deltaMode: number): number {
+  const notches =
+    deltaMode === WheelEvent.DOM_DELTA_LINE
+      ? delta / LINES_PER_NOTCH
+      : deltaMode === WheelEvent.DOM_DELTA_PAGE
+        ? delta
+        : delta / PIXELS_PER_NOTCH;
+  return Math.max(-MAX_SCROLL_NOTCHES, Math.min(MAX_SCROLL_NOTCHES, -notches));
+}
 
 function toKeyInput(event: KeyboardEvent<HTMLDivElement>): KeyInput {
   return {
@@ -204,8 +223,8 @@ export function useMirrorInput(
         pointerY: coords.y,
         videoWidth: width,
         videoHeight: height,
-        scrollX: -event.deltaX / width,
-        scrollY: -event.deltaY / height,
+        scrollX: wheelDeltaToNotches(event.deltaX, event.deltaMode),
+        scrollY: wheelDeltaToNotches(event.deltaY, event.deltaMode),
         buttons: 0,
       });
     },

@@ -3,56 +3,106 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Política de privacidad — Manolo Mirror</title>
+    <title>Política de privacidad — Masaya</title>
     <meta
       name="description"
-      content="Manolo Mirror no recopila ni envía datos personales. Todo se procesa en tu equipo."
+      content="Masaya no recopila ni envía datos personales. Todo se procesa en tu equipo."
     />
-    <link rel="icon" type="image/svg+xml" href="manolo-logo.svg" />
-    <link rel="stylesheet" href="style.css?v=3" />
+    <meta name="theme-color" content="#18181b" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="icon" type="image/svg+xml" href="masaya-logo.svg" />
+    <link rel="canonical" href="https://donmanueldev.github.io/manolo-mirror/privacy.html" />
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://donmanueldev.github.io/manolo-mirror/privacy.html" />
+    <meta property="og:title" content="Política de privacidad — Masaya" />
+    <meta property="og:image" content="https://donmanueldev.github.io/manolo-mirror/og-image.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="stylesheet" href="style.css?v=5" />
   </head>
   <body>
-    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+    <svg width="0" height="0" class="d-sprite" aria-hidden="true">
       <defs>
-        <symbol id="i-apple" viewBox="0 0 24 24">
-          <path
-            d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"
-          />
+        <symbol id="i-book" viewBox="0 0 24 24">
+          <path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM4 19V5M8 7h7" />
         </symbol>
-        <symbol id="i-win" viewBox="0 0 24 24">
-          <path
-            d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"
-          />
+        <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" /></symbol>
+        <symbol id="i-shield" viewBox="0 0 24 24">
+          <path d="M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6z" />
+          <path d="M8.5 12l2.5 2.5 4.5-5" />
         </symbol>
       </defs>
     </svg>
-    <header class="topbar">
-      <div class="topbar-in">
-        <a class="brand" href="./"><img src="manolo-logo.svg" alt="" />Manolo Mirror</a>
-        <nav class="topnav" aria-label="Principal">
-          <a href="./">Documentación</a>
-          <a class="pill" href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
-            >Descargar</a
-          >
+
+    <a class="d-skip" href="#contenido">Saltar al contenido</a>
+
+    <header class="d-nav">
+      <div class="d-wrap d-nav__in">
+        <a class="d-brand" href="./"
+          ><img src="masaya-logo.svg" alt="" width="28" height="28" />Masaya</a
+        >
+        <nav class="d-links" aria-label="Principal">
+          <a href="./#funciones">Funciones</a>
+          <a href="./#empezar">Empezar</a>
+          <a href="./#atajos">Atajos</a>
+          <a href="./#vysor">Vs. Vysor</a>
+          <a href="https://github.com/donmanueldev/manolo-mirror">GitHub</a>
         </nav>
+        <a
+          class="d-btn d-btn--main d-btn--sm d-nav__dl"
+          href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
+          >Descargar</a
+        >
+        <details class="d-menu">
+          <summary class="d-menu__btn" aria-label="Menú">
+            <svg
+              width="20"
+              height="20"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <use href="#i-menu" />
+            </svg>
+          </summary>
+          <div class="d-menu__panel">
+            <nav aria-label="Principal">
+              <a href="./#funciones">Funciones</a>
+              <a href="./#empezar">Empezar</a>
+              <a href="./#atajos">Atajos</a>
+              <a href="./#vysor">Vs. Vysor</a>
+              <a href="./#ayuda">Ayuda</a>
+              <a href="https://github.com/donmanueldev/manolo-mirror">GitHub</a>
+            </nav>
+            <div class="d-menu__row">
+              <a
+                class="d-btn d-btn--main d-btn--sm"
+                href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
+                >Descargar</a
+              >
+            </div>
+          </div>
+        </details>
       </div>
     </header>
 
-    <main class="prose" id="contenido">
+    <main class="d-wrap d-prose" id="contenido">
       <h1>Política de privacidad</h1>
-      <p class="stamp">Última actualización: 19 de octubre de 2026.</p>
+      <p class="d-stamp">Última actualización: 19 de octubre de 2026.</p>
 
       <h2>Resumen</h2>
       <p>
-        Manolo Mirror es una aplicación de escritorio que funciona en tu equipo. No recopila,
-        almacena en servidores ni comparte datos personales, y no incluye analítica ni telemetría.
+        Masaya es una aplicación de escritorio que funciona en tu equipo. No recopila, almacena en
+        servidores ni comparte datos personales, y no incluye analítica ni telemetría.
       </p>
 
       <h2>Qué se procesa y dónde</h2>
       <ul>
         <li>
           <strong>Pantalla del dispositivo:</strong> el video viaja del teléfono a tu equipo por USB
-          o por tu red local, y se muestra en la ventana del espejo. No sale de tu red.
+          o por tu red local, y se muestra en la ventana de Masaya. No sale de tu red.
         </li>
         <li>
           <strong>Capturas y grabaciones:</strong> se guardan solo en la carpeta que elijas. La app
@@ -73,16 +123,23 @@
 
       <h2>Conexiones de red</h2>
       <p>
-        La app no hace conexiones a servidores propios ni de terceros. La conexión por Wi-Fi usa tu
-        red local (descubrimiento mDNS y <code>adb</code>) entre tu equipo y tu teléfono. Si
-        necesitas descargar <code>adb</code>, la app abre en tu navegador la página oficial de
-        Android (developer.android.com); esa descarga ocurre entre tú y ese sitio.
+        La app no tiene servidores propios y no envía tus datos a ninguna parte. La conexión por
+        Wi-Fi usa tu red local (descubrimiento mDNS y <code>adb</code>) entre tu equipo y tu
+        teléfono. Si necesitas descargar <code>adb</code>, la app abre en tu navegador la página
+        oficial de Android (developer.android.com); esa descarga ocurre entre tú y ese sitio.
+      </p>
+      <p>
+        La única conexión a internet que hace la propia app es la búsqueda de actualizaciones: en
+        macOS, Windows y AppImage consulta las versiones publicadas en GitHub Releases. Es una
+        petición de lectura que no incluye tus archivos, tu pantalla ni información personal;
+        GitHub, como cualquier sitio web, puede registrar la dirección IP de la petición según su
+        propia política.
       </p>
 
       <h2>Contenido en tu pantalla</h2>
       <p>
-        Lo que muestre tu teléfono puede incluir información sensible. Ten en cuenta que las
-        capturas y grabaciones la contendrán, y protege esos archivos como cualquier otro.
+        Lo que muestre tu teléfono puede incluir información sensible. Las capturas y grabaciones
+        también la contendrán: protégelas como cualquier otro archivo.
       </p>
 
       <h2>Menores y terceros</h2>
@@ -98,46 +155,53 @@
 
       <h2>Contacto</h2>
       <p>
-        Escríbenos abriendo un issue en
+        Escríbenos abriendo una incidencia en
         <a href="https://github.com/donmanueldev/manolo-mirror/issues">GitHub</a>.
       </p>
     </main>
 
-    <footer class="site">
-      <div class="in">
-        <div class="cols">
-          <div class="about">
-            <a class="brand" href="./"><img src="manolo-logo.svg" alt="" />Manolo Mirror</a>
-            <p>Espeja y controla tu Android desde macOS, Windows y Linux.</p>
-            <a
-              class="btn btn-primary"
-              href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
-              ><svg><use href="#i-apple" /></svg>Descargar para macOS</a
-            >
-          </div>
-          <nav aria-label="Producto">
-            <h2>Producto</h2>
-            <a href="./#funciones">Funciones</a>
-            <a href="./#vysor">Vs. Vysor</a>
-            <a href="./#capturas">Capturas</a>
-            <a href="https://github.com/donmanueldev/manolo-mirror/releases/latest">Descargas</a>
-          </nav>
-          <nav aria-label="Ayuda">
-            <h2>Ayuda</h2>
-            <a href="./#empezar">Primeros pasos</a>
-            <a href="./#atajos">Atajos</a>
-            <a href="./#problemas">Problemas</a>
-          </nav>
-          <nav aria-label="Proyecto">
-            <h2>Proyecto</h2>
-            <a href="https://github.com/donmanueldev/manolo-mirror">GitHub</a>
-            <a href="privacy.html">Privacidad</a>
-          </nav>
-        </div>
-        <div class="bottom">
-          <span>© 2026 Manolo Mirror</span>
-          <span>Hecho por Momotombo Devs</span>
-        </div>
+    <footer class="d-foot">
+      <div class="d-wrap d-foot__in">
+        <a class="d-brand" href="./"
+          ><img src="masaya-logo.svg" alt="" width="28" height="28" />Masaya</a
+        >
+        <small>© 2026 Masaya, hecho por Momotombo Devs.</small>
+        <nav aria-label="Pie de página">
+          <a href="./#empezar">Guía</a>
+          <a href="./#ayuda">Ayuda</a>
+          <a href="privacy.html" aria-current="page">Privacidad</a>
+          <a href="https://github.com/donmanueldev/manolo-mirror">GitHub</a>
+        </nav>
+      </div>
+      <div class="d-wrap d-foot__note">
+        <span
+          ><svg
+            width="14"
+            height="14"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <use href="#i-book" /></svg
+          >Código abierto en GitHub</span
+        >
+        <span
+          ><svg
+            width="14"
+            height="14"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <use href="#i-shield" /></svg
+          >Todo pasa entre tu equipo y tu teléfono; tus datos no salen a internet.</span
+        >
       </div>
     </footer>
   </body>

@@ -1,4 +1,4 @@
-# Manolo Mirror
+# Masaya
 
 Espeja y controla dispositivos Android desde el escritorio (macOS, Windows y Linux). Pensada para QA:
 captura de pantalla, grabación de video y control con mouse y teclado, sin instalar scrcpy.

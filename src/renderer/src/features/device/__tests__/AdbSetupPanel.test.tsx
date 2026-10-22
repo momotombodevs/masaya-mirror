@@ -11,7 +11,7 @@ const onRetry = vi.fn();
 describe('AdbSetupPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubGlobal('manolo', { chooseAdb, openAdbDownload });
+    vi.stubGlobal('masaya', { chooseAdb, openAdbDownload });
     render(<AdbSetupPanel onResolved={onResolved} onRetry={onRetry} retrying={false} />);
   });
 

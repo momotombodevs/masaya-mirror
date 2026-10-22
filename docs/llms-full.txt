@@ -1,0 +1,90 @@
+# Masaya
+
+> Tu Android, en grande. Aplicación de escritorio gratuita para ver y controlar un teléfono Android desde macOS, Windows o Linux con mouse y teclado, y capturar y grabar lo que pasa mientras pruebas. Funciona por USB o por Wi-Fi con un código QR. Sin cuentas, anuncios, nube ni telemetría.
+
+Sitio: https://donmanueldev.github.io/manolo-mirror/ (español; inglés con ?lang=en)
+Descargas: https://github.com/donmanueldev/manolo-mirror/releases/latest
+Código: https://github.com/donmanueldev/manolo-mirror
+
+Para Android. Soporte para iPhone y iPad (iOS): próximamente.
+
+## Ventajas
+
+- Sin cuentas: ni registro ni correo.
+- Sin anuncios: ni planes de pago.
+- Sin nube: ni analítica ni telemetría.
+- Multiplataforma: macOS, Windows y Linux.
+
+## Hecho para probar apps en un teléfono real
+
+Ves la pantalla, la controlas y guardas lo que pasa, sin instalar ninguna app en el teléfono.
+
+- Una ventana por dispositivo: abre varios teléfonos a la vez, cada uno con su barra y su navegación (Atrás, Inicio, Apps recientes).
+- Wi-Fi con un QR: sin cable ni direcciones IP; escanea el código desde Depuración inalámbrica.
+- Captura y grabación: desde la barra o con atajos. Graba en video o en GIF, y elige si cada captura se muestra, se copia o se guarda.
+- Control completo: toques, multitouch, arrastre, rueda y teclado con acentos.
+- Instalar APK: arrastra el archivo a la ventana.
+- Calidad ajustable: preajustes (Equilibrada 1280 px, Alta 1920 px, Máxima 2560 px), resolución, velocidad de datos y códec (H.264 o H.265).
+- Claro y oscuro: sigue el tema del sistema. En español e inglés.
+- Privado: lo que ves y escribes se queda entre tu equipo y tu teléfono.
+
+## En marcha en tres pasos
+
+1. Instala: descarga el instalador de tu sistema. Aún no está firmado, así que la primera vez macOS y Windows te piden confirmar.
+2. Activa la depuración USB: en el teléfono, Opciones de desarrollador → Depuración USB. Si falta adb, la app te ofrece descargarlo.
+3. Conecta y abre: por cable, o por Wi-Fi escaneando un QR. Haz doble clic en el dispositivo para abrir su ventana.
+
+## Requisitos
+
+- Un teléfono Android con Opciones de desarrollador y Depuración USB activadas.
+- adb (Android platform-tools). Si no lo tienes, la app te ofrece descargarlo o elegir el tuyo.
+- macOS, Windows o Linux: Apple Silicon e Intel en Mac, x64 en Windows, x64 y arm64 en Linux.
+
+## La primera vez que lo abres
+
+Los instaladores aún no están firmados, así que el sistema pide confirmación una sola vez.
+
+- macOS: abre el .dmg y arrastra Masaya a Aplicaciones. La primera vez, haz clic derecho → Abrir sobre la app y confirma con Abrir. Después se abre sin preguntar.
+- Windows: ejecuta el instalador .exe. Si aparece «Windows protegió su PC», pulsa Más información y luego Ejecutar de todas formas.
+- Linux: .AppImage o .deb desde la última versión.
+
+## Atajos
+
+| Acción | macOS | Windows y Linux |
+| --- | --- | --- |
+| Actualizar lista de dispositivos | Cmd+R | Ctrl+R |
+| Captura | Cmd+Shift+4 | Ctrl+Shift+4 |
+| Grabar o detener | Cmd+Shift+5 | Ctrl+Shift+5 |
+| Conectar por Wi-Fi | Cmd+Shift+W | Ctrl+Shift+W |
+| Ajustes | Cmd+, | Ctrl+, |
+| «Atrás» en el teléfono | Clic derecho en la ventana | Clic derecho en la ventana |
+
+## Lo que Vysor cobra, aquí viene incluido
+
+Comparación con los planes públicos de Vysor, que cambian con el tiempo; confirma en su sitio.
+
+- Wi-Fi: Masaya lo incluye; Vysor lo ofrece solo en Pro.
+- Calidad: Masaya es ajustable hasta 2560 px; en Vysor gratis es limitada y HD es de Pro.
+- Anuncios: Masaya no tiene; Vysor gratis sí, y se quitan con Pro.
+- Planes: Masaya no bloquea funciones; Vysor tiene un plan Pro de pago.
+
+## Preguntas frecuentes
+
+### La app dice «Falta adb»
+Pulsa «Descargar platform-tools» e instálalo, o elige el adb que ya tienes con «Elegir adb…». Luego pulsa «Reintentar».
+
+### Mi teléfono aparece como «Sin autorizar»
+Desbloquea el teléfono y acepta el aviso «¿Permitir depuración USB?». Marca «Permitir siempre desde este equipo» para no repetirlo.
+
+### ¿Funciona con iPhone?
+Todavía no. El soporte para iPhone y iPad (iOS) está en camino. Por ahora, Masaya funciona con teléfonos y tablets Android.
+
+### ¿Necesito cable?
+No. Puedes vincular por Wi-Fi escaneando un código QR. El teléfono y el equipo deben estar en la misma red.
+
+### ¿Envía mis datos a internet?
+No. Tu pantalla, tus capturas y lo que escribes se quedan entre tu equipo y tu teléfono. La app solo se conecta a internet para consultar en GitHub si hay una versión nueva, y esa consulta no incluye tus datos.
+
+## Privacidad
+
+La app no tiene servidores propios y no envía tus datos a ninguna parte. El video viaja del teléfono al equipo por USB o por la red local. Las capturas y grabaciones se guardan solo en la carpeta que elijas. La única conexión a internet que hace la app es la búsqueda de actualizaciones en GitHub Releases (macOS, Windows y AppImage). El sitio web no carga recursos de terceros. Política completa: https://donmanueldev.github.io/manolo-mirror/privacy.html

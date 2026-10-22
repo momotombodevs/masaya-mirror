@@ -52,7 +52,7 @@ describe('MirrorStreamClient', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubGlobal('window', {
-      manolo: {
+      masaya: {
         notifyMirrorStreamReady,
       },
     });

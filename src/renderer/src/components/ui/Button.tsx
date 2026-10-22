@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes } from 'react';
 import { cx } from './cx';
 
-type ButtonVariant = 'default' | 'primary' | 'plain' | 'toolbar';
+type ButtonVariant = 'default' | 'primary' | 'plain' | 'link' | 'danger' | 'toolbar';
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   default:
@@ -9,6 +9,8 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary:
     'border border-transparent bg-accent font-medium text-white enabled:hover:opacity-90 enabled:active:opacity-75',
   plain: 'border border-transparent text-ink-2 enabled:hover:bg-hover enabled:hover:text-ink',
+  link: 'border border-transparent text-accent enabled:hover:bg-hover',
+  danger: 'border border-transparent text-danger enabled:hover:bg-hover',
   toolbar:
     'border border-transparent text-mirror-text enabled:hover:bg-mirror-hover enabled:active:bg-mirror-line',
 };

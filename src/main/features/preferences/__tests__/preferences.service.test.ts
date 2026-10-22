@@ -10,7 +10,7 @@ describe('PreferencesService', () => {
   let file: string;
 
   beforeEach(() => {
-    dir = mkdtempSync(path.join(tmpdir(), 'manolo-prefs-'));
+    dir = mkdtempSync(path.join(tmpdir(), 'masaya-prefs-'));
     file = path.join(dir, 'nested', 'settings.json');
   });
 

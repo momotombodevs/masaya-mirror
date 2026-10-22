@@ -15,7 +15,7 @@ const childEnv = {
 delete childEnv.ELECTRON_RUN_AS_NODE;
 
 if (openDevtools) {
-  childEnv.MANOLO_OPEN_DEVTOOLS = '1';
+  childEnv.MASAYA_OPEN_DEVTOOLS = '1';
 }
 
 const child = spawn(process.execPath, [viteEntrypoint, ...viteArgs], {

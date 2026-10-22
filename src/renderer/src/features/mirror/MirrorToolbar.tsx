@@ -19,7 +19,7 @@ import { ANDROID_KEYCODE } from './android-keycodes';
 import { useApkInstall } from './useApkInstall';
 import { useDeviceKeys } from './useDeviceKeys';
 import { useToolbarStatus } from './useToolbarStatus';
-import { callApi } from '../../shared/manolo-api';
+import { callApi } from '../../shared/masaya-api';
 import { usePreferences } from '../../shared/preferences';
 
 type MirrorToolbarProps = {

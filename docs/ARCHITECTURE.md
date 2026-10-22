@@ -1,6 +1,6 @@
 # Arquitectura
 
-Manolo Mirror es una app Electron con tres procesos de código. El video nunca pasa por el proceso de
+Masaya es una app Electron con tres procesos de código. El video nunca pasa por el proceso de
 interfaz principal: viaja por un canal dedicado y se decodifica en la ventana del espejo.
 
 ## Vista general
@@ -118,7 +118,7 @@ El renderer no es de confianza. Cada canal IPC:
 3. valida el resto del mensaje con reglas numéricas explícitas (`parseNumericFields`): los campos
    obligatorios deben existir y estar dentro de rango.
 
-Además, cada ventana recibe una API recortada (`exposeOnly` en `manolo.api.ts`): la ventana principal
+Además, cada ventana recibe una API recortada (`exposeOnly` en `masaya.api.ts`): la ventana principal
 no puede enviar control y la del espejo no puede listar dispositivos ni cambiar `adb`. Las acciones de
 configuración (`setup.handlers.ts`) también rechazan a las ventanas del espejo en el proceso principal.
 

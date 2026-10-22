@@ -3,7 +3,7 @@ import type { Locale } from '../shared/i18n/locale';
 import { createTranslator, type Translate } from '../shared/i18n/messages';
 import { MENU_ACTION_CHANNEL, type MenuAction } from '../shared/ipc/menu.contract';
 
-const APP_NAME = 'Manolo Mirror';
+const APP_NAME = 'Masaya';
 
 /** Sends a menu command to the focused window, which decides whether it applies. */
 function sendToFocusedWindow(action: MenuAction): void {

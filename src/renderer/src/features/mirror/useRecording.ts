@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RecordingFormat } from '../../../../shared/preferences/types';
 import { useI18n } from '../../shared/i18n';
-import { callApi } from '../../shared/manolo-api';
+import { callApi } from '../../shared/masaya-api';
 import { encodeGif } from './gif-encoder';
 import { createCanvasFrameGrabber, GifRecorder } from './gif-recorder';
 import { GIF_MIME_TYPE, pickVideoMimeType } from './recording-formats';

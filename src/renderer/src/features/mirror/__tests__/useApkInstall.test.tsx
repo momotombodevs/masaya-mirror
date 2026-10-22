@@ -19,7 +19,7 @@ describe('useApkInstall', () => {
     installApk.mockReset().mockResolvedValue({ ok: true, value: { installed: true } });
     report.mockClear();
     clear.mockClear();
-    vi.stubGlobal('manolo', { installApk, getPathForFile });
+    vi.stubGlobal('masaya', { installApk, getPathForFile });
   });
 
   afterEach(() => {

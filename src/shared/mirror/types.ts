@@ -71,10 +71,14 @@ type MirrorScrollControl = {
   readonly pointerY: number;
   readonly videoWidth: number;
   readonly videoHeight: number;
+  /** In wheel notches, as scrcpy counts them: 1 scrolls as far as one notch of a mouse wheel. */
   readonly scrollX: number;
   readonly scrollY: number;
   readonly buttons: number;
 };
+
+/** Largest scroll, in notches, a single message may carry. */
+export const MAX_SCROLL_NOTCHES = 10;
 
 type MirrorKeyControl = {
   readonly type: 'key';

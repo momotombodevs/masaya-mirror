@@ -1,8 +1,10 @@
 import QRCode from 'qrcode';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '../../components/ui/Button';
+import { IconTile } from '../../components/ui/IconTile';
+import { QrIcon } from '../../components/ui/icons';
 import { useI18n } from '../../shared/i18n';
-import { callApi } from '../../shared/manolo-api';
+import { callApi } from '../../shared/masaya-api';
 
 type QrPairingPanelProps = {
   /** Called once the phone is paired and connected, so the device list can refresh. */
@@ -119,8 +121,12 @@ export function QrPairingPanel({ onConnected }: QrPairingPanelProps): JSX.Elemen
         </>
       ) : (
         <>
+          <IconTile tone="blue" size="lg" className="mb-1">
+            <QrIcon />
+          </IconTile>
           <p className="text-center text-ink-2">{t('qr.intro')}</p>
           <Button
+            className="mt-1.5"
             variant="primary"
             onClick={() => void start()}
             disabled={state.step === 'starting'}

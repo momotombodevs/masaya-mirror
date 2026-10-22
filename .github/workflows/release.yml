@@ -59,7 +59,7 @@ jobs:
           - name: macOS (arm64 + x64)
             runner: macos-14
             command: pnpm build:mac
-            artifact: manolo-mirror-macos
+            artifact: masaya-macos
             files: |
               release/**/*.dmg
               release/**/*.zip
@@ -68,7 +68,7 @@ jobs:
           - name: Windows (x64)
             runner: windows-latest
             command: pnpm build:win
-            artifact: manolo-mirror-windows
+            artifact: masaya-windows
             files: |
               release/**/*.exe
               release/**/*.blockmap
@@ -76,7 +76,7 @@ jobs:
           - name: Linux (x64 + arm64)
             runner: ubuntu-latest
             command: pnpm build:linux
-            artifact: manolo-mirror-linux
+            artifact: masaya-linux
             files: |
               release/**/*.AppImage
               release/**/*.deb

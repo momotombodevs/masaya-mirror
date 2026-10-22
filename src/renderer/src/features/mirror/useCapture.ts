@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useI18n } from '../../shared/i18n';
-import { callApi } from '../../shared/manolo-api';
+import { callApi } from '../../shared/masaya-api';
 import type { CaptureAction } from '../../../../shared/preferences/types';
 import { captureCanvasPng } from './capture-canvas';
 

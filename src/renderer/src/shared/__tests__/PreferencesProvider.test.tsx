@@ -19,7 +19,7 @@ describe('PreferencesProvider', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     setPreferences.mockResolvedValue({ ok: true, value: DEFAULT_PREFERENCES });
-    vi.stubGlobal('manolo', {
+    vi.stubGlobal('masaya', {
       getPreferences,
       setPreferences,
       onLanguageChange: (listener: (language: LanguagePreference) => void) => {

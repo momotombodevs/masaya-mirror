@@ -423,12 +423,12 @@ describe('parseMdnsServices', () => {
   it('reads pairing and connect services from adb mdns output', () => {
     const stdout = [
       'List of discovered mdns services',
-      'manolo-a1b2c3\t_adb-tls-pairing._tcp\t192.168.1.23:41921',
+      'masaya-a1b2c3\t_adb-tls-pairing._tcp\t192.168.1.23:41921',
       'adb-R5CT123456-abcdef\t_adb-tls-connect._tcp\t192.168.1.23:38711',
     ].join('\n');
 
     expect(parseMdnsServices(stdout)).toEqual([
-      { name: 'manolo-a1b2c3', kind: 'pairing', address: '192.168.1.23:41921' },
+      { name: 'masaya-a1b2c3', kind: 'pairing', address: '192.168.1.23:41921' },
       { name: 'adb-R5CT123456-abcdef', kind: 'connect', address: '192.168.1.23:38711' },
     ]);
   });

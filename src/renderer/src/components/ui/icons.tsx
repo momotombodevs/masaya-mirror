@@ -123,20 +123,63 @@ export function RecentsIcon(): JSX.Element {
   );
 }
 
-export function PhoneIcon({ className }: { readonly className?: string }): JSX.Element {
+/** Stroked 24×24 glyph whose size is set by its container (an icon tile or a chip). */
+const GLYPH_PROPS = { ...ICON_PROPS, width: 16, height: 16 } as const;
+
+/** A glyph from SVG path data, as the settings rows store their icons. */
+export function PathGlyph({ d }: { readonly d: string }): JSX.Element {
   return (
-    <svg
-      className={className}
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
+    <svg {...GLYPH_PROPS} strokeWidth={2}>
+      <path d={d} />
+    </svg>
+  );
+}
+
+export function PhoneIcon(): JSX.Element {
+  return (
+    <svg {...GLYPH_PROPS}>
       <rect x="7" y="2.5" width="10" height="19" rx="2.5" />
       <path d="M11 18.5h2" />
+    </svg>
+  );
+}
+
+export function QrIcon(): JSX.Element {
+  return (
+    <svg {...GLYPH_PROPS}>
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <path d="M14 14h3v3h-3zM20 14v.01M14 20h.01M17 20h4v-3" />
+    </svg>
+  );
+}
+
+export function WarningIcon(): JSX.Element {
+  return (
+    <svg {...GLYPH_PROPS}>
+      <path d="M12 8v5M12 16.5v.01" />
+      <path d="M10.3 3.9 2.6 17.5A2 2 0 0 0 4.3 20.5h15.4a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+    </svg>
+  );
+}
+
+export function UsbIcon(): JSX.Element {
+  return (
+    <svg {...GLYPH_PROPS} width={12} height={12} strokeWidth={2}>
+      <path d="M12 3v14M12 3l-2.5 3h5zM7 10v2.5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9" />
+      <circle cx="12" cy="19" r="2" />
+      <rect x="5.5" y="8" width="3" height="2" />
+      <circle cx="17" cy="8" r="1.3" />
+    </svg>
+  );
+}
+
+export function WifiIcon(): JSX.Element {
+  return (
+    <svg {...GLYPH_PROPS} width={12} height={12} strokeWidth={2}>
+      <path d="M2 8.8a15 15 0 0 1 20 0M5.5 12.3a10 10 0 0 1 13 0M9 15.8a5 5 0 0 1 6 0" />
+      <circle cx="12" cy="19" r="1" />
     </svg>
   );
 }

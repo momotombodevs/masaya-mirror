@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { callApi } from '../../shared/manolo-api';
+import { callApi } from '../../shared/masaya-api';
 import { sameItems } from '../../shared/same-items';
 
 export type MirrorStatus = {

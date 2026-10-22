@@ -1,765 +1,1315 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" class="no-js">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Manolo Mirror — Espeja y controla Android desde tu escritorio</title>
+    <title data-i18n="meta.title">
+      Masaya: ve y controla tu Android desde macOS, Windows y Linux
+    </title>
     <meta
       name="description"
-      content="Manolo Mirror espeja y controla dispositivos Android en macOS, Windows y Linux. Captura, graba y conecta por Wi-Fi con un QR. Sin cuentas ni anuncios."
+      content="Ve y controla tu Android desde macOS, Windows o Linux. Mouse, teclado, captura y grabación, por USB o Wi-Fi con un QR. Gratis, sin cuentas ni anuncios."
     />
-    <meta name="theme-color" content="#0f3d3e" />
-    <link rel="icon" type="image/svg+xml" href="manolo-logo.svg" />
-    <link rel="preload" href="fonts/schibsted.woff2" as="font" type="font/woff2" crossorigin />
-    <link rel="stylesheet" href="style.css?v=4" />
+    <meta name="theme-color" content="#18181b" />
+    <meta name="color-scheme" content="dark" />
+    <link rel="canonical" href="https://donmanueldev.github.io/manolo-mirror/" />
+    <meta name="robots" content="index, follow, max-image-preview:large" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Masaya" />
+    <meta property="og:locale" content="es_ES" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:url" content="https://donmanueldev.github.io/manolo-mirror/" />
+    <meta property="og:title" content="Masaya: tu Android, en grande" />
+    <meta
+      property="og:description"
+      content="Ve y controla tu Android desde macOS, Windows o Linux. Mouse, teclado, captura y grabación, por USB o Wi-Fi con un QR. Gratis, sin cuentas ni anuncios."
+    />
+    <meta property="og:image" content="https://donmanueldev.github.io/manolo-mirror/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="El logo de Masaya y el titular «Tu Android, en grande.» junto a la ventana de duplicación de un Pixel 8"
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Masaya: tu Android, en grande" />
+    <meta
+      name="twitter:description"
+      content="Ve y controla tu Android desde macOS, Windows o Linux. Mouse, teclado, captura y grabación, por USB o Wi-Fi con un QR. Gratis, sin cuentas ni anuncios."
+    />
+    <meta
+      name="twitter:image"
+      content="https://donmanueldev.github.io/manolo-mirror/og-image.png"
+    />
+    <link
+      rel="alternate"
+      type="text/plain"
+      href="https://donmanueldev.github.io/manolo-mirror/llms.txt"
+      title="llms.txt"
+    />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "SoftwareApplication",
+        "@id": "https://donmanueldev.github.io/manolo-mirror/#app",
+        "name": "Masaya",
+        "url": "https://donmanueldev.github.io/manolo-mirror/",
+        "description": "Aplicación de escritorio para ver y controlar un teléfono Android desde macOS, Windows y Linux, por USB o por Wi-Fi con un código QR.",
+        "applicationCategory": "UtilitiesApplication",
+        "applicationSubCategory": "Android screen mirroring",
+        "operatingSystem": "macOS, Windows, Linux",
+        "inLanguage": ["es", "en"],
+        "downloadUrl": "https://github.com/donmanueldev/manolo-mirror/releases/latest",
+        "installUrl": "https://github.com/donmanueldev/manolo-mirror/releases/latest",
+        "image": "https://donmanueldev.github.io/manolo-mirror/og-image.png",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD",
+          "availability": "https://schema.org/InStock"
+        },
+        "featureList": [
+          "Una ventana por dispositivo, con barra de herramientas y navegación",
+          "Control completo: toques, multitouch, arrastre, rueda y teclado con acentos",
+          "Captura de pantalla y grabación a 16 Mbps, desde la barra o con atajos",
+          "Conexión por Wi-Fi con código QR, sin cable ni direcciones IP",
+          "Instalación de APK arrastrando el archivo a la ventana",
+          "Calidad ajustable: preajustes, resolución, velocidad de datos y códec H.264 o H.265",
+          "Tema claro y oscuro, en español e inglés",
+          "Sin cuentas, sin anuncios, sin nube y sin telemetría"
+        ],
+        "author": {
+          "@type": "Organization",
+          "name": "Momotombo Devs",
+          "url": "https://github.com/donmanueldev"
+        },
+        "softwareRequirements": "adb (Android platform-tools) y un teléfono Android con la depuración USB activada",
+        "isAccessibleForFree": true,
+        "sameAs": ["https://github.com/donmanueldev/manolo-mirror"]
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebSite",
+        "@id": "https://donmanueldev.github.io/manolo-mirror/#site",
+        "url": "https://donmanueldev.github.io/manolo-mirror/",
+        "name": "Masaya",
+        "inLanguage": "es",
+        "publisher": {
+          "@type": "Organization",
+          "name": "Momotombo Devs"
+        }
+      }
+    </script>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        "mainEntity": [
+          {
+            "@type": "Question",
+            "name": "La app dice «Falta adb»",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Pulsa «Descargar platform-tools» e instálalo, o elige el adb que ya tienes con «Elegir adb…». Luego pulsa «Reintentar»."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "Mi teléfono aparece como «Sin autorizar»",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Desbloquea el teléfono y acepta el aviso «¿Permitir depuración USB?». Marca «Permitir siempre desde este equipo» para no repetirlo."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "¿Funciona con iPhone?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Todavía no. El soporte para iPhone y iPad (iOS) está en camino. Por ahora, Masaya funciona con teléfonos y tablets Android."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "¿Necesito cable?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. Puedes vincular por Wi-Fi escaneando un código QR. El teléfono y el equipo deben estar en la misma red."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "¿Envía mis datos a internet?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "No. Tu pantalla, tus capturas y lo que escribes se quedan entre tu equipo y tu teléfono. La app solo se conecta a internet para consultar en GitHub si hay una versión nueva, y esa consulta no incluye tus datos."
+            }
+          }
+        ]
+      }
+    </script>
+    <link rel="icon" type="image/svg+xml" href="masaya-logo.svg" />
+    <link
+      rel="preload"
+      href="fonts/instrument-sans-latin-600-normal.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="stylesheet" href="style.css?v=5" />
   </head>
   <body>
-    <!-- icon sprite -->
-    <svg width="0" height="0" style="position: absolute" aria-hidden="true">
+    <!-- icon sprite: every icon is decorative; labels live on the controls -->
+    <svg width="0" height="0" class="d-sprite" aria-hidden="true">
       <defs>
         <symbol id="i-apple" viewBox="0 0 24 24">
           <path
-            d="M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09zM15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701"
+            d="M16.5 12.6c0-2.3 1.9-3.4 2-3.5-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9s-1.8-.9-3-.9C7 7.3 5.5 8.3 4.7 9.8 3 12.7 4.3 17 5.9 19.3c.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2.1-1.1 2.8-2.3.9-1.3 1.3-2.6 1.3-2.7-.1 0-2.4-.9-2.4-4zM14.3 5.6c.6-.8 1.1-1.8 1-2.9-.9 0-2 .6-2.7 1.4-.6.7-1.1 1.8-1 2.8 1 .1 2-.5 2.7-1.3z"
           />
         </symbol>
         <symbol id="i-win" viewBox="0 0 24 24">
           <path
-            d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"
+            d="M3 5.5l7.5-1v7H3zM12 4.3L21 3v8.5h-9zM3 12.5h7.5v7L3 18.5zM12 12.5h9V21l-9-1.3z"
           />
         </symbol>
-        <symbol
-          id="i-check"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2.4"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M5 12.5l4.5 4.5L19 7.5" />
-        </symbol>
-        <symbol
-          id="i-x"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2.4"
-          stroke-linecap="round"
-        >
-          <path d="M6 6l12 12M18 6L6 18" />
-        </symbol>
-        <symbol
-          id="i-down"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 20h14" />
-        </symbol>
-        <symbol
-          id="i-info"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-        >
-          <circle cx="12" cy="12" r="9" />
-          <path d="M12 11v5M12 7.8v.1" />
-        </symbol>
-        <symbol
-          id="i-screen"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.9"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <rect x="3" y="4" width="18" height="12" rx="2" />
-          <path d="M8 20h8M12 16v4" />
-        </symbol>
-        <symbol
-          id="i-touch"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.9"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
+        <symbol id="i-linux" viewBox="0 0 24 24">
           <path
-            d="M9 11V5.5a1.5 1.5 0 013 0V11m0-1.5a1.5 1.5 0 013 0V11m0-.5a1.5 1.5 0 013 0V15a6 6 0 01-6 6h-1a6 6 0 01-4.7-2.3L4 15.5a1.5 1.5 0 012.3-1.9L9 16"
+            d="M12 3c-2.2 0-3.3 1.8-3.3 4.2 0 1.6-.5 2.6-1.6 4.1C5.8 13 5 14.6 5 16.5 5 19.6 8 21 12 21s7-1.4 7-4.5c0-1.9-.8-3.5-2.1-5.2-1.1-1.5-1.6-2.5-1.6-4.1C15.3 4.8 14.2 3 12 3z"
+          />
+          <circle cx="10.5" cy="7.5" r=".6" />
+          <circle cx="13.5" cy="7.5" r=".6" />
+          <path d="M10.8 9.6h2.4" />
+        </symbol>
+        <symbol id="i-book" viewBox="0 0 24 24">
+          <path d="M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM4 19V5M8 7h7" />
+        </symbol>
+        <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" /></symbol>
+        <symbol id="i-shield" viewBox="0 0 24 24">
+          <path d="M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6z" />
+          <path d="M8.5 12l2.5 2.5 4.5-5" />
+        </symbol>
+        <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></symbol>
+        <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></symbol>
+        <symbol id="i-wifi" viewBox="0 0 24 24">
+          <path d="M2 8.8a15 15 0 0 1 20 0M5.5 12.3a10 10 0 0 1 13 0M9 15.8a5 5 0 0 1 6 0" />
+          <circle cx="12" cy="19" r="1" />
+        </symbol>
+        <symbol id="i-window" viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="16" rx="2.5" />
+          <path d="M3 9h18" />
+        </symbol>
+        <symbol id="i-phone" viewBox="0 0 24 24">
+          <rect x="7" y="2.5" width="10" height="19" rx="2.5" />
+          <path d="M11 18.5h2" />
+        </symbol>
+        <symbol id="i-usb" viewBox="0 0 24 24">
+          <path d="M12 3v14M12 3l-2.5 3h5zM7 10v2.5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9" />
+          <circle cx="12" cy="19" r="2" />
+          <rect x="5.5" y="8" width="3" height="2" />
+          <circle cx="17" cy="8" r="1.3" />
+        </symbol>
+        <symbol id="i-pointer" viewBox="0 0 24 24"><path d="M5 3l14 8-6 2-2 6z" /></symbol>
+        <symbol id="i-install" viewBox="0 0 24 24">
+          <path d="M12 3v12m0 0-4-4m4 4 4-4" />
+          <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+        </symbol>
+        <symbol id="i-sliders" viewBox="0 0 24 24">
+          <path d="M4 7h10M18 7h2M4 17h2M10 17h10" />
+          <circle cx="16" cy="7" r="2" />
+          <circle cx="8" cy="17" r="2" />
+        </symbol>
+        <symbol id="i-sun" viewBox="0 0 24 24">
+          <path
+            d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"
           />
         </symbol>
-        <symbol
-          id="i-camera"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.9"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M4 8h3l1.5-2h7L17 8h3v11H4z" />
-          <circle cx="12" cy="13" r="3.5" />
+        <symbol id="i-vol-up" viewBox="0 0 24 24">
+          <path d="M11 5 6 9H2v6h4l5 4z" />
+          <path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14" />
         </symbol>
-        <symbol id="i-rec" viewBox="0 0 24 24" fill="currentColor">
-          <circle cx="12" cy="12" r="6.5" />
+        <symbol id="i-vol-down" viewBox="0 0 24 24">
+          <path d="M11 5 6 9H2v6h4l5 4z" />
+          <path d="M15.5 8.5a5 5 0 0 1 0 7" />
         </symbol>
-        <symbol
-          id="i-wifi"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.9"
-          stroke-linecap="round"
-        >
-          <path d="M3 9.5a14 14 0 0118 0M6 13a9.5 9.5 0 0112 0M9 16.5a5 5 0 016 0" />
-          <circle cx="12" cy="19.5" r="1" fill="currentColor" />
+        <symbol id="i-power" viewBox="0 0 24 24">
+          <path d="M12 2v10" />
+          <path d="M18.4 6.6a9 9 0 1 1-12.8 0" />
         </symbol>
-        <symbol
-          id="i-apk"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.9"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" />
-          <path d="M12 12l8-4.5M12 12v9M12 12L4 7.5" />
+        <symbol id="i-camera" viewBox="0 0 24 24">
+          <path
+            d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"
+          />
+          <circle cx="12" cy="13" r="4" />
         </symbol>
-        <symbol
-          id="i-moon"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.9"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M20 14.5A8 8 0 019.5 4 8 8 0 1020 14.5z" />
+        <symbol id="i-expand" viewBox="0 0 24 24">
+          <path
+            d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"
+          />
         </symbol>
-        <symbol
-          id="i-sliders"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.9"
-          stroke-linecap="round"
-        >
-          <path d="M4 7h9m4 0h3M4 17h3m4 0h9" />
-          <circle cx="15" cy="7" r="2" />
-          <circle cx="9" cy="17" r="2" />
-        </symbol>
-        <symbol
-          id="i-shield"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="1.9"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M12 3l7 3v5c0 4.5-3 8.2-7 10-4-1.8-7-5.5-7-10V6z" />
-          <path d="M9 12l2.2 2.2L15.5 10" />
-        </symbol>
-        <symbol
-          id="i-vol"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M4 10v4h3l5 4V6L7 10zM16 9a4 4 0 010 6" />
-        </symbol>
-        <symbol
-          id="i-power"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-        >
-          <path d="M12 3v8M6.6 6.6a7.5 7.5 0 1010.8 0" />
-        </symbol>
-        <symbol
-          id="i-full"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          stroke-width="2"
-          stroke-linecap="round"
-          stroke-linejoin="round"
-        >
-          <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+        <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" /></symbol>
+        <symbol id="i-home" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7" /></symbol>
+        <symbol id="i-recents" viewBox="0 0 24 24">
+          <rect x="6" y="6" width="12" height="12" rx="2" />
         </symbol>
       </defs>
     </svg>
 
-    <a class="skip" href="#contenido">Saltar al contenido</a>
+    <a class="d-skip" href="#contenido" data-i18n="nav.skip">Saltar al contenido</a>
 
-    <header class="topbar">
-      <div class="topbar-in">
-        <a class="brand" href="./"><img src="manolo-logo.svg" alt="" />Manolo Mirror</a>
-        <nav class="topnav" aria-label="Principal">
-          <a href="#funciones">Funciones</a>
+    <header class="d-nav">
+      <div class="d-wrap d-nav__in">
+        <a class="d-brand" href="./"
+          ><img src="masaya-logo.svg" alt="" width="28" height="28" />Masaya</a
+        >
+        <nav class="d-links" aria-label="Principal" data-i18n-label="nav.label">
+          <a href="#funciones" data-i18n="nav.features">Funciones</a>
+          <a href="#empezar" data-i18n="nav.start">Empezar</a>
+          <a href="#atajos" data-i18n="nav.shortcuts">Atajos</a>
           <a href="#vysor">Vs. Vysor</a>
-          <a href="#empezar">Guía</a>
-          <a class="pill" href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
-            >Descargar</a
-          >
+          <a href="https://github.com/donmanueldev/manolo-mirror">GitHub</a>
         </nav>
+        <div class="d-lang" role="group" aria-label="Idioma" data-i18n-label="nav.lang">
+          <button type="button" data-lang="es" aria-pressed="true" lang="es">ES</button>
+          <button type="button" data-lang="en" aria-pressed="false" lang="en">EN</button>
+        </div>
+        <a
+          class="d-btn d-btn--main d-btn--sm d-nav__dl"
+          href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
+          data-i18n="nav.download"
+          >Descargar</a
+        >
+        <details class="d-menu">
+          <summary class="d-menu__btn" aria-label="Menú" data-i18n-label="nav.menu">
+            <svg
+              width="20"
+              height="20"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <use href="#i-menu" />
+            </svg>
+          </summary>
+          <div class="d-menu__panel">
+            <nav aria-label="Principal" data-i18n-label="nav.label">
+              <a href="#funciones" data-i18n="nav.features">Funciones</a>
+              <a href="#empezar" data-i18n="nav.start">Empezar</a>
+              <a href="#atajos" data-i18n="nav.shortcuts">Atajos</a>
+              <a href="#vysor">Vs. Vysor</a>
+              <a href="#ayuda" data-i18n="nav.help">Ayuda</a>
+              <a href="https://github.com/donmanueldev/manolo-mirror">GitHub</a>
+            </nav>
+            <div class="d-menu__row">
+              <div class="d-lang" role="group" aria-label="Idioma" data-i18n-label="nav.lang">
+                <button type="button" data-lang="es" aria-pressed="true" lang="es">ES</button>
+                <button type="button" data-lang="en" aria-pressed="false" lang="en">EN</button>
+              </div>
+              <a
+                class="d-btn d-btn--main d-btn--sm"
+                href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
+                data-i18n="nav.download"
+                >Descargar</a
+              >
+            </div>
+          </div>
+        </details>
       </div>
     </header>
 
-    <section class="hero">
-      <div class="hero-in">
-        <div>
-          <h1>Espeja y controla tu Android desde el escritorio</h1>
-          <p class="lead">
-            Mouse, teclado, captura y grabación. Por USB o
-            <span style="white-space: nowrap">Wi-Fi</span> con un QR. Sin cuentas ni anuncios.
+    <main id="contenido">
+      <section class="d-hero" id="descargar">
+        <div class="d-wrap">
+          <p class="d-cmd">
+            <span class="d-dot" aria-hidden="true"></span
+            ><span data-i18n="hero.status"><b>Galaxy S23 Ultra</b> conectado por USB</span>
           </p>
-          <div class="cta">
+          <div class="d-title">
+            <h1 class="d-h1" data-i18n="hero.title">Tu Android, en grande.</h1>
+            <div class="d-reflbox" aria-hidden="true">
+              <p class="d-h1 d-h1--refl" data-i18n="hero.title">Tu Android, en grande.</p>
+            </div>
+          </div>
+          <p class="d-lead" data-i18n="hero.lead">
+            Ve y controla tu teléfono desde macOS, Windows o Linux con mouse y teclado. Captura y
+            graba lo que pasa mientras pruebas. Por USB, o por Wi-Fi con un código QR.
+          </p>
+          <div class="d-dl">
             <a
-              class="btn btn-primary"
+              class="d-btn d-btn--main"
+              href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
               data-dl
-              href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
-              ><svg><use href="#i-apple" /></svg>Descargar para macOS</a
+              ><svg
+                width="19"
+                height="19"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <use href="#i-apple" /></svg
+              ><span data-i18n="dl.mac">Descargar para macOS</span></a
             >
             <a
-              class="btn btn-ghost"
+              class="d-btn d-btn--line"
               href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
-              ><svg><use href="#i-win" /></svg>Windows</a
+              data-os="mac"
+              hidden
+              ><svg
+                width="17"
+                height="17"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <use href="#i-apple" /></svg
+              >macOS</a
             >
             <a
-              class="btn btn-ghost"
+              class="d-btn d-btn--line"
               href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
+              data-os="win"
+              ><svg
+                width="17"
+                height="17"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <use href="#i-win" /></svg
+              >Windows</a
+            >
+            <a
+              class="d-btn d-btn--line"
+              href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
+              data-os="linux"
+              ><svg
+                width="17"
+                height="17"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.6"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <use href="#i-linux" /></svg
               >Linux</a
             >
           </div>
-          <ul class="trust" aria-label="Ventajas">
-            <li>Sin cuentas</li>
-            <li>Sin anuncios</li>
-            <li>Sin telemetría</li>
-            <li>Wi-Fi incluido</li>
-          </ul>
-          <p class="platforms">
-            Apple Silicon e Intel · <a href="#vysor">Mejor que Vysor: compáralos</a>
+          <div class="d-mdl">
+            <a
+              class="d-btn d-btn--main"
+              href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
+              data-i18n="hero.downloads"
+              >Ver descargas</a
+            >
+            <a class="d-btn d-btn--line" href="https://github.com/donmanueldev/manolo-mirror"
+              ><svg
+                width="17"
+                height="17"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <use href="#i-book" /></svg
+              ><span data-i18n="hero.code">Código en GitHub</span></a
+            >
+            <div class="d-mdl__os">
+              <a href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
+                ><svg
+                  width="15"
+                  height="15"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <use href="#i-apple" /></svg
+                >macOS</a
+              >
+              <a href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
+                ><svg
+                  width="14"
+                  height="14"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <use href="#i-win" /></svg
+                >Windows</a
+              >
+              <a href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
+                ><svg
+                  width="14"
+                  height="14"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <use href="#i-linux" /></svg
+                >Linux</a
+              >
+            </div>
+          </div>
+          <p class="d-hero-note" data-i18n="hero.note">
+            Para Android. <span>iOS próximamente.</span>
           </p>
         </div>
-        <div
-          class="demo"
-          role="img"
-          aria-label="El teléfono y su copia en la ventana responden al mismo toque"
-        >
-          <div class="phone">
-            <div class="scr" style="height: 100%">
-              <div class="scr-top">Tu app<small>Pedido 2481</small></div>
-              <div class="scr-row"><i></i>Café<span>$4</span></div>
-              <div class="scr-row"><i></i>Pan<span>$2</span></div>
-              <div class="scr-row"><i></i>Jugo<span>$3</span></div>
-              <div class="scr-btn">
-                <span class="idle">Pagar</span><span class="ok">Listo</span>
-              </div>
-            </div>
-          </div>
-          <div class="link" aria-hidden="true"></div>
-          <div class="win">
-            <div class="win-bar">
-              <i></i><i></i><i></i>
-              <span class="win-title">Pixel 8</span>
-              <span class="win-tools" aria-hidden="true">
-                <b
-                  ><svg><use href="#i-camera" /></svg
-                ></b>
-                <b class="rec"
-                  ><svg><use href="#i-rec" /></svg
-                ></b>
-                <b
-                  ><svg><use href="#i-full" /></svg
-                ></b>
-              </span>
-            </div>
-            <div class="win-body">
-              <div class="scr">
-                <div class="scr-top">Tu app<small>Pedido 2481</small></div>
-                <div class="scr-row"><i></i>Café<span>$4</span></div>
-                <div class="scr-row"><i></i>Pan<span>$2</span></div>
-                <div class="scr-row"><i></i>Jugo<span>$3</span></div>
-                <div class="scr-btn">
-                  <span class="idle">Pagar</span><span class="ok">Listo</span>
-                </div>
-                <div class="tap"></div>
-              </div>
-            </div>
-            <div class="win-nav" aria-hidden="true"><i></i><i></i><i></i></div>
-          </div>
-        </div>
-      </div>
-    </section>
 
-    <div class="landing">
-      <section class="band" id="funciones">
-        <h2>Todo lo que necesitas para trabajar con tu Android</h2>
-        <ul class="feats">
-          <li>
-            <span class="ico"
-              ><svg aria-hidden="true"><use href="#i-screen" /></svg
-            ></span>
-            <strong>Una ventana por dispositivo.</strong>
-            <span>Con barra de navegación bajo la pantalla.</span>
-          </li>
-          <li>
-            <span class="ico"
-              ><svg aria-hidden="true"><use href="#i-touch" /></svg
-            ></span>
-            <strong>Control completo.</strong>
-            <span>Toques, multitouch, arrastre, rueda y teclado con acentos.</span>
-          </li>
-          <li>
-            <span class="ico"
-              ><svg aria-hidden="true"><use href="#i-camera" /></svg
-            ></span>
-            <strong>Captura y grabación.</strong>
-            <span>Desde la barra o con atajos. Graba a 16 Mbps.</span>
-          </li>
-          <li>
-            <span class="ico"
-              ><svg aria-hidden="true"><use href="#i-wifi" /></svg
-            ></span>
-            <strong>Wi-Fi con QR.</strong>
-            <span>Sin cable ni direcciones IP.</span>
-          </li>
-          <li>
-            <span class="ico"
-              ><svg aria-hidden="true"><use href="#i-apk" /></svg
-            ></span>
-            <strong>Instalar APK.</strong>
-            <span>Arrastra el archivo a la ventana.</span>
-          </li>
-          <li>
-            <span class="ico"
-              ><svg aria-hidden="true"><use href="#i-sliders" /></svg
-            ></span>
-            <strong>Calidad ajustable.</strong>
-            <span>Preajustes, resolución, velocidad de datos y códec.</span>
-          </li>
-          <li>
-            <span class="ico"
-              ><svg aria-hidden="true"><use href="#i-moon" /></svg
-            ></span>
-            <strong>Claro y oscuro.</strong>
-            <span>Sigue el tema del sistema. Español e inglés.</span>
-          </li>
-          <li>
-            <span class="ico"
-              ><svg aria-hidden="true"><use href="#i-shield" /></svg
-            ></span>
-            <strong>Privado.</strong>
-            <span>Sin cuenta, sin nube, sin telemetría.</span>
-          </li>
+        <div class="d-stage">
+          <span class="d-light" aria-hidden="true"></span>
+          <div
+            class="d-win mm"
+            role="img"
+            aria-label="Ventana de Masaya duplicando un Galaxy S23 Ultra con los ajustes de pantalla abiertos"
+            data-i18n-label="hero.winLabel"
+          >
+            <div class="xx-win">
+              <div class="xx-bar xx-bar--dark">
+                <span class="xx-lights"><i></i><i></i><i></i></span>Galaxy S23 Ultra
+              </div>
+              <div class="xx-win__body">
+                <img
+                  class="d-shot"
+                  src="img/app-mirror.webp"
+                  width="880"
+                  height="1624"
+                  alt=""
+                  fetchpriority="high"
+                />
+              </div>
+            </div>
+          </div>
+          <ul class="d-calls">
+            <li class="d-call" style="top: 110px">
+              <div>
+                <b data-i18n="call.quality">Calidad</b
+                ><span data-i18n="call.qualityV">1920 px a 16 Mbps</span>
+              </div>
+              <i></i>
+            </li>
+            <li class="d-call" style="top: 300px">
+              <div>
+                <b data-i18n="call.codec">Códec</b
+                ><span data-i18n="call.codecV">H.264 o H.265</span>
+              </div>
+              <i></i>
+            </li>
+            <li class="d-call" style="top: 490px">
+              <div>
+                <b data-i18n="call.conn">Conexión</b
+                ><span data-i18n="call.connV">USB o Wi-Fi con QR</span>
+              </div>
+              <i></i>
+            </li>
+            <li class="d-call d-call--r" style="top: 80px">
+              <div><b data-i18n="call.shot">Captura</b><span>⌘⇧4</span></div>
+              <i></i>
+            </li>
+            <li class="d-call d-call--r" style="top: 250px">
+              <div><b data-i18n="call.rec">Grabar o detener</b><span>⌘⇧5</span></div>
+              <i></i>
+            </li>
+            <li class="d-call d-call--r" style="top: 420px">
+              <div>
+                <b data-i18n="call.back">«Atrás» en el teléfono</b
+                ><span data-i18n="call.backV">clic derecho</span>
+              </div>
+              <i></i>
+            </li>
+            <li class="d-call d-call--r" style="top: 560px">
+              <div>
+                <b data-i18n="call.apk">Instalar APK</b
+                ><span data-i18n="call.apkV">arrastra el .apk</span>
+              </div>
+              <i></i>
+            </li>
+          </ul>
+          <span class="d-fade" aria-hidden="true"></span>
+        </div>
+        <ul class="d-chips">
+          <li class="d-chip" data-i18n="call.qualityV">1920 px a 16 Mbps</li>
+          <li class="d-chip" data-i18n="call.connV">USB o Wi-Fi con QR</li>
+          <li class="d-chip" data-i18n="chip.shot">⌘⇧4 captura</li>
+          <li class="d-chip" data-i18n="chip.rec">⌘⇧5 graba</li>
         </ul>
       </section>
 
-      <section class="band" id="vysor">
-        <h2>Manolo Mirror frente a Vysor</h2>
-        <div class="tbl">
-          <table>
-            <thead>
-              <tr>
-                <th><span class="sr">Característica</span></th>
-                <th class="us">Manolo Mirror</th>
-                <th>Vysor gratis</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <th scope="row">Wi-Fi</th>
-                <td class="us"><span class="ok">✓</span> Incluido</td>
-                <td><span class="bad">✕</span> Solo en Pro</td>
-              </tr>
-              <tr>
-                <th scope="row">Calidad</th>
-                <td class="us"><span class="ok">✓</span> Ajustable, hasta Máxima</td>
-                <td><span class="bad">✕</span> Limitada; HD en Pro</td>
-              </tr>
-              <tr>
-                <th scope="row">Anuncios</th>
-                <td class="us"><span class="ok">✓</span> Ninguno</td>
-                <td><span class="bad">✕</span> Sí; se quitan con Pro</td>
-              </tr>
-              <tr>
-                <th scope="row">Planes</th>
-                <td class="us"><span class="ok">✓</span> Sin funciones bloqueadas</td>
-                <td><span class="bad">✕</span> Pro de pago</td>
-              </tr>
-            </tbody>
-          </table>
+      <div class="d-wrap">
+        <ul class="d-perks">
+          <li class="d-perk">
+            <svg
+              width="22"
+              height="22"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <use href="#i-shield" />
+            </svg>
+            <div>
+              <b data-i18n="perk.accounts">Sin cuentas</b
+              ><span data-i18n="perk.accountsV">Ni registro ni correo</span>
+            </div>
+          </li>
+          <li class="d-perk">
+            <svg
+              width="22"
+              height="22"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <use href="#i-x" />
+            </svg>
+            <div>
+              <b data-i18n="perk.ads">Sin anuncios</b
+              ><span data-i18n="perk.adsV">Ni planes de pago</span>
+            </div>
+          </li>
+          <li class="d-perk">
+            <svg
+              width="22"
+              height="22"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <use href="#i-wifi" />
+            </svg>
+            <div>
+              <b data-i18n="perk.local">Sin nube</b
+              ><span data-i18n="perk.localV">Ni analítica ni telemetría</span>
+            </div>
+          </li>
+          <li class="d-perk">
+            <svg
+              width="22"
+              height="22"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <use href="#i-window" />
+            </svg>
+            <div>
+              <b data-i18n="perk.os">Multiplataforma</b
+              ><span data-i18n="perk.osV">macOS, Windows y Linux</span>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <section class="d-sec" id="funciones">
+        <div class="d-wrap">
+          <h2 class="d-h2" data-i18n="feat.title">Hecho para probar apps en un teléfono real</h2>
+          <p class="d-sub" data-i18n="feat.sub">
+            Ves la pantalla, la controlas y guardas lo que pasa. Sin instalar ninguna app en el
+            teléfono.
+          </p>
+          <div class="d-hl">
+            <article class="d-hl__card">
+              <div class="d-hl__ui" aria-hidden="true">
+                <img
+                  class="d-shot d-hl__shot d-hl__shot--devices"
+                  src="img/app-devices.webp"
+                  width="800"
+                  height="236"
+                  alt=""
+                  loading="lazy"
+                />
+              </div>
+              <div class="d-hl__txt">
+                <h3 data-i18n="feat.windows">Una ventana por dispositivo</h3>
+                <p data-i18n="feat.windowsV">
+                  Abre varios teléfonos a la vez, cada uno con su barra y su navegación.
+                </p>
+              </div>
+            </article>
+            <article class="d-hl__card">
+              <div class="d-hl__ui" aria-hidden="true">
+                <img
+                  class="d-shot d-hl__shot d-hl__shot--wifi"
+                  src="img/app-wifi.webp"
+                  width="880"
+                  height="446"
+                  alt=""
+                  loading="lazy"
+                />
+              </div>
+              <div class="d-hl__txt">
+                <h3 data-i18n="feat.qr">Wi-Fi con un QR</h3>
+                <p data-i18n="feat.qrV">
+                  Sin cable ni direcciones IP: escanea el código desde Depuración inalámbrica.
+                </p>
+              </div>
+            </article>
+            <article class="d-hl__card">
+              <div class="d-hl__ui" aria-hidden="true">
+                <div class="mm d-hl__capture">
+                  <img
+                    class="d-shot d-hl__shot d-hl__shot--toolbar"
+                    src="img/app-toolbar.webp"
+                    width="1098"
+                    height="104"
+                    alt=""
+                    loading="lazy"
+                  />
+                  <div class="d-hl__keys">
+                    <span
+                      ><span class="d-cap">⌘⇧4</span><span data-i18n="ui.shot">captura</span></span
+                    >
+                    <span><span class="d-cap">⌘⇧5</span><span data-i18n="ui.rec">graba</span></span>
+                  </div>
+                </div>
+              </div>
+              <div class="d-hl__txt">
+                <h3 data-i18n="feat.capture">Captura y grabación</h3>
+                <p data-i18n="feat.captureV">
+                  Desde la barra o con atajos. Graba en video o en GIF, y elige si cada captura se
+                  muestra, se copia o se guarda.
+                </p>
+              </div>
+            </article>
+          </div>
+          <ul class="d-specs">
+            <li class="d-spec">
+              <span class="d-spec__ic"
+                ><svg
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <use href="#i-pointer" /></svg
+              ></span>
+              <div>
+                <h3 data-i18n="spec.control">Control completo</h3>
+                <p data-i18n="spec.controlV">
+                  Toques, multitouch, arrastre, rueda y teclado con acentos.
+                </p>
+              </div>
+            </li>
+            <li class="d-spec">
+              <span class="d-spec__ic"
+                ><svg
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <use href="#i-install" /></svg
+              ></span>
+              <div>
+                <h3 data-i18n="spec.apk">Instalar APK</h3>
+                <p data-i18n="spec.apkV">Arrastra el archivo a la ventana.</p>
+              </div>
+            </li>
+            <li class="d-spec">
+              <span class="d-spec__ic"
+                ><svg
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <use href="#i-sliders" /></svg
+              ></span>
+              <div>
+                <h3 data-i18n="spec.quality">Calidad ajustable</h3>
+                <p data-i18n="spec.qualityV">Preajustes, resolución, velocidad de datos y códec.</p>
+              </div>
+            </li>
+            <li class="d-spec">
+              <span class="d-spec__ic"
+                ><svg
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <use href="#i-sun" /></svg
+              ></span>
+              <div>
+                <h3 data-i18n="spec.theme">Claro y oscuro</h3>
+                <p data-i18n="spec.themeV">Sigue el tema del sistema. En español e inglés.</p>
+              </div>
+            </li>
+            <li class="d-spec">
+              <span class="d-spec__ic"
+                ><svg
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <use href="#i-shield" /></svg
+              ></span>
+              <div>
+                <h3 data-i18n="spec.private">Privado</h3>
+                <p data-i18n="spec.privateV">
+                  Lo que ves y escribes se queda entre tu equipo y tu teléfono.
+                </p>
+              </div>
+            </li>
+          </ul>
         </div>
       </section>
 
-      <section class="band" id="capturas">
-        <h2>Así se ve</h2>
-        <div class="shots">
-          <div class="tabs" role="tablist" aria-label="Pantallas de la app">
-            <button
-              class="tab"
-              role="tab"
-              id="t-espejo"
-              aria-controls="p-espejo"
-              aria-selected="true"
-            >
-              Espejo
-            </button>
-            <button
-              class="tab"
-              role="tab"
-              id="t-lista"
-              aria-controls="p-lista"
-              aria-selected="false"
-              tabindex="-1"
-            >
-              Dispositivos
-            </button>
-            <button
-              class="tab"
-              role="tab"
-              id="t-qr"
-              aria-controls="p-qr"
-              aria-selected="false"
-              tabindex="-1"
-            >
-              Wi-Fi por QR
-            </button>
-            <button
-              class="tab"
-              role="tab"
-              id="t-ajustes"
-              aria-controls="p-ajustes"
-              aria-selected="false"
-              tabindex="-1"
-            >
-              Ajustes
-            </button>
-          </div>
-          <div class="stage">
-            <div class="panel" id="p-espejo" role="tabpanel" aria-labelledby="t-espejo">
-              <div class="win" style="max-width: 300px">
-                <div class="win-bar">
-                  <i></i><i></i><i></i>
-                  <span class="win-title">Pixel 8</span>
-                  <span class="win-tools" aria-hidden="true">
-                    <b
-                      ><svg><use href="#i-vol" /></svg
-                    ></b>
-                    <b
-                      ><svg><use href="#i-power" /></svg
-                    ></b>
-                    <b
-                      ><svg><use href="#i-camera" /></svg
-                    ></b>
-                    <b class="rec"
-                      ><svg><use href="#i-rec" /></svg
-                    ></b>
-                    <b
-                      ><svg><use href="#i-full" /></svg
-                    ></b>
-                  </span>
-                </div>
-                <div class="win-body">
-                  <div class="scr" style="max-height: 340px">
-                    <div class="scr-top">Tu app<small>Pedido 2481</small></div>
-                    <div class="scr-row"><i></i>Café<span>$4</span></div>
-                    <div class="scr-row"><i></i>Pan<span>$2</span></div>
-                    <div class="scr-row"><i></i>Jugo<span>$3</span></div>
-                    <div class="scr-btn">
-                      <span class="idle">Pagar</span><span class="ok">Listo</span>
-                    </div>
-                  </div>
-                </div>
-                <div class="win-nav" aria-hidden="true"><i></i><i></i><i></i></div>
-              </div>
-            </div>
-
-            <div class="panel" id="p-lista" role="tabpanel" aria-labelledby="t-lista" hidden>
-              <div class="app">
-                <div class="win-bar">
-                  <i></i><i></i><i></i><span class="win-title">Manolo Mirror</span>
-                </div>
-                <div class="app-body">
-                  <div class="grp">Conectados</div>
-                  <div class="dev">
-                    <div class="thumb"></div>
-                    <div><strong>Pixel 8</strong><small>Android 15 · USB</small></div>
-                    <span class="st">Listo</span>
-                  </div>
-                  <div class="dev">
-                    <div class="thumb b"></div>
-                    <div><strong>Galaxy A54</strong><small>Android 14 · Wi-Fi</small></div>
-                    <span class="st">Listo</span>
-                  </div>
-                  <div class="dev">
-                    <div class="thumb"></div>
-                    <div><strong>Moto G</strong><small>Android 13 · USB</small></div>
-                    <span class="st off">Sin autorizar</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div class="panel" id="p-qr" role="tabpanel" aria-labelledby="t-qr" hidden>
-              <div class="app" style="max-width: 380px">
-                <div class="win-bar">
-                  <i></i><i></i><i></i><span class="win-title">Conectar por Wi-Fi</span>
-                </div>
-                <div class="app-body center">
-                  <div class="qr">
-                    <svg
-                      viewBox="0 0 21 21"
-                      shape-rendering="crispEdges"
-                      fill="#0d1224"
-                      aria-hidden="true"
-                    >
-                      <path d="M0 0h7v7H0zM14 0h7v7h-7zM0 14h7v7H0z" />
-                      <path fill="#fff" d="M1 1h5v5H1zM15 1h5v5h-5zM1 15h5v5H1z" />
-                      <path
-                        d="M2 2h3v3H2zM16 2h3v3h-3zM2 16h3v3H2zM9 0h2v2H9zM8 3h2v2H8zM11 4h2v3h-2zM9 7h3v2H9zM0 9h2v2H0zM3 9h3v2H3zM8 10h2v3H8zM12 9h3v2h-3zM16 9h2v3h-2zM19 10h2v2h-2zM9 14h2v2H9zM12 13h2v3h-2zM15 14h3v2h-3zM19 14h2v3h-2zM10 17h3v2h-3zM14 18h2v3h-2zM18 18h3v2h-3zM8 19h2v2H8z"
-                      />
-                    </svg>
-                  </div>
-                  <strong>Escanea desde el teléfono</strong>
-                  <p style="margin: 6px 0 0; color: #6e6e73">
-                    Ajustes → Opciones de desarrollador → Depuración inalámbrica → Vincular con
-                    código QR
+      <section class="d-sec d-sec--tight" id="empezar">
+        <div class="d-wrap d-split">
+          <div>
+            <h2 class="d-h2" data-i18n="start.title">En marcha en tres pasos</h2>
+            <ol class="d-steps">
+              <li class="d-step">
+                <span class="d-step__n" aria-hidden="true">1</span>
+                <div>
+                  <h3 data-i18n="start.s1">Instala</h3>
+                  <p data-i18n="start.s1V">
+                    Descarga el instalador de tu sistema. Aún no está firmado, así que la primera
+                    vez macOS y Windows te piden confirmar.
                   </p>
                 </div>
-              </div>
-            </div>
-
-            <div class="panel" id="p-ajustes" role="tabpanel" aria-labelledby="t-ajustes" hidden>
-              <div class="app">
-                <div class="win-bar">
-                  <i></i><i></i><i></i><span class="win-title">Ajustes</span>
+              </li>
+              <li class="d-step">
+                <span class="d-step__n" aria-hidden="true">2</span>
+                <div>
+                  <h3 data-i18n="start.s2">Activa la depuración USB</h3>
+                  <p data-i18n="start.s2V">
+                    En el teléfono: Opciones de desarrollador → Depuración USB. Si falta adb, la app
+                    te ofrece descargarlo.
+                  </p>
                 </div>
-                <div class="app-body">
-                  <div class="grp">Ventana</div>
-                  <div class="field">
-                    <span>Barra de navegación</span><span class="switch on"></span>
-                  </div>
-                  <div class="field"><span>Siempre visible</span><span class="switch"></span></div>
-                  <div class="field"><span>Mostrar clics</span><span class="switch on"></span></div>
-                  <div class="grp">Calidad de imagen</div>
-                  <div class="field"><span>Preajuste</span><span>Alta</span></div>
-                  <div class="field"><span>Velocidad de datos</span><span>16 Mbps</span></div>
-                  <div class="field"><span>Códec</span><span>H.264</span></div>
-                  <div class="grp">Dispositivo</div>
-                  <div class="field">
-                    <span>Mostrar toques</span><span class="switch on"></span>
-                  </div>
-                  <div class="field">
-                    <span>Mantener pantalla encendida</span><span class="switch on"></span>
-                  </div>
+              </li>
+              <li class="d-step">
+                <span class="d-step__n" aria-hidden="true">3</span>
+                <div>
+                  <h3 data-i18n="start.s3">Conecta y abre</h3>
+                  <p data-i18n="start.s3V">
+                    Por cable, o por Wi-Fi escaneando un QR. Haz doble clic en el dispositivo para
+                    abrir su ventana.
+                  </p>
                 </div>
-              </div>
-            </div>
+              </li>
+            </ol>
           </div>
-          <p class="shot-cap">Ilustraciones de la interfaz; los datos son de ejemplo.</p>
+          <figure class="d-term">
+            <figcaption class="d-term__bar">
+              <i></i><i></i><i></i><span data-i18n="term.title">terminal — ejemplo</span>
+            </figcaption>
+            <pre class="d-term__body"><span class="p">$</span> <span class="c">adb devices</span>
+List of devices attached
+38211FDJH00XYZ        <span class="ok">device</span>
+192.168.1.42:5555     <span class="ok">device</span>
+
+<span class="p" data-i18n="term.comment"># Masaya los ve igual:</span>
+<span class="b">●</span> Pixel 8        USB     <span class="ok" data-i18n="term.mirroring">duplicando</span>
+<span class="b">●</span> Galaxy S24     Wi-Fi   <span class="ok" data-i18n="term.mirroring">duplicando</span></pre>
+          </figure>
+        </div>
+        <div class="d-wrap">
+          <ul class="d-req">
+            <li>
+              <svg
+                width="18"
+                height="18"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <use href="#i-check" />
+              </svg>
+              <div>
+                <b data-i18n="req.phone">Un teléfono Android</b
+                ><span data-i18n="req.phoneV"
+                  >Con Opciones de desarrollador y Depuración USB activadas.</span
+                >
+              </div>
+            </li>
+            <li>
+              <svg
+                width="18"
+                height="18"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <use href="#i-check" />
+              </svg>
+              <div>
+                <b>adb (Android platform-tools)</b
+                ><span data-i18n="req.adbV"
+                  >Si no lo tienes, la app te ofrece descargarlo o elegir el tuyo.</span
+                >
+              </div>
+            </li>
+            <li>
+              <svg
+                width="18"
+                height="18"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <use href="#i-check" />
+              </svg>
+              <div>
+                <b data-i18n="req.os">macOS, Windows o Linux</b
+                ><span data-i18n="req.osV"
+                  >Apple Silicon e Intel en Mac, x64 en Windows, x64 y arm64 en Linux.</span
+                >
+              </div>
+            </li>
+          </ul>
+          <p class="d-soon">
+            <span class="d-soon__tag" data-i18n="soon.tag">Próximamente</span
+            ><span data-i18n="soon.text"
+              ><b>iPhone y iPad.</b> El soporte para iOS está en camino. Por ahora, Masaya funciona
+              con Android.</span
+            >
+          </p>
         </div>
       </section>
-    </div>
 
-    <section class="cta-band" aria-labelledby="cta-h">
-      <div class="cta-in">
-        <h2 id="cta-h">Prueba Manolo Mirror en un minuto</h2>
-        <p>Descárgalo, conecta tu teléfono y listo. Gratis, sin cuentas.</p>
-        <div class="cta">
-          <a
-            class="btn btn-primary"
-            data-dl
-            href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
-            ><svg><use href="#i-apple" /></svg>Descargar para macOS</a
-          >
-          <a class="link-light" href="#empezar">Ver la guía de inicio</a>
-        </div>
-      </div>
-    </section>
-
-    <div class="docs">
-      <aside class="side" aria-label="Contenido">
-        <ul>
-          <li><a href="#instalar">Instalar</a></li>
-          <li><a href="#empezar">Primeros pasos</a></li>
-          <li><a href="#wifi">Wi-Fi</a></li>
-          <li><a href="#atajos">Atajos</a></li>
-          <li><a href="#problemas">Problemas</a></li>
-        </ul>
-      </aside>
-
-      <main id="contenido">
-        <section class="doc" id="instalar">
-          <h2>Instalar</h2>
-          <p>
-            Descarga el instalador de tu sistema desde la
-            <a href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
-              >última versión</a
-            >: <code>.dmg</code> para macOS, <code>.exe</code> para Windows y
-            <code>.AppImage</code> para Linux.
+      <section class="d-sec d-sec--tight" id="instalar">
+        <div class="d-wrap">
+          <h2 class="d-h2" data-i18n="inst.title">La primera vez que lo abres</h2>
+          <p class="d-sub" data-i18n="inst.sub">
+            Los instaladores aún no están firmados, así que el sistema pide confirmación una sola
+            vez.
           </p>
-          <div class="note">
-            <p>
-              Los instaladores aún no están firmados. En macOS usa clic derecho → <em>Abrir</em>; en
-              Windows, <em>Más información → Ejecutar de todas formas</em>.
-            </p>
+          <div class="d-install">
+            <article class="d-os-card">
+              <h3>
+                <svg
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <use href="#i-apple" /></svg
+                >macOS
+              </h3>
+              <ol>
+                <li data-i18n="inst.mac1">Abre el <b>.dmg</b> y arrastra Masaya a Aplicaciones.</li>
+                <li data-i18n="inst.mac2">
+                  La primera vez, haz <b>clic derecho → Abrir</b> sobre la app.
+                </li>
+                <li data-i18n="inst.mac3">
+                  Confirma con <b>Abrir</b>. Después se abre sin preguntar.
+                </li>
+              </ol>
+              <div class="d-sys" aria-hidden="true">
+                <b data-i18n="inst.macDlg">¿Abrir «Masaya»?</b
+                ><span data-i18n="inst.macDlgV">macOS no puede verificar al desarrollador.</span>
+                <div class="d-sys__btns">
+                  <span data-i18n="inst.cancel">Cancelar</span
+                  ><span class="on" data-i18n="inst.open">Abrir</span>
+                </div>
+              </div>
+            </article>
+            <article class="d-os-card">
+              <h3>
+                <svg
+                  width="18"
+                  height="18"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.6"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  aria-hidden="true"
+                >
+                  <use href="#i-win" /></svg
+                >Windows
+              </h3>
+              <ol>
+                <li data-i18n="inst.win1">Ejecuta el instalador <b>.exe</b>.</li>
+                <li data-i18n="inst.win2">
+                  Si aparece «Windows protegió su PC», pulsa <b>Más información</b>.
+                </li>
+                <li data-i18n="inst.win3">Pulsa <b>Ejecutar de todas formas</b>.</li>
+              </ol>
+              <div class="d-sys" aria-hidden="true">
+                <b data-i18n="inst.winDlg">Windows protegió su PC</b
+                ><span data-i18n="inst.winDlgV">Editor desconocido.</span>
+                <div class="d-sys__btns">
+                  <span class="on" data-i18n="inst.runAnyway">Ejecutar de todas formas</span
+                  ><span data-i18n="inst.dontRun">No ejecutar</span>
+                </div>
+              </div>
+            </article>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section class="doc" id="empezar">
-          <h2>Primeros pasos</h2>
-          <ol class="steps">
-            <li>
-              En el teléfono, activa las <strong>Opciones de desarrollador</strong> y la
-              <strong>Depuración USB</strong>.
+      <section class="d-sec d-sec--tight" id="atajos">
+        <div class="d-wrap">
+          <h2 class="d-h2" data-i18n="keys.title">Todo a mano, sin soltar el teclado</h2>
+          <ul class="d-keys">
+            <li class="d-key">
+              <span data-i18n="keys.refresh">Actualizar lista de dispositivos</span
+              ><kbd class="d-caps"><kbd class="d-cap">⌘</kbd><kbd class="d-cap">R</kbd></kbd>
             </li>
-            <li>
-              Ten <code>adb</code> (Android platform-tools) instalado. Si la app no lo encuentra, te
-              guía para descargarlo o elegirlo.
+            <li class="d-key">
+              <span data-i18n="keys.shot">Captura</span
+              ><kbd class="d-caps"
+                ><kbd class="d-cap">⌘</kbd><kbd class="d-cap">⇧</kbd><kbd class="d-cap">4</kbd></kbd
+              >
             </li>
-            <li>
-              Conecta el teléfono y acepta el aviso de depuración. Pasará de
-              <em>Sin autorizar</em> a <em>Listo</em>.
+            <li class="d-key">
+              <span data-i18n="keys.rec">Grabar o detener</span
+              ><kbd class="d-caps"
+                ><kbd class="d-cap">⌘</kbd><kbd class="d-cap">⇧</kbd><kbd class="d-cap">5</kbd></kbd
+              >
             </li>
-            <li>Haz doble clic en el dispositivo para abrir el espejo.</li>
-          </ol>
-        </section>
+            <li class="d-key">
+              <span data-i18n="keys.wifi">Conectar por Wi-Fi</span
+              ><kbd class="d-caps"
+                ><kbd class="d-cap">⌘</kbd><kbd class="d-cap">⇧</kbd><kbd class="d-cap">W</kbd></kbd
+              >
+            </li>
+            <li class="d-key">
+              <span data-i18n="keys.settings">Ajustes</span
+              ><kbd class="d-caps"><kbd class="d-cap">⌘</kbd><kbd class="d-cap">,</kbd></kbd>
+            </li>
+            <li class="d-key">
+              <span data-i18n="keys.back">«Atrás» en el teléfono</span
+              ><kbd class="d-caps"
+                ><kbd class="d-cap" data-i18n="keys.rightClick">Clic derecho</kbd></kbd
+              >
+            </li>
+          </ul>
+          <p class="d-os" data-i18n="keys.note">En Windows y Linux, ⌘ es Ctrl y ⇧ es Shift.</p>
+        </div>
+      </section>
 
-        <section class="doc" id="wifi">
-          <h2>Conectar por Wi-Fi</h2>
-          <p>
-            Pulsa <kbd>⌘⇧W</kbd> (macOS) o <kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>W</kbd> y escanea
-            el QR desde el teléfono: Opciones de desarrollador → Depuración inalámbrica →
-            <em>Vincular con código QR</em>. Ambos deben estar en la misma red.
-          </p>
-        </section>
-
-        <section class="doc" id="atajos">
-          <h2>Atajos</h2>
-          <div class="tbl">
-            <table>
+      <section class="d-sec d-sec--tight" id="vysor">
+        <div class="d-wrap">
+          <h2 class="d-h2" data-i18n="vs.title">Lo que Vysor cobra, aquí viene incluido</h2>
+          <div
+            class="d-table-wrap"
+            role="region"
+            tabindex="0"
+            aria-label="Comparativa con Vysor"
+            data-i18n-label="vs.label"
+          >
+            <table class="d-table">
               <thead>
                 <tr>
-                  <th>Acción</th>
-                  <th>macOS</th>
-                  <th>Windows y Linux</th>
+                  <th scope="col" data-i18n="vs.feature">Característica</th>
+                  <th scope="col" class="us">Masaya</th>
+                  <th scope="col" data-i18n="vs.free">Vysor gratis</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td>Actualizar dispositivos</td>
-                  <td><kbd>⌘R</kbd></td>
-                  <td><kbd>Ctrl</kbd> <kbd>R</kbd></td>
+                  <th scope="row">Wi-Fi</th>
+                  <td class="us">
+                    <span class="d-yes"
+                      ><svg
+                        width="16"
+                        height="16"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <use href="#i-check" /></svg
+                      ><span data-i18n="vs.wifiUs">Incluido</span></span
+                    >
+                  </td>
+                  <td>
+                    <span class="d-no"
+                      ><svg
+                        width="16"
+                        height="16"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <use href="#i-x" /></svg
+                      ><span data-i18n="vs.wifiThem">Solo en Pro</span></span
+                    >
+                  </td>
                 </tr>
                 <tr>
-                  <td>Captura</td>
-                  <td><kbd>⌘⇧4</kbd></td>
-                  <td><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>4</kbd></td>
+                  <th scope="row" data-i18n="vs.quality">Calidad</th>
+                  <td class="us">
+                    <span class="d-yes"
+                      ><svg
+                        width="16"
+                        height="16"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <use href="#i-check" /></svg
+                      ><span data-i18n="vs.qualityUs">Ajustable, hasta 2560 px</span></span
+                    >
+                  </td>
+                  <td>
+                    <span class="d-no"
+                      ><svg
+                        width="16"
+                        height="16"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <use href="#i-x" /></svg
+                      ><span data-i18n="vs.qualityThem">Limitada; HD en Pro</span></span
+                    >
+                  </td>
                 </tr>
                 <tr>
-                  <td>Grabar o detener</td>
-                  <td><kbd>⌘⇧5</kbd></td>
-                  <td><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>5</kbd></td>
+                  <th scope="row" data-i18n="vs.ads">Anuncios</th>
+                  <td class="us">
+                    <span class="d-yes"
+                      ><svg
+                        width="16"
+                        height="16"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <use href="#i-check" /></svg
+                      ><span data-i18n="vs.adsUs">Ninguno</span></span
+                    >
+                  </td>
+                  <td>
+                    <span class="d-no"
+                      ><svg
+                        width="16"
+                        height="16"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <use href="#i-x" /></svg
+                      ><span data-i18n="vs.adsThem">Sí; se quitan con Pro</span></span
+                    >
+                  </td>
                 </tr>
                 <tr>
-                  <td>Conectar por Wi-Fi</td>
-                  <td><kbd>⌘⇧W</kbd></td>
-                  <td><kbd>Ctrl</kbd> <kbd>Shift</kbd> <kbd>W</kbd></td>
-                </tr>
-                <tr>
-                  <td>Ajustes</td>
-                  <td><kbd>⌘,</kbd></td>
-                  <td><kbd>Ctrl</kbd> <kbd>,</kbd></td>
-                </tr>
-                <tr>
-                  <td>«Atrás» en el teléfono</td>
-                  <td colspan="2">Clic derecho en la ventana</td>
+                  <th scope="row" data-i18n="vs.plans">Planes</th>
+                  <td class="us">
+                    <span class="d-yes"
+                      ><svg
+                        width="16"
+                        height="16"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <use href="#i-check" /></svg
+                      ><span data-i18n="vs.plansUs">Sin funciones bloqueadas</span></span
+                    >
+                  </td>
+                  <td>
+                    <span class="d-no"
+                      ><svg
+                        width="16"
+                        height="16"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                      >
+                        <use href="#i-x" /></svg
+                      ><span data-i18n="vs.plansThem">Pro de pago</span></span
+                    >
+                  </td>
                 </tr>
               </tbody>
             </table>
           </div>
-        </section>
+        </div>
+      </section>
 
-        <section class="doc" id="problemas">
-          <h2>Problemas frecuentes</h2>
-          <details>
-            <summary>«ADB no encontrado»</summary>
-            <p>
-              Descarga Android platform-tools, o elige desde la app un <code>adb</code> que ya
-              tengas. La app te guía.
-            </p>
-          </details>
-          <details>
-            <summary>El dispositivo aparece «Sin autorizar»</summary>
-            <p>Acepta el diálogo de depuración USB en el teléfono.</p>
-          </details>
-          <details>
-            <summary>El QR no encuentra el teléfono</summary>
-            <p>
-              Deben estar en la misma red y esta debe permitir mDNS. Prueba con otra red o por USB.
-            </p>
-          </details>
-          <details>
-            <summary>La imagen va con retraso</summary>
-            <p>Baja la calidad a «Equilibrada» en Ajustes.</p>
-          </details>
-        </section>
-      </main>
-    </div>
-
-    <footer class="site">
-      <div class="in">
-        <div class="cols">
-          <div class="about">
-            <a class="brand" href="./"><img src="manolo-logo.svg" alt="" />Manolo Mirror</a>
-            <p>Espeja y controla tu Android desde macOS, Windows y Linux.</p>
-            <a
-              class="btn btn-primary"
-              href="https://github.com/donmanueldev/manolo-mirror/releases/latest"
-              ><svg><use href="#i-apple" /></svg>Descargar para macOS</a
-            >
+      <section class="d-sec d-sec--tight" id="ayuda">
+        <div class="d-wrap">
+          <h2 class="d-h2" data-i18n="faq.title">Preguntas frecuentes</h2>
+          <div class="d-faq">
+            <details open>
+              <summary data-i18n="faq.q1">La app dice «Falta adb»</summary>
+              <p data-i18n="faq.a1">
+                Pulsa «Descargar platform-tools» e instálalo, o elige el adb que ya tienes con
+                «Elegir adb…». Luego pulsa «Reintentar».
+              </p>
+            </details>
+            <details>
+              <summary data-i18n="faq.q2">Mi teléfono aparece como «Sin autorizar»</summary>
+              <p data-i18n="faq.a2">
+                Desbloquea el teléfono y acepta el aviso «¿Permitir depuración USB?». Marca
+                «Permitir siempre desde este equipo» para no repetirlo.
+              </p>
+            </details>
+            <details>
+              <summary data-i18n="faq.q3">¿Funciona con iPhone?</summary>
+              <p data-i18n="faq.a3">
+                Todavía no. El soporte para iPhone y iPad (iOS) está en camino. Por ahora, Masaya
+                funciona con teléfonos y tablets Android.
+              </p>
+            </details>
+            <details>
+              <summary data-i18n="faq.q4">¿Necesito cable?</summary>
+              <p data-i18n="faq.a4">
+                No. Puedes vincular por Wi-Fi escaneando un código QR. El teléfono y el equipo deben
+                estar en la misma red.
+              </p>
+            </details>
+            <details>
+              <summary data-i18n="faq.q5">¿Envía mis datos a internet?</summary>
+              <p data-i18n="faq.a5">
+                No. Tu pantalla, tus capturas y lo que escribes se quedan entre tu equipo y tu
+                teléfono. La app solo se conecta a internet para consultar en GitHub si hay una
+                versión nueva, y esa consulta no incluye tus datos.
+              </p>
+            </details>
           </div>
-          <nav aria-label="Producto">
-            <h2>Producto</h2>
-            <a href="#funciones">Funciones</a>
-            <a href="#vysor">Vs. Vysor</a>
-            <a href="#capturas">Capturas</a>
-            <a href="https://github.com/donmanueldev/manolo-mirror/releases/latest">Descargas</a>
-          </nav>
-          <nav aria-label="Ayuda">
-            <h2>Ayuda</h2>
-            <a href="#empezar">Primeros pasos</a>
-            <a href="#atajos">Atajos</a>
-            <a href="#problemas">Problemas</a>
-          </nav>
-          <nav aria-label="Proyecto">
-            <h2>Proyecto</h2>
-            <a href="https://github.com/donmanueldev/manolo-mirror">GitHub</a>
-            <a href="privacy.html">Privacidad</a>
-          </nav>
         </div>
-        <div class="bottom">
-          <span>© 2026 Manolo Mirror</span>
-          <span>Hecho por Momotombo Devs</span>
-        </div>
+      </section>
+    </main>
+
+    <footer class="d-foot">
+      <div class="d-wrap d-foot__in">
+        <a class="d-brand" href="./"
+          ><img src="masaya-logo.svg" alt="" width="28" height="28" />Masaya</a
+        >
+        <small data-i18n="foot.copy">© 2026 Masaya, hecho por Momotombo Devs.</small>
+        <nav aria-label="Pie de página" data-i18n-label="foot.label">
+          <a href="#empezar" data-i18n="foot.guide">Guía</a>
+          <a href="#ayuda" data-i18n="nav.help">Ayuda</a>
+          <a href="privacy.html" data-i18n="foot.privacy">Privacidad</a>
+          <a href="https://github.com/donmanueldev/manolo-mirror">GitHub</a>
+        </nav>
+      </div>
+      <div class="d-wrap d-foot__note">
+        <span
+          ><svg
+            width="14"
+            height="14"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <use href="#i-book" /></svg
+          ><span data-i18n="foot.oss">Código abierto en GitHub</span></span
+        >
+        <span
+          ><svg
+            width="14"
+            height="14"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <use href="#i-shield" /></svg
+          ><span data-i18n="foot.local"
+            >Todo pasa entre tu equipo y tu teléfono; tus datos no salen a internet.</span
+          ></span
+        >
       </div>
     </footer>
 
-    <script src="site.js?v=4" defer></script>
+    <script src="site.js?v=5" defer></script>
   </body>
 </html>

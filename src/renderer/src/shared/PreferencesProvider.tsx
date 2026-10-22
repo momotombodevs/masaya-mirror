@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { LanguagePreference } from '../../../shared/i18n/locale';
 import { DEFAULT_PREFERENCES, type Preferences } from '../../../shared/preferences/types';
-import { callApi, getManoloApi } from './manolo-api';
+import { callApi, getMasayaApi } from './masaya-api';
 import { PreferencesContext, type PreferencesStore } from './preferences';
 
 /**
@@ -28,7 +28,7 @@ export function PreferencesProvider({ children }: { readonly children: ReactNode
       }
       setLoaded(true);
     })();
-    const unsubscribe = getManoloApi()?.onLanguageChange((language) => {
+    const unsubscribe = getMasayaApi()?.onLanguageChange((language) => {
       announcedLanguage.current = language;
       setPreferences((current) => ({ ...current, language }));
     });
