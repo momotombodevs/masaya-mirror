@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Sitio de Masaya
+    url: https://momotombodevs.github.io/masaya-mirror/
+    about: Descarga, funciones y preguntas frecuentes.
+  - name: Reportar una vulnerabilidad
+    url: https://github.com/momotombodevs/masaya-mirror/security/advisories/new
+    about: Los problemas de seguridad se reportan en privado, no en un issue público.

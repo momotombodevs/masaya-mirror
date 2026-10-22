@@ -30,3 +30,7 @@ dist-ssr
 release
 resources/bin
 resources/.tmp
+
+# Local tool folders
+.claude/
+.remember/
