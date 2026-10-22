@@ -1,0 +1,38 @@
+name: Proponer una mejora
+description: Una idea para que Masaya sea más útil.
+title: '[Idea] '
+labels: ['enhancement']
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Qué problema resuelve
+      description: Cuéntalo desde tu uso. Por ejemplo, «cuando pruebo una app en varios teléfonos, tengo que…».
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Qué propones
+      description: Cómo te imaginas que funcione. Un boceto o una captura ayudan.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas que consideraste (opcional)
+      description: Otra forma de resolverlo, o cómo lo haces hoy.
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Plataforma
+      description: Dónde lo necesitas.
+      multiple: true
+      options:
+        - macOS
+        - Windows
+        - Linux
+        - Todas
