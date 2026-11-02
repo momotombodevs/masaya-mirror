@@ -68,10 +68,13 @@ describe('useMirrorInput', () => {
     sendControl.mockReset().mockResolvedValue({ ok: true, value: undefined });
     vi.stubGlobal('masaya', { sendControl });
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    // jsdom does not implement the event; Chromium, which runs the app, does.
+    Object.assign(window, { onpointerrawupdate: null });
   });
 
   afterEach(() => {
     cleanup();
+    Reflect.deleteProperty(window, 'onpointerrawupdate');
     vi.useRealTimers();
     vi.unstubAllGlobals();
   });
@@ -152,6 +155,27 @@ describe('useMirrorInput', () => {
     act(() => {
       handlers.onPointerDown(pointerEvent(canvas, { clientX: 0, clientY: 0 }));
       rawMove(canvas, 10, 10);
+    });
+    act(() => {
+      vi.advanceTimersByTime(4);
+    });
+
+    expect(sent()[1]).toMatchObject({
+      action: ANDROID_MOTION_EVENT_ACTION.move,
+      pointerX: 50,
+      pointerY: 50,
+    });
+  });
+
+  it('falls back to pointermove when the browser has no pointerrawupdate', () => {
+    Reflect.deleteProperty(window, 'onpointerrawupdate');
+    const { canvas, handlers } = setup();
+
+    act(() => {
+      handlers.onPointerDown(pointerEvent(canvas, { clientX: 0, clientY: 0 }));
+      canvas.dispatchEvent(
+        Object.assign(new Event('pointermove'), { pointerId: 7, clientX: 10, clientY: 10 }),
+      );
     });
     act(() => {
       vi.advanceTimersByTime(4);
