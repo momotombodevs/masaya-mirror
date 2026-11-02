@@ -170,13 +170,14 @@ export function useMirrorInput(
 
   // `pointermove` is held back until the next displayed frame, at most 60 a second on a 60 Hz
   // screen. `pointerrawupdate` arrives as the mouse reports, so the phone can follow the finger
-  // at its own refresh rate. React has no prop for it.
+  // at its own refresh rate. React has no prop for it, and a browser without it still gets moves.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) {
       return undefined;
     }
-    const onRawUpdate = (event: Event): void => {
+    const moveEvent = 'onpointerrawupdate' in window ? 'pointerrawupdate' : 'pointermove';
+    const onMove = (event: Event): void => {
       const pointer = event as globalThis.PointerEvent;
       if (!canvas.hasPointerCapture(pointer.pointerId)) {
         return;
@@ -192,8 +193,8 @@ export function useMirrorInput(
         moveCoalescer.submit(message);
       }
     };
-    canvas.addEventListener('pointerrawupdate', onRawUpdate);
-    return () => canvas.removeEventListener('pointerrawupdate', onRawUpdate);
+    canvas.addEventListener(moveEvent, onMove);
+    return () => canvas.removeEventListener(moveEvent, onMove);
   }, [buildTouch, canvasRef, moveCoalescer]);
 
   const onPointerUp = useCallback(
