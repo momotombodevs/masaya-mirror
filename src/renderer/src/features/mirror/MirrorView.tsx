@@ -56,7 +56,6 @@ export function MirrorView({
           ready ? 'opacity-100' : 'opacity-0',
         )}
         onPointerDown={input.onPointerDown}
-        onPointerMove={input.onPointerMove}
         onPointerUp={input.onPointerUp}
         onPointerCancel={input.onPointerUp}
         onWheel={input.onWheel}
