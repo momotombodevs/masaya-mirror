@@ -11,12 +11,12 @@ import { ANDROID_KEYCODE_BACK } from '../android-keycodes';
 import { useMirrorInput, wheelDeltaToNotches } from '../useMirrorInput';
 
 const sendControl = vi.fn<(deviceId: string, message: MirrorControlMessage) => Promise<unknown>>();
-let frames: Array<() => void> = [];
 
 /** A 200×400 canvas on screen showing a 1000×2000 video, so device = client × 5. */
 function setup() {
   const canvas = document.createElement('canvas');
   canvas.getBoundingClientRect = () => ({ left: 0, top: 0, width: 200, height: 400 }) as DOMRect;
+  canvas.hasPointerCapture = () => true;
   const canvasRef = { current: canvas };
   const videoSizeRef = { current: { width: 1000, height: 2000 } };
   const hook = renderHook(() => useMirrorInput('device-1', canvasRef, videoSizeRef));
@@ -42,6 +42,12 @@ function pointerEvent(
   } as unknown as PointerEvent<HTMLCanvasElement>;
 }
 
+function rawMove(canvas: HTMLCanvasElement, clientX: number, clientY: number): void {
+  canvas.dispatchEvent(
+    Object.assign(new Event('pointerrawupdate'), { pointerId: 7, clientX, clientY }),
+  );
+}
+
 function keyEvent(init: Partial<KeyboardEvent<HTMLDivElement>> & { key: string; code: string }) {
   return {
     shiftKey: false,
@@ -60,17 +66,16 @@ const sent = (): MirrorControlMessage[] => sendControl.mock.calls.map(([, messag
 describe('useMirrorInput', () => {
   beforeEach(() => {
     sendControl.mockReset().mockResolvedValue({ ok: true, value: undefined });
-    frames = [];
     vi.stubGlobal('masaya', { sendControl });
-    vi.stubGlobal('requestAnimationFrame', (callback: () => void) => frames.push(callback));
-    vi.stubGlobal('cancelAnimationFrame', () => undefined);
-    // The hook calls `window.requestAnimationFrame`, which is the same object under jsdom.
-    window.requestAnimationFrame = globalThis.requestAnimationFrame;
-    window.cancelAnimationFrame = globalThis.cancelAnimationFrame;
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    // jsdom does not implement the event; Chromium, which runs the app, does.
+    Object.assign(window, { onpointerrawupdate: null });
   });
 
   afterEach(() => {
     cleanup();
+    Reflect.deleteProperty(window, 'onpointerrawupdate');
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
@@ -128,8 +133,8 @@ describe('useMirrorInput', () => {
 
     act(() => {
       handlers.onPointerDown(pointerEvent(canvas, { clientX: 0, clientY: 0 }));
-      handlers.onPointerMove(pointerEvent(canvas, { clientX: 10, clientY: 10 }));
-      handlers.onPointerMove(pointerEvent(canvas, { clientX: 20, clientY: 20 }));
+      rawMove(canvas, 10, 10);
+      rawMove(canvas, 20, 20);
     });
     expect(sendControl).toHaveBeenCalledTimes(1); // only the press so far
 
@@ -144,14 +149,56 @@ describe('useMirrorInput', () => {
     expect(sent()[1]).toMatchObject({ pointerX: 100, pointerY: 100 });
   });
 
-  it('does not send moves or releases for a pointer it never captured', () => {
+  it('sends a drag move without waiting for a displayed frame', () => {
     const { canvas, handlers } = setup();
 
     act(() => {
-      handlers.onPointerMove(pointerEvent(canvas, { clientX: 5, clientY: 5, captured: false }));
+      handlers.onPointerDown(pointerEvent(canvas, { clientX: 0, clientY: 0 }));
+      rawMove(canvas, 10, 10);
+    });
+    act(() => {
+      vi.advanceTimersByTime(4);
+    });
+
+    expect(sent()[1]).toMatchObject({
+      action: ANDROID_MOTION_EVENT_ACTION.move,
+      pointerX: 50,
+      pointerY: 50,
+    });
+  });
+
+  it('falls back to pointermove when the browser has no pointerrawupdate', () => {
+    Reflect.deleteProperty(window, 'onpointerrawupdate');
+    const { canvas, handlers } = setup();
+
+    act(() => {
+      handlers.onPointerDown(pointerEvent(canvas, { clientX: 0, clientY: 0 }));
+      canvas.dispatchEvent(
+        Object.assign(new Event('pointermove'), { pointerId: 7, clientX: 10, clientY: 10 }),
+      );
+    });
+    act(() => {
+      vi.advanceTimersByTime(4);
+    });
+
+    expect(sent()[1]).toMatchObject({
+      action: ANDROID_MOTION_EVENT_ACTION.move,
+      pointerX: 50,
+      pointerY: 50,
+    });
+  });
+
+  it('does not send moves or releases for a pointer it never captured', () => {
+    const { canvas, handlers } = setup();
+    canvas.hasPointerCapture = () => false;
+
+    act(() => {
+      rawMove(canvas, 5, 5);
       handlers.onPointerUp(pointerEvent(canvas, { clientX: 5, clientY: 5, captured: false }));
     });
-    act(() => frames.forEach((frame) => frame()));
+    act(() => {
+      vi.runAllTimers();
+    });
 
     expect(sendControl).not.toHaveBeenCalled();
   });
@@ -264,7 +311,7 @@ describe('useMirrorInput', () => {
     act(() => {
       handlers.onKeyDown(keyEvent({ key: 'Enter', code: 'Enter' }));
       handlers.onPointerDown(pointerEvent(canvas, { clientX: 0, clientY: 0 }));
-      handlers.onPointerMove(pointerEvent(canvas, { clientX: 10, clientY: 10 }));
+      rawMove(canvas, 10, 10);
     });
     sendControl.mockClear();
 
@@ -274,12 +321,15 @@ describe('useMirrorInput', () => {
       expect.objectContaining({ type: 'touch', action: ANDROID_MOTION_EVENT_ACTION.move }),
       expect.objectContaining({ type: 'key', action: ANDROID_KEY_EVENT_ACTION.up, keyCode: 66 }),
     ]);
-    // A frame callback scheduled before unmount must not send anything later.
-    act(() => frames.forEach((frame) => frame()));
+    // A send scheduled before unmount must not go out later.
+    act(() => {
+      vi.runAllTimers();
+    });
     expect(sendControl).toHaveBeenCalledTimes(2);
   });
 
   it('survives a rejected bridge call', async () => {
+    vi.useRealTimers();
     sendControl.mockRejectedValue(new Error('ipc closed'));
     const { canvas, handlers } = setup();
 

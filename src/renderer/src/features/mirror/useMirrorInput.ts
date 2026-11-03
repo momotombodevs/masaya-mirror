@@ -23,7 +23,6 @@ export type VideoSize = { width: number; height: number };
 
 export type MirrorInputHandlers = {
   readonly onPointerDown: (event: PointerEvent<HTMLCanvasElement>) => void;
-  readonly onPointerMove: (event: PointerEvent<HTMLCanvasElement>) => void;
   readonly onPointerUp: (event: PointerEvent<HTMLCanvasElement>) => void;
   readonly onWheel: (event: WheelEvent<HTMLCanvasElement>) => void;
   readonly onContextMenu: (event: PointerEvent<HTMLCanvasElement>) => void;
@@ -32,6 +31,9 @@ export type MirrorInputHandlers = {
 };
 
 const MOUSE_BUTTON_RIGHT = 2;
+
+/** Caps drag moves at 250 a second, enough for a 120 Hz phone, whatever the mouse reports. */
+const MOVE_INTERVAL_MS = 4;
 
 /** Chromium reports one mouse-wheel notch as 100 px, or as 3 lines in line mode. */
 const PIXELS_PER_NOTCH = 100;
@@ -79,15 +81,15 @@ export function useMirrorInput(
     [deviceId],
   );
 
-  // Moves are coalesced to one message per animation frame. Press and release
+  // Moves are coalesced to one message per interval. Press and release
   // flush the pending move first, so the device always receives events in order.
   const moveCoalescer: ControlCoalescer<MirrorControlMessage> = useMemo(
     () =>
       createControlCoalescer(
         sendControl,
         {
-          schedule: (callback) => window.requestAnimationFrame(callback),
-          cancel: (handle) => window.cancelAnimationFrame(handle as number),
+          schedule: (callback) => window.setTimeout(callback, MOVE_INTERVAL_MS),
+          cancel: (handle) => window.clearTimeout(handle as number),
         },
         (message) => (message.type === 'touch' ? message.pointerId : message.type),
       ),
@@ -166,24 +168,34 @@ export function useMirrorInput(
     [buildTouch, moveCoalescer, sendBack, sendControl],
   );
 
-  const onPointerMove = useCallback(
-    (event: PointerEvent<HTMLCanvasElement>): void => {
-      if (!event.currentTarget.hasPointerCapture(event.pointerId)) {
+  // `pointermove` is held back until the next displayed frame, at most 60 a second on a 60 Hz
+  // screen. `pointerrawupdate` arrives as the mouse reports, so the phone can follow the finger
+  // at its own refresh rate. React has no prop for it, and a browser without it still gets moves.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) {
+      return undefined;
+    }
+    const moveEvent = 'onpointerrawupdate' in window ? 'pointerrawupdate' : 'pointermove';
+    const onMove = (event: Event): void => {
+      const pointer = event as globalThis.PointerEvent;
+      if (!canvas.hasPointerCapture(pointer.pointerId)) {
         return;
       }
       const message = buildTouch(
         ANDROID_MOTION_EVENT_ACTION.move,
-        event.pointerId,
-        event.clientX,
-        event.clientY,
+        pointer.pointerId,
+        pointer.clientX,
+        pointer.clientY,
         1,
       );
       if (message) {
         moveCoalescer.submit(message);
       }
-    },
-    [buildTouch, moveCoalescer],
-  );
+    };
+    canvas.addEventListener(moveEvent, onMove);
+    return () => canvas.removeEventListener(moveEvent, onMove);
+  }, [buildTouch, canvasRef, moveCoalescer]);
 
   const onPointerUp = useCallback(
     (event: PointerEvent<HTMLCanvasElement>): void => {
@@ -296,7 +308,6 @@ export function useMirrorInput(
 
   return {
     onPointerDown,
-    onPointerMove,
     onPointerUp,
     onWheel,
     onContextMenu,
