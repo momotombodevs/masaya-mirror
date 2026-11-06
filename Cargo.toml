@@ -1,0 +1,25 @@
+[workspace]
+resolver = "2"
+members = ["crates/masaya-core", "src-tauri"]
+# `cargo test` at the root only builds the core, so it works without WebView/GTK system libraries.
+default-members = ["crates/masaya-core"]
+
+[workspace.package]
+version = "0.3.3"
+edition = "2021"
+license = "UNLICENSED"
+authors = ["Manuel Duarte"]
+repository = "https://github.com/momotombodevs/masaya-mirror"
+rust-version = "1.80"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

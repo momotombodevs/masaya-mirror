@@ -34,3 +34,8 @@ resources/.tmp
 # Local tool folders
 .claude/
 .remember/
+
+# Tauri / Rust
+dist-tauri
+/target
+src-tauri/gen

@@ -1,0 +1,45 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Masaya",
+  "version": "0.3.3",
+  "identifier": "com.masaya.app",
+  "build": {
+    "frontendDist": "../dist-tauri",
+    "devUrl": "http://127.0.0.1:5173",
+    "beforeDevCommand": "pnpm dev:web",
+    "beforeBuildCommand": "pnpm build:web"
+  },
+  "app": {
+    "withGlobalTauri": false,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Masaya",
+        "width": 960,
+        "height": 640,
+        "minWidth": 720,
+        "minHeight": 480
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost; media-src 'self' blob:; worker-src 'self' blob:; object-src 'none'; base-uri 'self'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "resources": {
+      "../resources/scrcpy-server/scrcpy-server.jar": "scrcpy-server/scrcpy-server.jar"
+    },
+    "windows": {
+      "nsis": { "installMode": "currentUser" }
+    }
+  }
+}
