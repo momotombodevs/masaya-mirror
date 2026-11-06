@@ -10,7 +10,7 @@ edition = "2021"
 license = "UNLICENSED"
 authors = ["Manuel Duarte"]
 repository = "https://github.com/momotombodevs/masaya-mirror"
-rust-version = "1.80"
+rust-version = "1.85"
 
 [workspace.dependencies]
 serde = { version = "1", features = ["derive"] }
