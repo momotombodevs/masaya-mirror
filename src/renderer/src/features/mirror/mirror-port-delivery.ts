@@ -24,6 +24,11 @@ function deliverPort(deviceId: string, port: MessagePort): void {
   pendingPortsByDevice.set(deviceId, port);
 }
 
+/** Hands a port to the window of `deviceId`. The Tauri backend has no preload to post it. */
+export function deliverMirrorPort(deviceId: string, port: MessagePort): void {
+  deliverPort(deviceId, port);
+}
+
 function onWindowMessage(event: MessageEvent): void {
   // Only the preload of this same window posts ports. The origin is not compared: in a packaged
   // build the page is a file:// page whose messages arrive with origin "null" while

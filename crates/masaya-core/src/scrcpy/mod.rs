@@ -5,9 +5,11 @@
 //! Electron build ships. All integers are big-endian.
 
 pub mod control;
+pub mod frame;
 pub mod options;
 pub mod session;
 pub mod stream;
+pub mod validate;
 
 pub use control::{ControlMessage, DeviceMessage};
 pub use options::{MirrorOptions, VideoCodec};
