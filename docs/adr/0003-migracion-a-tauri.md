@@ -45,3 +45,23 @@ Máximo "nativo", pero hay que rehacer toda la UI, el decodificador, el audio y 
 - El video viaja por un `Channel` de Tauri en lugar de un `MessagePort` (ver ADR-0001).
 - La validación de IPC (ADR-0002) pasa a ser el sistema de _capabilities_ de Tauri más los parsers en Rust.
 - Hasta que la paridad esté probada en teléfonos reales, Electron sigue siendo el build de producción.
+
+## Estado de la migración
+
+| Etapa | Contenido                                                                   | Estado                               |
+| ----- | --------------------------------------------------------------------------- | ------------------------------------ |
+| 1     | Workspace de Cargo, shell Tauri, CI                                         | Hecho                                |
+| 2     | adb: CLI, protocolo de servidor, nombres de dispositivo                     | Hecho                                |
+| 3     | Protocolo de scrcpy: servidor, video/audio, control, sesión                 | Hecho                                |
+| 4     | Comandos Tauri, validación, video por `Channel`, adaptador del renderer     | Hecho                                |
+| 5     | Capturas y grabación, portapapeles, QR/mDNS, menú, actualizaciones, ajustes | Pendiente                            |
+| 6     | Probar con teléfonos reales y en Windows, instalador NSIS                   | Pendiente (bloquea retirar Electron) |
+
+Los comandos que aún no existen en Rust responden `NOT_YET_IN_TAURI` en lugar de fallar en silencio.
+Las preferencias se guardan por ahora en `localStorage` del webview.
+
+## Cómo viaja el video
+
+Cada paquete cruza el `Channel` como bytes crudos (`crates/masaya-core/src/scrcpy/frame.rs`) y el
+renderer lo decodifica (`src/renderer/src/shared/tauri/stream-frame.ts`) para entregarlo por un
+`MessagePort` local. Así `MirrorStreamClient` y el decodificador WebCodecs no cambian.
