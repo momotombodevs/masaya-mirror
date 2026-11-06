@@ -10,6 +10,8 @@
   "scripts": {
     "dev": "node scripts/run-vite.mjs",
     "dev:debug": "node scripts/run-vite.mjs --debug",
+    "dev:web": "vite --config vite.config.tauri.ts",
+    "tauri:dev": "tauri dev",
     "setup:tools": "node scripts/setup-scrcpy.mjs",
     "postinstall": "node scripts/setup-scrcpy.mjs",
     "typecheck": "tsc --noEmit",
@@ -25,10 +27,14 @@
     "build:win": "pnpm build:app && electron-builder --win",
     "build:linux": "pnpm build:app && electron-builder --linux",
     "pack:dir": "pnpm build:app && electron-builder --dir",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:web": "tsc --noEmit && vite build --config vite.config.tauri.ts",
+    "tauri:build": "tauri build",
+    "tauri": "tauri"
   },
   "devDependencies": {
     "@radix-ui/react-dialog": "^1.3.1",
+    "@tauri-apps/cli": "^2.0.0",
     "@testing-library/dom": "^10.4.2",
     "@testing-library/react": "^16.3.3",
     "@types/qrcode": "^1.5.6",

@@ -21,6 +21,17 @@ pnpm dev:debug      # igual, con DevTools
 Para entender cómo está armada la app, lee [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) y las
 decisiones en [docs/adr/](docs/adr/).
 
+## Migración a Tauri (en curso)
+
+El backend en Rust vive en `crates/masaya-core` (adb y scrcpy) y `src-tauri` (la capa de Tauri). Hace
+falta [Rust estable](https://rustup.rs) y, en Linux, las [dependencias de Tauri](https://tauri.app/start/prerequisites/).
+La decisión y el plan están en [docs/adr/0003-migracion-a-tauri.md](docs/adr/0003-migracion-a-tauri.md).
+
+```bash
+cargo test -p masaya-core   # el core se prueba sin WebView ni GTK
+pnpm tauri:dev              # abre la app con Tauri (Electron sigue siendo `pnpm dev`)
+```
+
 ## Antes de abrir un PR
 
 ```bash
