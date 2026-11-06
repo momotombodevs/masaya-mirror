@@ -1,7 +1,7 @@
 //! A fake adb server for tests: speaks enough of the smart-socket protocol to exercise the client
 //! and, later, the scrcpy session, with no phone and no `adb` binary.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -11,10 +11,15 @@ use tokio::net::{TcpListener, TcpStream};
 #[derive(Default)]
 struct Script {
     devices: String,
-    /// Output of `shell:<command>`, keyed by the command.
+    /// Output of `shell:<command>`, keyed by the command. The command ends right after it.
     shells: HashMap<String, Vec<u8>>,
-    /// What a `localabstract:<name>` socket sends as soon as it opens.
-    sockets: HashMap<String, Vec<u8>>,
+    /// Like `shells`, but the command keeps running until the client hangs up.
+    running_shells: HashMap<String, (Vec<u8>, Option<Duration>)>,
+    /// What each connection to a `localabstract:<name>` socket sends as soon as it opens. The
+    /// first connection gets the first entry, and so on, like the server accepting in order.
+    sockets: Mutex<HashMap<String, VecDeque<Vec<u8>>>>,
+    /// Connections to a socket that are refused before it starts to work (the server is booting).
+    refusals: Mutex<HashMap<String, u32>>,
 }
 
 #[derive(Default)]
@@ -25,6 +30,8 @@ struct Recorded {
     received: HashMap<String, Vec<u8>>,
     /// Every request the server saw, in order.
     requests: Vec<String>,
+    /// Commands whose client hung up while they were still running.
+    closed_shells: Vec<String>,
 }
 
 pub struct MockAdbBuilder {
@@ -62,6 +69,11 @@ impl MockAdb {
             .unwrap_or_default()
     }
 
+    /// Commands that were still running when their client hung up.
+    pub fn closed_shells(&self) -> Vec<String> {
+        self.recorded.lock().unwrap().closed_shells.clone()
+    }
+
     #[allow(dead_code)]
     pub fn requests(&self) -> Vec<String> {
         self.recorded.lock().unwrap().requests.clone()
@@ -95,10 +107,42 @@ impl MockAdbBuilder {
         self
     }
 
-    pub fn abstract_socket(mut self, name: &str, greeting: &[u8]) -> Self {
+    /// A command that keeps running after printing `banner`, until the client closes it.
+    pub fn running_shell(mut self, command: &str, banner: &str) -> Self {
+        self.script
+            .running_shells
+            .insert(command.to_owned(), (banner.as_bytes().to_vec(), None));
+        self
+    }
+
+    /// A command that prints `banner`, runs for `lifetime` and then ends by itself.
+    pub fn shell_ending_after(mut self, command: &str, banner: &str, lifetime: Duration) -> Self {
+        self.script.running_shells.insert(
+            command.to_owned(),
+            (banner.as_bytes().to_vec(), Some(lifetime)),
+        );
+        self
+    }
+
+    /// Adds one connection to `name`; call it again for the next connection.
+    pub fn abstract_socket(self, name: &str, greeting: &[u8]) -> Self {
         self.script
             .sockets
-            .insert(name.to_owned(), greeting.to_vec());
+            .lock()
+            .unwrap()
+            .entry(name.to_owned())
+            .or_default()
+            .push_back(greeting.to_vec());
+        self
+    }
+
+    /// Refuses the first `count` connections to `name`, as when the server is still starting.
+    pub fn refuse_first(self, name: &str, count: u32) -> Self {
+        self.script
+            .refusals
+            .lock()
+            .unwrap()
+            .insert(name.to_owned(), count);
         self
     }
 
@@ -164,6 +208,30 @@ async fn serve(
             return fail(&mut stream, "no transport selected").await;
         }
         if let Some(command) = request.strip_prefix("shell:") {
+            if let Some((banner, lifetime)) = script.running_shells.get(command) {
+                stream.write_all(b"OKAY").await?;
+                stream.write_all(banner).await?;
+                let hang_up = async {
+                    let mut sink = [0u8; 64];
+                    while stream.read(&mut sink).await? > 0 {}
+                    Ok::<_, std::io::Error>(())
+                };
+                match lifetime {
+                    // Ends by itself, like a server whose phone was unplugged.
+                    Some(lifetime) => {
+                        let _ = tokio::time::timeout(*lifetime, hang_up).await;
+                    }
+                    None => {
+                        hang_up.await?;
+                    }
+                }
+                recorded
+                    .lock()
+                    .unwrap()
+                    .closed_shells
+                    .push(command.to_owned());
+                return Ok(());
+            }
             match script.shells.get(command) {
                 Some(output) => {
                     stream.write_all(b"OKAY").await?;
@@ -174,11 +242,30 @@ async fn serve(
             return Ok(());
         }
         if let Some(name) = request.strip_prefix("localabstract:") {
-            let Some(greeting) = script.sockets.get(name) else {
+            let refused = {
+                let mut refusals = script.refusals.lock().unwrap();
+                match refusals.get_mut(name) {
+                    Some(left) if *left > 0 => {
+                        *left -= 1;
+                        true
+                    }
+                    _ => false,
+                }
+            };
+            if refused {
+                return fail(&mut stream, "closed").await;
+            }
+            let greeting = script
+                .sockets
+                .lock()
+                .unwrap()
+                .get_mut(name)
+                .and_then(VecDeque::pop_front);
+            let Some(greeting) = greeting else {
                 return fail(&mut stream, &format!("unscripted socket: {name}")).await;
             };
             stream.write_all(b"OKAY").await?;
-            stream.write_all(greeting).await?;
+            stream.write_all(&greeting).await?;
             let mut buffer = [0u8; 4096];
             loop {
                 let read = stream.read(&mut buffer).await?;
