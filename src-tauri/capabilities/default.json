@@ -2,6 +2,6 @@
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
   "description": "Permissions of the main window. Custom commands are allowed by default.",
-  "windows": ["main"],
+  "windows": ["main", "mirror-*"],
   "permissions": ["core:default"]
 }
