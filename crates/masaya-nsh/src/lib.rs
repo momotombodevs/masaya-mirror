@@ -1,9 +1,11 @@
 //! Masaya as a native macOS app on NSH: `nsh.json` `"root"` names [`App`].
 
+pub mod bench;
 pub mod copy;
 pub mod input;
 #[cfg(target_os = "macos")]
 pub mod macos;
+pub mod metrics;
 pub mod mirror;
 pub mod screens;
 pub mod source;
@@ -44,7 +46,14 @@ pub fn App() -> impl IntoElement {
 /// The app with its device source, so tests can give it a fake one. The list's state and its
 /// refresh live here, above the screens, so coming back from the mirror keeps the list.
 pub fn shell(source: Arc<dyn source::DeviceSource>) -> impl IntoElement {
-    let route = signal(Route::Devices);
+    // `MASAYA_AUTO_OPEN=<serial>` (benchmarks): straight to that phone's mirror.
+    let route = signal(match metrics::env_value(metrics::AUTO_OPEN_ENV) {
+        Some(serial) => Route::Mirror {
+            id: serial.clone(),
+            label: serial,
+        },
+        None => Route::Devices,
+    });
     let devices = DevicesStore::start(source.clone());
     view()
         .flex_1()

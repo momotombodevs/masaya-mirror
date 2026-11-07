@@ -16,6 +16,7 @@ use crate::copy;
 use crate::mirror::{control, pump, sink};
 use crate::source::DeviceSource;
 use crate::state::{MirrorKind, MirrorView};
+use crate::{bench, metrics};
 
 /// The native view that shows the video (registered by `main.rs` on macOS).
 pub const MIRROR_COMPONENT: &str = "masaya.mirror";
@@ -55,6 +56,7 @@ impl Running {
         }
         if let Some(key) = self.key.take() {
             sink::registry().close(&key);
+            metrics::set_dropped_moves(None);
         }
     }
 
@@ -66,6 +68,8 @@ impl Running {
         sink::registry().open(key);
         sink::registry().set_input(key, sender);
         let control_handle = session.control();
+        let counted = control_handle.clone();
+        metrics::set_dropped_moves(Some(Box::new(move || counted.dropped_moves())));
         let input = background(control::forward_in_order(messages, move |message| {
             let control_handle = control_handle.clone();
             async move {
@@ -170,6 +174,9 @@ pub fn mirror_screen(
                 (reader, running.generation)
             };
             let Some(reader) = reader else { return };
+            if let MirrorView::Running { width, height, .. } = state.get_untracked() {
+                bench::start_from_env(&key, width, height);
+            }
             let running = running.clone();
             owner.run(|| {
                 spawn(async move {

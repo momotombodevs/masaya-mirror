@@ -4,6 +4,8 @@
 use masaya_core::scrcpy::session::PacketReader;
 use masaya_core::scrcpy::stream::MediaPacket;
 
+use crate::metrics;
+
 use super::sink::Registry;
 
 /// Hands one packet to the view of `key`.
@@ -18,7 +20,15 @@ pub fn deliver(registry: &Registry, key: &str, packet: &MediaPacket) {
 pub async fn pump(mut reader: PacketReader, registry: &Registry, key: &str) -> Option<String> {
     loop {
         match reader.next().await {
-            Ok(Some(packet)) => deliver(registry, key, &packet),
+            Ok(Some(packet)) => {
+                let arrived = metrics::enabled().then(std::time::Instant::now);
+                deliver(registry, key, &packet);
+                if let Some(arrived) = arrived
+                    && matches!(packet, MediaPacket::Data { .. })
+                {
+                    metrics::packet(arrived, std::time::Instant::now());
+                }
+            }
             Ok(None) => return None,
             Err(error) => return Some(error.to_string()),
         }

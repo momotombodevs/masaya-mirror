@@ -8,7 +8,7 @@
 
 use std::ffi::c_void;
 use std::ptr::{self, NonNull};
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
 use nsh_platform_macos::{ComponentContext, NativeComponent};
@@ -22,6 +22,7 @@ use super::input_view::MirrorNSView;
 use objc2_av_foundation::{
     AVLayerVideoGravityResizeAspect, AVQueuedSampleBufferRendering,
     AVQueuedSampleBufferRenderingStatus, AVSampleBufferDisplayLayer, AVSampleBufferVideoRenderer,
+    AVVideoPerformanceMetrics,
 };
 use objc2_core_foundation::{
     CFArray, CFDictionary, CFMutableDictionary, CFRetained, kCFBooleanTrue,
@@ -34,6 +35,7 @@ use objc2_core_media::{
 use serde_json::{Value, json};
 use thiserror::Error;
 
+use crate::metrics;
 use crate::mirror::h264::{self, H264Error, ParameterSets};
 use crate::mirror::sink::{self, FrameSink};
 
@@ -369,6 +371,72 @@ fn display_immediately(sample: &CMSampleBuffer) -> bool {
     }
 }
 
+/// Frames the renderer has shown so far (its total less the ones it dropped), from
+/// `loadVideoPerformanceMetrics`; `None` when it has no metrics or does not answer in 50 ms.
+///
+/// The layer decodes and displays inside AVFoundation, and `copyDisplayedPixelBuffer` is no
+/// help: it hands back a new object on every call and its picture changes only a couple of
+/// times a second. This counter is the only per-frame signal the public API gives.
+fn shown_frames(renderer: &AVSampleBufferVideoRenderer) -> Option<i64> {
+    let (sender, receiver) = std::sync::mpsc::sync_channel::<Option<i64>>(1);
+    let block = block2::RcBlock::new(move |metrics: *mut AVVideoPerformanceMetrics| {
+        // SAFETY: AVFoundation passes a valid metrics object or nil for the call's duration.
+        let shown = unsafe { metrics.as_ref() }.map(|metrics| unsafe {
+            (metrics.totalNumberOfFrames() - metrics.numberOfDroppedFrames()) as i64
+        });
+        let _ = sender.try_send(shown);
+    });
+    // SAFETY: the block only sends on a channel, so it is sendable.
+    unsafe { renderer.loadVideoPerformanceMetricsWithCompletionHandler(&block) };
+    receiver
+        .recv_timeout(std::time::Duration::from_millis(50))
+        .ok()
+        .flatten()
+}
+
+/// Watches what the layer shows, for [`metrics`]: polls the renderer's shown-frame count
+/// ([`shown_frames`]) every 2 ms and reports each rise as a presented frame. Runs only with metrics on, until
+/// the view goes.
+struct PresentProbe {
+    stop: Arc<AtomicBool>,
+}
+
+impl PresentProbe {
+    fn start(renderer: Retained<AVSampleBufferVideoRenderer>) -> Option<Self> {
+        let stop = Arc::new(AtomicBool::new(false));
+        let stopped = stop.clone();
+        let renderer = SendRenderer(renderer);
+        let spawned = std::thread::Builder::new()
+            .name("masaya-present-probe".to_owned())
+            .spawn(move || {
+                let renderer = renderer;
+                let mut shown: Option<i64> = None;
+                while !stopped.load(Ordering::Relaxed) {
+                    if let Some(now) = shown_frames(&renderer.0) {
+                        if shown.is_some_and(|before| now > before) {
+                            metrics::presented(std::time::Instant::now());
+                        }
+                        shown = Some(now);
+                    }
+                    std::thread::sleep(std::time::Duration::from_millis(2));
+                }
+            });
+        match spawned {
+            Ok(_) => Some(Self { stop }),
+            Err(error) => {
+                log::warn!(target: metrics::TARGET, "present probe did not start: {error}");
+                None
+            }
+        }
+    }
+}
+
+impl Drop for PresentProbe {
+    fn drop(&mut self) {
+        self.stop.store(true, Ordering::Relaxed);
+    }
+}
+
 /// Keeps macOS from napping the app while a mirror is open. App Nap throttles a process whose
 /// windows are covered: after about 40 s behind other windows the control writer woke up only
 /// every ~100 ms, input reached the phone in bursts and it drew at ~50 fps instead of ~118.
@@ -400,6 +468,7 @@ pub struct MirrorView {
     sink: Arc<dyn FrameSink>,
     context: ComponentContext,
     session: Option<String>,
+    _probe: Option<PresentProbe>,
     _no_nap: NoNap,
 }
 
@@ -411,7 +480,17 @@ impl MirrorView {
             unsafe { layer.setVideoGravity(gravity) };
         }
         let renderer = unsafe { layer.sampleBufferRenderer() };
-        let sink = LayerSink::new(renderer);
+        // `MASAYA_NO_PROBE=1`: metrics without the present probe, to see what the probe costs.
+        let probe = (metrics::enabled() && !metrics::is_on(metrics::env_value("MASAYA_NO_PROBE").as_deref()))
+            .then(|| PresentProbe::start(renderer.clone()))
+            .flatten();
+        let sink = Arc::new(LayerSink::new(renderer));
+        if metrics::enabled() {
+            let counted = sink.clone();
+            metrics::set_renderer_failures(Some(Box::new(move || {
+                counted.stats().renderer_failures
+            })));
+        }
         let view = MirrorNSView::new(mtm, sink.video_size());
         // A layer-hosting view: the layer is set first, then wanted, so AppKit keeps its frame
         // at the view's bounds and never draws into it.
@@ -419,9 +498,10 @@ impl MirrorView {
         view.setWantsLayer(true);
         Self {
             view,
-            sink: Arc::new(sink),
+            sink,
             context,
             session: None,
+            _probe: probe,
             _no_nap: NoNap::begin(),
         }
     }
