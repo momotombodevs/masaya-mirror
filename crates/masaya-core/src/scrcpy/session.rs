@@ -27,6 +27,11 @@ use crate::i18n::{Locale, Msg};
 pub const MAX_PENDING_CONTROLS: usize = 64;
 /// How many lines of the server's output are kept to explain a failure.
 const SERVER_OUTPUT_LINES: usize = 100;
+/// How long the server may take to send a stream's header once every socket is open.
+const HEADER_TIMEOUT: Duration = Duration::from_secs(10);
+/// A socket that closes often does so just before the server process ends: how long to wait
+/// for that end, so the user sees the server's last words rather than an end of file.
+const EXIT_GRACE: Duration = Duration::from_millis(500);
 
 #[derive(Debug, Clone, Copy)]
 pub struct StartConfig {
@@ -93,6 +98,9 @@ pub struct AudioInfo {
 /// Reads packets off one of the media sockets.
 pub struct PacketReader {
     inner: BufReader<OwnedReadHalf>,
+    /// Never written, only kept: dropping a write half shuts the socket down for writing, adb
+    /// then closes the device's end and the server stops streaming.
+    _write: OwnedWriteHalf,
 }
 
 impl PacketReader {
@@ -199,11 +207,17 @@ impl ScrcpySession {
         // server. A failed start therefore aborts it; a successful one hands it to the session.
         let server_output = Arc::new(Mutex::new(VecDeque::new()));
         let (exited_tx, exited_rx) = watch::channel(false);
-        let drain = spawn_output_drain(shell, server_output.clone(), exited_tx);
+        // Also aborted when this future is dropped mid-connect (the user went back): no shell,
+        // and so no server, is left behind on the phone.
+        let drain = AbortOnDrop(Some(spawn_output_drain(
+            shell,
+            server_output.clone(),
+            exited_tx,
+        )));
 
         match Self::connect(adb, serial, &socket, options, config, &exited_rx).await {
             Ok(connected) => {
-                let mut tasks = vec![drain];
+                let mut tasks = drain.disarm().into_iter().collect::<Vec<_>>();
                 tasks.extend(connected.tasks);
                 Ok(Self {
                     video: connected.video,
@@ -218,7 +232,7 @@ impl ScrcpySession {
                 })
             }
             Err(error) => {
-                drain.abort();
+                drop(drain);
                 // A server that died explains the failure better than the connection error does.
                 let died = matches!(error, SessionError::ConnectFailed | SessionError::Adb(_))
                     && *exited_rx.borrow();
@@ -242,22 +256,30 @@ impl ScrcpySession {
         exited: &watch::Receiver<bool>,
     ) -> Result<Connected, SessionError> {
         // The server accepts the sockets in a fixed order: video, audio, control. The first one
-        // carries a dummy byte, so the client knows the server is really listening.
+        // carries a dummy byte, so the client knows the server is really listening. It sends the
+        // device name and the codec headers only once all of them are open, so every socket is
+        // connected before any header is read (reading the video header first waits forever).
         let mut video = connect_socket(adb, serial, socket, config, exited, true).await?;
-        let header = read_video_header(&mut video, true).await?;
+        let audio = if options.audio_enabled {
+            Some(connect_socket(adb, serial, socket, config, exited, false).await?)
+        } else {
+            None
+        };
+        let control = connect_socket(adb, serial, socket, config, exited, false).await?;
 
+        let header = read_header(read_video_header(&mut video, true), exited).await?;
         let mut audio_reader = None;
         let mut audio_info = None;
-        if options.audio_enabled {
-            let mut audio = connect_socket(adb, serial, socket, config, exited, false).await?;
-            if let AudioHeader::Codec(codec) = read_audio_header(&mut audio).await? {
+        if let Some(mut audio) = audio {
+            if let AudioHeader::Codec(codec) =
+                read_header(read_audio_header(&mut audio), exited).await?
+            {
                 audio_info = Some(AudioInfo { codec });
                 audio_reader = Some(reader_of(audio));
             }
             // Disabled or errored: the phone cannot capture audio. Mirror without it.
         }
 
-        let control = connect_socket(adb, serial, socket, config, exited, false).await?;
         let (control_read, control_write) = control.into_split();
         let (tx, rx) = mpsc::channel(MAX_PENDING_CONTROLS);
         let (clipboard_tx, clipboard) = mpsc::unbounded_channel();
@@ -332,9 +354,10 @@ struct Connected {
 }
 
 fn reader_of(stream: TcpStream) -> PacketReader {
-    let (read, _write) = stream.into_split();
+    let (read, write) = stream.into_split();
     PacketReader {
         inner: BufReader::with_capacity(256 * 1024, read),
+        _write: write,
     }
 }
 
@@ -394,6 +417,43 @@ fn push_line(lines: &Mutex<VecDeque<String>>, raw: &[u8]) {
 /// Connects to the server's abstract socket, retrying while it starts. With `expect_dummy`, the
 /// connection only counts once the dummy byte arrives: adb accepts connections before the server
 /// is listening, and then closes them.
+/// Aborts a task when dropped, until [`AbortOnDrop::disarm`] hands it over.
+struct AbortOnDrop(Option<JoinHandle<()>>);
+
+impl AbortOnDrop {
+    fn disarm(mut self) -> Option<JoinHandle<()>> {
+        self.0.take()
+    }
+}
+
+impl Drop for AbortOnDrop {
+    fn drop(&mut self) {
+        if let Some(task) = self.0.take() {
+            task.abort();
+        }
+    }
+}
+
+/// Reads a stream's header, giving up after [`HEADER_TIMEOUT`] or when the server ends. A
+/// failure waits a moment for the server to end, so `start` can report why it did.
+async fn read_header<T>(
+    read: impl std::future::Future<Output = Result<T, AdbError>>,
+    exited: &watch::Receiver<bool>,
+) -> Result<T, SessionError> {
+    let mut exited = exited.clone();
+    let outcome = tokio::select! {
+        result = tokio::time::timeout(HEADER_TIMEOUT, read) => match result {
+            Ok(result) => result.map_err(SessionError::from),
+            Err(_) => Err(SessionError::ConnectFailed),
+        },
+        _ = exited.wait_for(|ended| *ended) => Err(SessionError::ConnectFailed),
+    };
+    if outcome.is_err() && !*exited.borrow() {
+        let _ = tokio::time::timeout(EXIT_GRACE, exited.wait_for(|ended| *ended)).await;
+    }
+    outcome
+}
+
 async fn connect_socket(
     adb: &AdbServer,
     serial: &str,
@@ -457,6 +517,23 @@ mod tests {
         }
     }
 
+    /// `ScrcpySession::start`, failing the test instead of hanging it when a regression makes the
+    /// start wait forever.
+    async fn start_within(
+        adb: &AdbServer,
+        serial: &str,
+        jar: &Path,
+        options: &MirrorOptions,
+        config: StartConfig,
+    ) -> Result<ScrcpySession, SessionError> {
+        tokio::time::timeout(
+            Duration::from_secs(15),
+            ScrcpySession::start(adb, serial, jar, options, config),
+        )
+        .await
+        .expect("the start hung")
+    }
+
     /// A scratch jar to push.
     fn jar(name: &str) -> PathBuf {
         let path = std::env::temp_dir().join(format!("masaya-jar-{}-{name}", std::process::id()));
@@ -474,10 +551,13 @@ mod tests {
     }
 
     fn base(options: &MirrorOptions) -> MockAdbBuilder {
-        MockAdb::new().running_shell(
-            &launch_command(SCID, options),
-            "[server] INFO: Device: Pixel 8\n",
-        )
+        MockAdb::new()
+            .running_shell(
+                &launch_command(SCID, options),
+                "[server] INFO: Device: Pixel 8\n",
+            )
+            // Like the real server: the video header only once every socket is connected.
+            .accept_all_before_sending(SOCKET)
     }
 
     #[tokio::test]
@@ -491,7 +571,7 @@ mod tests {
             .await;
         let jar = jar("video");
 
-        let mut session = ScrcpySession::start(
+        let mut session = start_within(
             &AdbServer::new(mock.address()),
             "R5CT",
             &jar,
@@ -530,6 +610,15 @@ mod tests {
         let mut clipboard = session.take_clipboard().unwrap();
         assert_eq!(clipboard.recv().await.as_deref(), Some("ok"));
 
+        // No socket was hung up while the session runs: a half-closed video socket makes the
+        // real server stop streaming.
+        tokio::time::sleep(Duration::from_millis(50)).await;
+        assert!(
+            mock.closed_sockets().is_empty(),
+            "{:?}",
+            mock.closed_sockets()
+        );
+
         // Control messages reach the phone, in order.
         let control = session.control();
         control.send(&ControlMessage::Rotate).await.unwrap();
@@ -566,7 +655,7 @@ mod tests {
             .await;
         let jar = jar("audio");
 
-        let mut session = ScrcpySession::start(
+        let mut session = start_within(
             &AdbServer::new(mock.address()),
             "R5CT",
             &jar,
@@ -587,6 +676,11 @@ mod tests {
             audio.next().await.unwrap(),
             Some(MediaPacket::Configuration { data: vec![1, 2] })
         );
+        assert!(
+            mock.closed_sockets().is_empty(),
+            "{:?}",
+            mock.closed_sockets()
+        );
         std::fs::remove_file(jar).ok();
     }
 
@@ -603,7 +697,7 @@ mod tests {
             .start()
             .await;
         let jar = jar("noaudio");
-        let session = ScrcpySession::start(
+        let session = start_within(
             &AdbServer::new(mock.address()),
             "R5CT",
             &jar,
@@ -626,7 +720,7 @@ mod tests {
             .start()
             .await;
         let jar = jar("retry");
-        let session = ScrcpySession::start(
+        let session = start_within(
             &AdbServer::new(mock.address()),
             "R5CT",
             &jar,
@@ -636,6 +730,77 @@ mod tests {
         .await
         .unwrap();
         assert_eq!(session.video.width, 1080);
+        std::fs::remove_file(jar).ok();
+    }
+
+    #[tokio::test]
+    async fn a_server_that_dies_before_sending_the_header_is_reported() {
+        let options = MirrorOptions::default();
+        // The sockets open (video with its dummy byte) but no header comes before the server
+        // process ends.
+        let mock = MockAdb::new()
+            .shell_ending_after(
+                &launch_command(SCID, &options),
+                "[server] ERROR: Encoder not found\n",
+                Duration::from_millis(200),
+            )
+            .abstract_socket(SOCKET, &[0])
+            .abstract_socket(SOCKET, &[])
+            .start()
+            .await;
+        let jar = jar("no-header");
+        let error = start_within(
+            &AdbServer::new(mock.address()),
+            "R5CT",
+            &jar,
+            &options,
+            config(),
+        )
+        .await
+        .err()
+        .expect("start must fail");
+        match &error {
+            SessionError::ServerExited { output } => {
+                assert_eq!(output, &["[server] ERROR: Encoder not found"]);
+            }
+            other => panic!("unexpected: {other:?}"),
+        }
+        std::fs::remove_file(jar).ok();
+    }
+
+    #[tokio::test]
+    async fn dropping_a_start_in_progress_stops_the_server() {
+        let options = MirrorOptions::default();
+        let command = launch_command(SCID, &options);
+        // The header never comes: the start waits until it is dropped.
+        let mock = MockAdb::new()
+            .running_shell(&command, "")
+            .abstract_socket(SOCKET, &[0])
+            .abstract_socket(SOCKET, &[])
+            .start()
+            .await;
+        let jar = jar("dropped");
+        let address = mock.address();
+        let path = jar.clone();
+        let start = tokio::spawn(async move {
+            let _ = ScrcpySession::start(
+                &AdbServer::new(address),
+                "R5CT",
+                &path,
+                &MirrorOptions::default(),
+                config(),
+            )
+            .await;
+        });
+        tokio::time::sleep(Duration::from_millis(200)).await;
+        start.abort();
+        for _ in 0..100 {
+            if mock.closed_shells().contains(&command) {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(10)).await;
+        }
+        assert_eq!(mock.closed_shells(), [command]);
         std::fs::remove_file(jar).ok();
     }
 
@@ -651,7 +816,7 @@ mod tests {
             .start()
             .await;
         let jar = jar("died");
-        let error = ScrcpySession::start(
+        let error = start_within(
             &AdbServer::new(mock.address()),
             "R5CT",
             &jar,
@@ -678,7 +843,7 @@ mod tests {
     async fn a_missing_jar_names_the_path_it_expected() {
         let mock = MockAdb::new().start().await;
         let missing = PathBuf::from("/nonexistent/scrcpy-server.jar");
-        let error = ScrcpySession::start(
+        let error = start_within(
             &AdbServer::new(mock.address()),
             "R5CT",
             &missing,
@@ -705,7 +870,7 @@ mod tests {
             .start()
             .await;
         let jar = jar("output");
-        let session = ScrcpySession::start(
+        let session = start_within(
             &AdbServer::new(mock.address()),
             "R5CT",
             &jar,
@@ -739,7 +904,7 @@ mod tests {
             .start()
             .await;
         let jar = jar("ends");
-        let session = ScrcpySession::start(
+        let session = start_within(
             &AdbServer::new(mock.address()),
             "R5CT",
             &jar,
@@ -771,7 +936,7 @@ mod tests {
             .start()
             .await;
         let jar = jar("close");
-        let session = ScrcpySession::start(
+        let session = start_within(
             &AdbServer::new(mock.address()),
             "R5CT",
             &jar,
