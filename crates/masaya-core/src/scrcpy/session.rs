@@ -414,9 +414,6 @@ fn push_line(lines: &Mutex<VecDeque<String>>, raw: &[u8]) {
     lines.push_back(line);
 }
 
-/// Connects to the server's abstract socket, retrying while it starts. With `expect_dummy`, the
-/// connection only counts once the dummy byte arrives: adb accepts connections before the server
-/// is listening, and then closes them.
 /// Aborts a task when dropped, until [`AbortOnDrop::disarm`] hands it over.
 struct AbortOnDrop(Option<JoinHandle<()>>);
 
@@ -454,6 +451,9 @@ async fn read_header<T>(
     outcome
 }
 
+/// Connects to the server's abstract socket, retrying while it starts. With `expect_dummy`, the
+/// connection only counts once the dummy byte arrives: adb accepts connections before the server
+/// is listening, and then closes them.
 async fn connect_socket(
     adb: &AdbServer,
     serial: &str,
