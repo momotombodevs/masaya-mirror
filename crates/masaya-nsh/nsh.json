@@ -1,0 +1,7 @@
+{
+  "name": "Masaya",
+  "id": "com.masaya.app.nsh",
+  "appearance": "system",
+  "rust": ".",
+  "root": "App"
+}

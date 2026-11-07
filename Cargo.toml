@@ -1,7 +1,8 @@
 [workspace]
 resolver = "2"
-members = ["crates/masaya-core", "src-tauri"]
-# `cargo test` at the root only builds the core, so it works without WebView/GTK system libraries.
+members = ["crates/masaya-core", "crates/masaya-nsh"]
+# `cargo test` at the root only builds the core, so it works on any OS. `masaya-nsh` is a macOS-only
+# spike: build it with `-p masaya-nsh`.
 default-members = ["crates/masaya-core"]
 
 [workspace.package]
