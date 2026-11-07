@@ -14,6 +14,8 @@ use std::sync::{Arc, Mutex};
 use nsh_platform_macos::{ComponentContext, NativeComponent};
 use objc2::MainThreadMarker;
 use objc2::rc::Retained;
+use objc2::runtime::{NSObjectProtocol, ProtocolObject};
+use objc2_foundation::{NSActivityOptions, NSProcessInfo, NSString};
 use objc2_app_kit::NSView;
 
 use super::input_view::MirrorNSView;
@@ -367,6 +369,30 @@ fn display_immediately(sample: &CMSampleBuffer) -> bool {
     }
 }
 
+/// Keeps macOS from napping the app while a mirror is open. App Nap throttles a process whose
+/// windows are covered: after about 40 s behind other windows the control writer woke up only
+/// every ~100 ms, input reached the phone in bursts and it drew at ~50 fps instead of ~118.
+/// Chromium does the same for Electron.
+struct NoNap(Retained<ProtocolObject<dyn NSObjectProtocol>>);
+
+impl NoNap {
+    fn begin() -> Self {
+        let info = NSProcessInfo::processInfo();
+        Self(info.beginActivityWithOptions_reason(
+            NSActivityOptions::UserInitiatedAllowingIdleSystemSleep
+                | NSActivityOptions::LatencyCritical,
+            &NSString::from_str("Mirroring a phone"),
+        ))
+    }
+}
+
+impl Drop for NoNap {
+    fn drop(&mut self) {
+        // SAFETY: the token is the one `beginActivityWithOptions:reason:` returned, ended once.
+        unsafe { NSProcessInfo::processInfo().endActivity(&self.0) };
+    }
+}
+
 /// The native view: the video, and the input that goes back to the phone
 /// ([`super::input_view`]).
 pub struct MirrorView {
@@ -374,6 +400,7 @@ pub struct MirrorView {
     sink: Arc<dyn FrameSink>,
     context: ComponentContext,
     session: Option<String>,
+    _no_nap: NoNap,
 }
 
 impl MirrorView {
@@ -395,6 +422,7 @@ impl MirrorView {
             sink: Arc::new(sink),
             context,
             session: None,
+            _no_nap: NoNap::begin(),
         }
     }
 
