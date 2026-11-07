@@ -35,7 +35,5 @@ resources/.tmp
 .claude/
 .remember/
 
-# Tauri / Rust
-dist-tauri
+# Rust
 /target
-src-tauri/gen

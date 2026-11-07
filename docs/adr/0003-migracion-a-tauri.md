@@ -1,6 +1,7 @@
 # ADR-0003: Migrar el proceso principal de Electron a Tauri 2 y Rust
 
-**Estado:** Propuesta (migración por etapas)
+**Estado:** Superseded — Tauri removed in favor of NSH spike (2026-11-07). `src-tauri` y el adaptador
+Tauri del renderer se eliminaron; `crates/masaya-core` se conserva.
 **Fecha:** 2026-11-06
 
 ## Contexto

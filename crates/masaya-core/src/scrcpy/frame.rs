@@ -1,8 +1,8 @@
 //! How a mirror stream travels from Rust to the webview.
 //!
-//! JSON would turn every video frame into a list of numbers, so the stream is sent as raw bytes
-//! (a Tauri `Channel` can carry an `ArrayBuffer`). The renderer decodes the same layout in
-//! `src/renderer/src/shared/tauri/stream-frame.ts`; the two must change together.
+//! JSON would turn every video frame into a list of numbers, so the stream is sent as raw bytes.
+//! Nothing consumes this layout today (the webview shell that decoded it was removed); any future
+//! decoder must follow it exactly.
 //!
 //! ```text
 //! init         0x00 | JSON { deviceId, video: {codec,width,height}, audioCodec, audioWebCodecId }

@@ -1,7 +1,7 @@
 //! The result shape every command answers with.
 //!
 //! It serializes exactly like `Result<T>` in `src/shared/ipc/result.ts`, so the React renderer
-//! keeps branching on `ok` and `code` whether the backend is Electron or Tauri:
+//! keeps branching on `ok` and `code` whether the backend is Electron or Rust:
 //!
 //! ```json
 //! { "ok": true, "value": 1 }
