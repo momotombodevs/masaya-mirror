@@ -3,8 +3,8 @@
 //! channel ([`crate::mirror::control`]).
 //!
 //! - Mouse: left button is the finger (pointer -1); right is Back and middle is Home, as scrcpy.
-//! - Keyboard: the view takes the keyboard on the first click (`makeFirstResponder:`; NSH's root
-//!   is first responder otherwise). Key codes go straight to the phone; anything that types goes
+//! - Keyboard: the view takes the keyboard when it shows in its window and on every click
+//!   (`makeFirstResponder:`; NSH's root is first responder otherwise). Key codes go straight to the phone; anything that types goes
 //!   through the input system (`interpretKeyEvents:` → `NSTextInputClient`'s `insertText:`), so
 //!   accents, dead keys and input methods arrive as the text they compose. Marked (in-progress)
 //!   text is not shown: the phone gets the final text.
@@ -148,6 +148,11 @@ define_class!(
         #[unsafe(method(viewDidMoveToWindow))]
         fn view_did_move_to_window(&self) {
             self.observe_window();
+            // The window is this phone's alone: its keys (Escape is Back) go to the phone as soon
+            // as the video shows.
+            if let Some(window) = self.window() {
+                window.makeFirstResponder(Some(self.as_responder()));
+            }
         }
 
         #[unsafe(method(windowDidResignKey:))]

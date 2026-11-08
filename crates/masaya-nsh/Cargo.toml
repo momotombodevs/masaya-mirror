@@ -32,7 +32,9 @@ nsh-platform-macos = "=0.4.0"
 # The same objc2 generation NSH uses (objc2 0.6, objc2-* 0.3.2), for the mirror's native view.
 objc2 = "0.6.3"
 block2 = "0.6.2"
-objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "NSEvent", "NSGraphics", "NSResponder", "NSTextInputClient", "NSView", "NSWindow", "objc2-quartz-core"] }
+# The main queue, where mirror windows are made (the version NSH uses).
+dispatch2 = "0.3.1"
+objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "NSApplication", "NSEvent", "NSGraphics", "NSResponder", "NSTextInputClient", "NSView", "NSWindow", "objc2-quartz-core"] }
 objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSArray", "NSAttributedString", "NSGeometry", "NSNotification", "NSObjCRuntime", "NSProcessInfo", "NSRange", "NSString"] }
 objc2-av-foundation = { version = "0.3.2", default-features = false, features = ["std", "AVAnimation", "AVQueuedSampleBufferRendering", "AVSampleBufferDisplayLayer", "AVSampleBufferVideoRenderer", "AVVideoPerformanceMetrics", "block2", "objc2-core-media", "objc2-core-video", "objc2-quartz-core"] }
 objc2-core-foundation = { version = "0.3.2", default-features = false, features = ["std", "CFArray", "CFDictionary", "CFNumber", "CFString"] }

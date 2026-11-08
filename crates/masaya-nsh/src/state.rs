@@ -7,13 +7,6 @@ use masaya_core::adb::{AndroidDevice, DeviceStatus};
 use crate::copy;
 use crate::source::{DevicesResult, LoadError};
 
-/// The screen the window shows. The mirror opens in the same window as the list.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Route {
-    Devices,
-    Mirror { id: String, label: String },
-}
-
 /// The mirror screen's state.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MirrorView {

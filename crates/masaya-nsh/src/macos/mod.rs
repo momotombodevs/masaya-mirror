@@ -1,7 +1,8 @@
-//! macOS-only pieces: the native views the app registers.
+//! macOS-only pieces: the native views the app registers and the mirror windows.
 
 pub mod input_view;
 pub mod mirror_view;
+pub mod windows;
 
 use std::rc::Rc;
 

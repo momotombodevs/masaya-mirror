@@ -53,3 +53,11 @@ pub fn devices_announcement(count: usize) -> String {
         count => format!("{count} dispositivos"),
     }
 }
+
+/// The badge of a phone whose mirror window is open (English: "Mirroring").
+pub const MIRRORING: &str = "Reflejando";
+
+/// The screen reader's label of a phone whose mirror window is open: pressing it focuses it.
+pub fn mirroring_label(name: &str) -> String {
+    format!("{name}, {MIRRORING}")
+}

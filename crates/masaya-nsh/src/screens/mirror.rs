@@ -1,11 +1,12 @@
-//! The mirror of one phone, in the same window as the list: starts the scrcpy session, shows the
-//! video in the `masaya.mirror` native view once it attaches, and closes everything when the
-//! screen goes.
+//! The mirror of one phone, the root of its own window ([`MirrorWindow`]): starts the scrcpy
+//! session, shows the video in the `masaya.mirror` native view once it attaches, and closes
+//! everything when the window goes.
 
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
 
+use masaya_core::Locale;
 use masaya_core::scrcpy::ScrcpySession;
 use nsh_base::{button, theme};
 use nsh_core::prelude::*;
@@ -14,9 +15,24 @@ use tokio::task::AbortHandle;
 
 use crate::copy;
 use crate::mirror::{control, pump, sink};
-use crate::source::DeviceSource;
+use crate::source::{AdbSource, DeviceSource};
 use crate::state::{MirrorKind, MirrorView};
 use crate::{bench, metrics};
+
+/// The phone a mirror window shows.
+#[derive(Clone, PartialEq, Props)]
+pub struct MirrorWindowProps {
+    pub serial: String,
+    /// The phone's name, which titles the window.
+    pub label: String,
+}
+
+/// A mirror window's root: the phone of `serial`, through adb.
+#[component]
+pub fn MirrorWindow(props: MirrorWindowProps) -> impl IntoElement {
+    let source: Arc<dyn DeviceSource> = Arc::new(AdbSource::new(Locale::default()));
+    mirror_screen(source, props.serial, props.label)
+}
 
 /// The native view that shows the video (registered by `main.rs` on macOS).
 pub const MIRROR_COMPONENT: &str = "masaya.mirror";
@@ -89,11 +105,20 @@ impl Running {
     }
 }
 
+impl Drop for Running {
+    /// A window's engine tears down without running cleanups: the last owner of the state
+    /// (the screen, or a task the teardown cancels) closes the session as it goes.
+    fn drop(&mut self) {
+        self.stop();
+    }
+}
+
+/// The mirror of `serial` (`label` names it to the screen reader). Escape goes to the phone as
+/// Back; the window's close button and `⌘W` close it.
 pub fn mirror_screen(
     source: Arc<dyn DeviceSource>,
     serial: String,
     label: String,
-    on_back: impl Fn() + 'static,
 ) -> impl IntoElement {
     let state = signal(MirrorView::Starting);
     // Tasks are started from buttons and events whose branch goes when the state changes: they
@@ -202,12 +227,6 @@ pub fn mirror_screen(
         }
     };
 
-    let on_back = Rc::new(on_back);
-    {
-        let on_back = on_back.clone();
-        // Escape goes back, as long as this screen shows.
-        on_key("escape", move |_| on_back());
-    }
     let kind = computed(move || state.with(MirrorView::kind));
     let on_attached = Rc::new(on_attached);
     let video_label = copy::mirror_label(&label);
@@ -215,7 +234,6 @@ pub fn mirror_screen(
     view()
         .flex_1()
         .bg(move || theme().background)
-        .child(header(label, on_back))
         .child(dynamic(move || match kind.get() {
             MirrorKind::Starting => centered()
                 .child(muted(copy::MIRROR_STARTING))
@@ -252,34 +270,6 @@ pub fn mirror_screen(
                     .into_element()
             }
         }))
-}
-
-fn header(label: String, on_back: Rc<impl Fn() + 'static>) -> impl IntoElement {
-    view()
-        .flex_row()
-        .items_center()
-        .gap_3()
-        .p_4()
-        .border_b_1()
-        .border_b_color(move || theme().border)
-        .child(
-            button()
-                .on_press(move || on_back())
-                .px_2()
-                .py_1()
-                .hit_slop(EdgeInsets::all(px(8.0)))
-                .rounded(move || theme().radius)
-                .active(|s| s.opacity(0.6))
-                .child(text(copy::BACK).text_color(move || theme().primary)),
-        )
-        .child(
-            text(label)
-                .role(AccessibilityRole::Header)
-                .number_of_lines(1)
-                .flex_1()
-                .font_weight(FontWeight::SEMIBOLD)
-                .text_color(move || theme().foreground),
-        )
 }
 
 fn centered() -> View {

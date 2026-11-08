@@ -12,16 +12,21 @@ fn main() -> impl std::process::Termination {
     logger.init();
     let components = platform::Components::default();
     masaya_nsh::macos::register(&components);
-    platform::run_app(
+    let exit = platform::run_app(
         platform::AppSource::Rust(platform::Root::of::<masaya_nsh::App>()),
         platform::AppOptions {
             title: "Masaya".to_owned(),
-            app_id: "dev.momotombo.app.masayamirror".to_owned(),
+            app_id: masaya_nsh::APP_ID.to_owned(),
             size: (420, 800),
             components,
+            // Closing the list hides it: the mirror windows stay, and the Dock brings it back.
+            keep_alive_on_close: true,
             ..Default::default()
         },
-    )
+    );
+    // ⌘Q: every mirror window closes and its session with it, before the process ends.
+    masaya_nsh::macos::windows::close_all();
+    exit
 }
 
 #[cfg(not(target_os = "macos"))]

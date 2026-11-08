@@ -1,6 +1,7 @@
 //! The device list: loading, empty, error and the phones. The state and its 2 s refresh live in
 //! [`DevicesStore`], which outlives this screen.
 
+use std::collections::BTreeSet;
 use std::rc::Rc;
 
 use masaya_core::ErrorCode;
@@ -14,9 +15,11 @@ use crate::store::DevicesStore;
 /// Rows that cannot open are dimmed to this opacity.
 const UNAVAILABLE_OPACITY: f32 = 0.6;
 
-/// The list screen. `on_open` gets a phone that can be mirrored (its id and label).
+/// The list screen. `mirroring` holds the phones whose mirror window is open (their rows say
+/// so); `on_open` gets a phone that can be mirrored (its id and label).
 pub fn devices_screen(
     store: DevicesStore,
+    mirroring: Signal<BTreeSet<String>>,
     on_open: impl Fn(String, String) + 'static,
 ) -> impl IntoElement {
     let state = store.view();
@@ -58,7 +61,7 @@ pub fn devices_screen(
                     .child(view().p_3().gap_2().child(each(
                         move || state.with(DevicesView::rows),
                         |row: &DeviceRow| row.id.clone(),
-                        move |row, _| device_row(row, on_open.clone()),
+                        move |row, _| device_row(row, mirroring, on_open.clone()),
                     )))
                     .into_element()
             }
@@ -148,13 +151,23 @@ fn action(label: &'static str, on_press: impl Fn() + 'static) -> AnyElement {
 }
 
 /// A phone. Its bindings follow the row, so a phone that becomes authorized turns openable in
-/// place.
-fn device_row(row: ReadSignal<DeviceRow>, on_open: Rc<dyn Fn(String, String)>) -> impl IntoElement {
+/// place, and one whose window opens or closes says so in place.
+fn device_row(
+    row: ReadSignal<DeviceRow>,
+    mirroring: Signal<BTreeSet<String>>,
+    on_open: Rc<dyn Fn(String, String)>,
+) -> impl IntoElement {
     let openable = move || row.with(DeviceRow::openable);
+    let open = move || row.with(|row| mirroring.with(|open| open.contains(&row.id)));
     button()
         .disabled(move || !openable())
         .accessibility_label(move || {
-            Some(SharedString::from(row.with(DeviceRow::accessibility_label)))
+            let label = row.with(DeviceRow::accessibility_label);
+            Some(SharedString::from(if open() {
+                copy::mirroring_label(&label)
+            } else {
+                label
+            }))
         })
         .on_press(move || {
             let row = row.get_untracked();
@@ -188,6 +201,7 @@ fn device_row(row: ReadSignal<DeviceRow>, on_open: Rc<dyn Fn(String, String)>) -
                             }
                         }),
                 )
+                .child(when(open, mirroring_badge))
                 .child(
                     text(move || row.with(DeviceRow::status_text))
                         .text_size(px(12.0))
@@ -211,4 +225,19 @@ fn device_row(row: ReadSignal<DeviceRow>, on_open: Rc<dyn Fn(String, String)>) -
                     .text_color(move || theme().muted_foreground)
             },
         ))
+}
+
+/// Says a phone's mirror window is open.
+fn mirroring_badge() -> impl IntoElement {
+    view()
+        .px_2()
+        .py(px(2.0))
+        .rounded(move || theme().radius)
+        .bg(move || theme().primary)
+        .child(
+            text(copy::MIRRORING)
+                .text_size(px(11.0))
+                .font_weight(FontWeight::MEDIUM)
+                .text_color(move || theme().primary_foreground),
+        )
 }
