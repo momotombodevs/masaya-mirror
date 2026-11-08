@@ -4,6 +4,7 @@ pub mod bench;
 pub mod copy;
 pub mod i18n;
 pub mod input;
+pub mod layout;
 pub mod logging;
 #[cfg(target_os = "macos")]
 pub mod macos;

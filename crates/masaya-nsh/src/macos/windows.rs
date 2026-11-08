@@ -23,13 +23,14 @@ use objc2_foundation::{
     NSNotification, NSObject, NSObjectProtocol, NSPoint, NSRect, NSSize, NSString,
 };
 
+use crate::layout::{self, Orientation, WindowLayout, WindowNow};
 use crate::screens::mirror::{MirrorWindow, MirrorWindowProps};
+use crate::settings::SettingsHub;
 use crate::windows::{MirrorRequest, OpenMirrors, WindowHost};
 
-/// The window's first content size, in points (slice 1.4 sizes it to the phone).
+/// The window's first content size, in points, until the first video sizes it to the phone
+/// ([`fit_to_video`]).
 const INITIAL_SIZE: (f64, f64) = (420.0, 860.0);
-/// The smallest content size the window can be resized to.
-const MIN_SIZE: (f64, f64) = (280.0, 480.0);
 /// The gap between the list's window and the first mirror window beside it.
 const GAP: f64 = 12.0;
 
@@ -95,6 +96,8 @@ struct Open {
     _delegate: Retained<WindowDelegate>,
     generation: u64,
     mirrors: OpenMirrors,
+    /// Sized to the first video, then turned with the phone; kept across reconnects.
+    layout: WindowLayout,
 }
 
 impl Open {
@@ -191,7 +194,8 @@ fn open(mtm: MainThreadMarker, mirrors: OpenMirrors, request: MirrorRequest) {
     // SAFETY: the window is kept in `WINDOWS` until it closes, then released after its close.
     unsafe { window.setReleasedWhenClosed(false) };
     window.setTitle(&NSString::from_str(&label));
-    window.setContentMinSize(NSSize::new(MIN_SIZE.0, MIN_SIZE.1));
+    let min = layout::min_content_size(Orientation::Portrait);
+    window.setContentMinSize(NSSize::new(min.width, min.height));
 
     // Each view has its own registry: the mirror's native view is registered on every one.
     let components = Components::default();
@@ -240,9 +244,58 @@ fn open(mtm: MainThreadMarker, mirrors: OpenMirrors, request: MirrorRequest) {
                 _delegate: delegate,
                 generation,
                 mirrors,
+                layout: WindowLayout::default(),
             },
         );
     });
+}
+
+/// The video of the mirror shown in `window` is now `width`×`height` (its first configuration, or
+/// the phone turned): sizes the window to it, keeping its top left corner and keeping it on its
+/// screen. A window the user made full screen or zoomed keeps its size. Main thread only.
+pub fn fit_to_video(window: &NSWindow, width: u32, height: u32) {
+    let content = window.contentRectForFrameRect(window.frame()).size;
+    let Some(area) = window.screen().map(|screen| screen.visibleFrame()) else {
+        return;
+    };
+    let now = WindowNow {
+        content: layout::Size::new(content.width, content.height),
+        work_area: layout::Size::new(area.size.width, area.size.height),
+        navigation_bar: SettingsHub::global().with_settings(|settings| settings.navigation_bar),
+        user_sized: window.styleMask().contains(NSWindowStyleMask::FullScreen) || window.isZoomed(),
+    };
+    let resize = WINDOWS.with(|windows| {
+        let mut windows = windows.borrow_mut();
+        let open = windows
+            .values_mut()
+            .find(|open| std::ptr::eq(&*open.window, window))?;
+        open.layout.video_changed(width, height, now)
+    });
+    let Some(resize) = resize else {
+        log::debug!("mirror window: video {width}×{height}, size kept");
+        return;
+    };
+    window.setContentMinSize(NSSize::new(resize.min.width, resize.min.height));
+    let frame = window.frame();
+    let wanted = window.frameRectForContentRect(NSRect::new(
+        NSPoint::new(0.0, 0.0),
+        NSSize::new(resize.content.width, resize.content.height),
+    ));
+    // The top left corner stays where it was: AppKit's origin is the bottom left.
+    let top = frame.origin.y + frame.size.height;
+    let origin = clamp(
+        NSPoint::new(frame.origin.x, top - wanted.size.height),
+        wanted.size,
+        area,
+    );
+    window.setFrame_display(NSRect::new(origin, wanted.size), true);
+    log::info!(
+        "mirror window: video {width}×{height}, content {:.0}×{:.0} → {:.0}×{:.0}",
+        content.width,
+        content.height,
+        resize.content.width,
+        resize.content.height
+    );
 }
 
 /// The window of `serial` made under `generation` closed.
