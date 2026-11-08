@@ -16,7 +16,7 @@ fn main() -> impl std::process::Termination {
         platform::AppSource::Rust(platform::Root::of::<masaya_nsh::App>()),
         platform::AppOptions {
             title: "Masaya".to_owned(),
-            app_id: "com.masaya.app.nsh".to_owned(),
+            app_id: "dev.momotombo.app.masayamirror".to_owned(),
             size: (420, 800),
             components,
             ..Default::default()

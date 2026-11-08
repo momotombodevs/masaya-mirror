@@ -1,6 +1,6 @@
 {
   "name": "Masaya",
-  "id": "com.masaya.app.nsh",
+  "id": "dev.momotombo.app.masayamirror",
   "appearance": "system",
   "rust": ".",
   "root": "App"
