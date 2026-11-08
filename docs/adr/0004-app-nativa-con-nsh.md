@@ -31,17 +31,17 @@ o nos quedamos en Electron.
 
 ## Resultados
 
-| Medida | Electron | NSH |
-| --- | --- | --- |
-| Input → paquete de video, p50 / p95 | 56–57 / 62–67 ms | 49–55 / 60–62 ms |
-| Input → cuadro entregado al renderer, p50 / p95 ¹ | 58–60 / 67–70 ms | 56–57 / 63–65 ms |
-| FPS del teléfono durante el arrastre | 115,4–115,9 | 115,8–117,5 |
-| Refrescos de la pantalla con cuadro nuevo (de 60) | 58,5–58,9 | 58,4–58,6 |
-| CPU con la pantalla quieta ² | 5–8 % | 2 % |
-| CPU arrastrando ² | 34–36 % | 9 % |
-| Memoria (RSS del árbol) | 457–568 MB | 77–87 MB |
-| Arranque hasta la primera ventana | 0,6–1,1 s | 0,17–0,45 s ³ |
-| Estabilidad, 10 min con swipes cada 3 s | (no repetida, es la app actual) | sin caídas, 0 fallos del renderer, RSS plano 40–54 MB |
+| Medida                                            | Electron                        | NSH                                                   |
+| ------------------------------------------------- | ------------------------------- | ----------------------------------------------------- |
+| Input → paquete de video, p50 / p95               | 56–57 / 62–67 ms                | 49–55 / 60–62 ms                                      |
+| Input → cuadro entregado al renderer, p50 / p95 ¹ | 58–60 / 67–70 ms                | 56–57 / 63–65 ms                                      |
+| FPS del teléfono durante el arrastre              | 115,4–115,9                     | 115,8–117,5                                           |
+| Refrescos de la pantalla con cuadro nuevo (de 60) | 58,5–58,9                       | 58,4–58,6                                             |
+| CPU con la pantalla quieta ²                      | 5–8 %                           | 2 %                                                   |
+| CPU arrastrando ²                                 | 34–36 %                         | 9 %                                                   |
+| Memoria (RSS del árbol)                           | 457–568 MB                      | 77–87 MB                                              |
+| Arranque hasta la primera ventana                 | 0,6–1,1 s                       | 0,17–0,45 s ³                                         |
+| Estabilidad, 10 min con swipes cada 3 s           | (no repetida, es la app actual) | sin caídas, 0 fallos del renderer, RSS plano 40–54 MB |
 
 1. En Electron es `transferFromImageBitmap` (después de decodificar en WebCodecs); `to_visible` en el
    siguiente rAF suma otros ~8 ms (66–69 ms). En NSH es el contador de cuadros del renderer

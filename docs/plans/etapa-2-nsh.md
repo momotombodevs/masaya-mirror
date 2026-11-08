@@ -21,14 +21,14 @@ NSH 0.4.0 trae comandos de ventana, menús con atajos, diálogos de archivos, so
 
 ## Fases
 
-| Fase | Resultado | Tamaño |
-| --- | --- | --- |
-| F1 | Espejo completo en su propia ventana, varios a la vez; cimientos (preferencias, i18n, logs) | ~12 d |
-| F2 | Captura, grabación, GIF, portapapeles, APK, audio | ~10–13 d |
-| F3 | Wi-Fi (QR), configurar adb, lista igual que en Electron | ~4 d |
-| F4 | Ajustes, idioma en vivo, diagnóstico, H.265 | ~5–7 d |
-| F5 | `.app` firmada y notarizada, actualizaciones, CI, beta, migración de usuarios | ~6–9 d |
-| F6 | Borrar Electron y Node, documentación | ~2 d |
+| Fase | Resultado                                                                                   | Tamaño   |
+| ---- | ------------------------------------------------------------------------------------------- | -------- |
+| F1   | Espejo completo en su propia ventana, varios a la vez; cimientos (preferencias, i18n, logs) | ~12 d    |
+| F2   | Captura, grabación, GIF, portapapeles, APK, audio                                           | ~10–13 d |
+| F3   | Wi-Fi (QR), configurar adb, lista igual que en Electron                                     | ~4 d     |
+| F4   | Ajustes, idioma en vivo, diagnóstico, H.265                                                 | ~5–7 d   |
+| F5   | `.app` firmada y notarizada, actualizaciones, CI, beta, migración de usuarios               | ~6–9 d   |
+| F6   | Borrar Electron y Node, documentación                                                       | ~2 d     |
 
 Spikes en paralelo con F1: S-A captura (`copyDisplayedPixelBuffer` → `VTPixelTransferSession`, plan B decodificar desde el último keyframe), S-B grabación sin recodificar (`AVAssetWriter` passthrough), S-C audio (`AVSampleBufferAudioRenderer`, plan B PCM + `AVAudioEngine`), S-D soltar archivos sobre la vista nativa.
 
