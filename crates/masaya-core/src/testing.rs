@@ -20,6 +20,12 @@ struct Script {
     sockets: Mutex<HashMap<String, VecDeque<Vec<u8>>>>,
     /// Connections to a socket that are refused before it starts to work (the server is booting).
     refusals: Mutex<HashMap<String, u32>>,
+    /// Sockets that behave like the real scrcpy server: the first connection gets its first byte
+    /// (the dummy byte) at once and the rest only once every scripted connection is open, as the
+    /// server sends the device meta and codec header after accepting video, audio and control.
+    accept_all_first: Mutex<Vec<String>>,
+    /// Connections opened so far, by socket name.
+    connections: Mutex<HashMap<String, usize>>,
 }
 
 #[derive(Default)]
@@ -32,6 +38,8 @@ struct Recorded {
     requests: Vec<String>,
     /// Commands whose client hung up while they were still running.
     closed_shells: Vec<String>,
+    /// Abstract sockets whose client stopped writing (shut down or closed its end), once each.
+    closed_sockets: Vec<String>,
 }
 
 pub struct MockAdbBuilder {
@@ -67,6 +75,11 @@ impl MockAdb {
             .get(socket)
             .cloned()
             .unwrap_or_default()
+    }
+
+    /// Connections to abstract sockets whose client shut down its writing side or closed.
+    pub fn closed_sockets(&self) -> Vec<String> {
+        self.recorded.lock().unwrap().closed_sockets.clone()
     }
 
     /// Commands that were still running when their client hung up.
@@ -133,6 +146,17 @@ impl MockAdbBuilder {
             .entry(name.to_owned())
             .or_default()
             .push_back(greeting.to_vec());
+        self
+    }
+
+    /// The first connection to `name` gets its greeting past the first byte only once every
+    /// scripted connection to `name` is open (see `Script::accept_all_first`).
+    pub fn accept_all_before_sending(self, name: &str) -> Self {
+        self.script
+            .accept_all_first
+            .lock()
+            .unwrap()
+            .push(name.to_owned());
         self
     }
 
@@ -261,15 +285,50 @@ async fn serve(
                 .unwrap()
                 .get_mut(name)
                 .and_then(VecDeque::pop_front);
+            // Only the first connection to a held socket waits for the others.
+            let first = {
+                let mut connections = script.connections.lock().unwrap();
+                let opened = connections.entry(name.to_owned()).or_default();
+                *opened += 1;
+                *opened == 1
+                    && script
+                        .accept_all_first
+                        .lock()
+                        .unwrap()
+                        .iter()
+                        .any(|held| held == name)
+            };
             let Some(greeting) = greeting else {
                 return fail(&mut stream, &format!("unscripted socket: {name}")).await;
             };
             stream.write_all(b"OKAY").await?;
-            stream.write_all(&greeting).await?;
+            if first && !greeting.is_empty() {
+                stream.write_all(&greeting[..1]).await?;
+                loop {
+                    let open = script
+                        .sockets
+                        .lock()
+                        .unwrap()
+                        .get(name)
+                        .is_none_or(VecDeque::is_empty);
+                    if open {
+                        break;
+                    }
+                    tokio::time::sleep(Duration::from_millis(5)).await;
+                }
+                stream.write_all(&greeting[1..]).await?;
+            } else {
+                stream.write_all(&greeting).await?;
+            }
             let mut buffer = [0u8; 4096];
             loop {
                 let read = stream.read(&mut buffer).await?;
                 if read == 0 {
+                    recorded
+                        .lock()
+                        .unwrap()
+                        .closed_sockets
+                        .push(name.to_owned());
                     return Ok(());
                 }
                 recorded

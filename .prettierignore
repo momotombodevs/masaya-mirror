@@ -6,8 +6,5 @@ pnpm-lock.yaml
 resources
 build
 skills-lock.json
-dist-tauri
 target
-src-tauri/gen
-src-tauri/icons
 Cargo.lock

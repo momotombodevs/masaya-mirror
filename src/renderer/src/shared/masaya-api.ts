@@ -1,24 +1,10 @@
 import { err, type Result } from '../../../shared/ipc/result';
-import { createTauriApi, isTauri } from './tauri/tauri-api';
 
 export type MasayaApi = Window['masaya'];
 
-let tauriApi: MasayaApi | undefined;
-
-/**
- * Returns the API of the backend this window runs on: the one the Electron preload exposes, or
- * the Tauri commands. Undefined when neither is there (a plain browser).
- */
+/** Returns the preload-exposed API, or undefined when the bridge is unavailable. */
 export function getMasayaApi(): MasayaApi | undefined {
-  const preloaded = (window as { masaya?: MasayaApi }).masaya;
-  if (preloaded) {
-    return preloaded;
-  }
-  if (isTauri()) {
-    tauriApi ??= createTauriApi();
-    return tauriApi;
-  }
-  return undefined;
+  return (window as { masaya?: MasayaApi }).masaya;
 }
 
 /**

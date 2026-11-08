@@ -1,0 +1,371 @@
+//! The mirror's `NSView`: hosts the video layer and turns AppKit's mouse, wheel and keyboard
+//! events into control messages ([`crate::input::events`]), sent in order on the session's
+//! channel ([`crate::mirror::control`]).
+//!
+//! - Mouse: left button is the finger (pointer -1); right is Back and middle is Home, as scrcpy.
+//! - Keyboard: the view takes the keyboard on the first click (`makeFirstResponder:`; NSH's root
+//!   is first responder otherwise). Key codes go straight to the phone; anything that types goes
+//!   through the input system (`interpretKeyEvents:` → `NSTextInputClient`'s `insertText:`), so
+//!   accents, dead keys and input methods arrive as the text they compose. Marked (in-progress)
+//!   text is not shown: the phone gets the final text.
+//! - Losing the keyboard (another view, or the window going to the back) lifts the finger and
+//!   releases every key held on the phone.
+//! - Modifier keys alone send nothing, as in the renderer: each key carries the meta state.
+
+use std::cell::{Cell, RefCell};
+use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
+
+use masaya_core::scrcpy::ControlMessage;
+use objc2::rc::Retained;
+use objc2::runtime::{AnyObject, NSObjectProtocol, Sel};
+use objc2::{DefinedClass, MainThreadMarker, MainThreadOnly, Message, define_class, msg_send, sel};
+use objc2_app_kit::{
+    NSEvent, NSResponder, NSTextInputClient, NSView, NSWindow, NSWindowDidResignKeyNotification,
+};
+use objc2_foundation::{
+    NSArray, NSAttributedString, NSAttributedStringKey, NSNotFound, NSNotification,
+    NSNotificationCenter, NSPoint, NSRange, NSRangePointer, NSRect, NSString, NSUInteger,
+};
+use tokio::sync::mpsc::UnboundedSender;
+
+use super::mirror_view::unpack_size;
+use crate::input::events::{Geometry, InputEvent, InputTranslator, KeyDown};
+use crate::input::mapping::{VideoSize, ViewSize};
+
+pub struct Ivars {
+    translator: RefCell<InputTranslator>,
+    input: RefCell<Option<UnboundedSender<ControlMessage>>>,
+    video_size: Arc<AtomicU64>,
+    marked: Cell<bool>,
+    /// The window whose losing focus releases the keys.
+    observed: RefCell<Option<Retained<NSWindow>>>,
+}
+
+define_class!(
+    /// The mirror's view (see the module docs).
+    #[unsafe(super(NSView, NSResponder, objc2_foundation::NSObject))]
+    #[thread_kind = MainThreadOnly]
+    #[ivars = Ivars]
+    #[name = "MasayaMirrorView"]
+    pub struct MirrorNSView;
+
+    unsafe impl NSObjectProtocol for MirrorNSView {}
+
+    impl MirrorNSView {
+        #[unsafe(method(acceptsFirstResponder))]
+        fn accepts_first_responder(&self) -> bool {
+            true
+        }
+
+        #[unsafe(method(acceptsFirstMouse:))]
+        fn accepts_first_mouse(&self, _event: Option<&NSEvent>) -> bool {
+            true
+        }
+
+        #[unsafe(method(mouseDown:))]
+        fn mouse_down(&self, event: &NSEvent) {
+            // NSH's root holds the keyboard; the phone's view takes it on the first click.
+            if let Some(window) = self.window() {
+                window.makeFirstResponder(Some(self.as_responder()));
+            }
+            let (x, y) = self.point(event);
+            self.handle(&InputEvent::MouseDown { x, y });
+        }
+
+        #[unsafe(method(mouseDragged:))]
+        fn mouse_dragged(&self, event: &NSEvent) {
+            let (x, y) = self.point(event);
+            self.handle(&InputEvent::MouseDragged { x, y });
+        }
+
+        #[unsafe(method(mouseUp:))]
+        fn mouse_up(&self, event: &NSEvent) {
+            let (x, y) = self.point(event);
+            self.handle(&InputEvent::MouseUp { x, y });
+        }
+
+        #[unsafe(method(rightMouseDown:))]
+        fn right_mouse_down(&self, _event: &NSEvent) {
+            self.handle(&InputEvent::RightMouseDown);
+        }
+
+        #[unsafe(method(otherMouseDown:))]
+        fn other_mouse_down(&self, _event: &NSEvent) {
+            self.handle(&InputEvent::OtherMouseDown);
+        }
+
+        #[unsafe(method(scrollWheel:))]
+        fn scroll_wheel(&self, event: &NSEvent) {
+            let (x, y) = self.point(event);
+            self.handle(&InputEvent::Scroll {
+                x,
+                y,
+                delta_x: event.scrollingDeltaX(),
+                delta_y: event.scrollingDeltaY(),
+                precise: event.hasPreciseScrollingDeltas(),
+            });
+        }
+
+        #[unsafe(method(keyDown:))]
+        fn key_down(&self, event: &NSEvent) {
+            let characters = characters(event);
+            let decision = self.ivars().translator.borrow_mut().key_down(
+                event.keyCode(),
+                &characters,
+                event.modifierFlags().0 as u64,
+                event.isARepeat(),
+            );
+            match decision {
+                KeyDown::Send(messages) => self.send(messages),
+                KeyDown::Compose => {
+                    let events = NSArray::from_retained_slice(&[event.retain()]);
+                    self.interpretKeyEvents(&events);
+                }
+            }
+        }
+
+        #[unsafe(method(keyUp:))]
+        fn key_up(&self, event: &NSEvent) {
+            let messages = self.ivars().translator.borrow_mut().key_up(
+                event.keyCode(),
+                &characters(event),
+                event.modifierFlags().0 as u64,
+            );
+            self.send(messages);
+        }
+
+        #[unsafe(method(resignFirstResponder))]
+        fn resign_first_responder(&self) -> bool {
+            // SAFETY: NSView's standard responder transition.
+            let accepted: bool = unsafe { msg_send![super(self), resignFirstResponder] };
+            if accepted {
+                self.release_all();
+            }
+            accepted
+        }
+
+        #[unsafe(method(viewDidMoveToWindow))]
+        fn view_did_move_to_window(&self) {
+            self.observe_window();
+        }
+
+        #[unsafe(method(windowDidResignKey:))]
+        fn window_did_resign_key(&self, _notification: &NSNotification) {
+            self.release_all();
+        }
+    }
+
+    // SAFETY: AppKit calls these on the main thread, with the documented argument types.
+    unsafe impl NSTextInputClient for MirrorNSView {
+        #[unsafe(method(insertText:replacementRange:))]
+        unsafe fn insert_text(&self, string: &AnyObject, _replacement_range: NSRange) {
+            self.ivars().marked.set(false);
+            let text = text_of(string);
+            if !text.is_empty() {
+                self.handle(&InputEvent::Text(text));
+            }
+        }
+
+        #[unsafe(method(doCommandBySelector:))]
+        unsafe fn do_command_by_selector(&self, _selector: Sel) {
+            // Commands (newline, delete, arrows) arrive as key codes in `keyDown:`; ignoring
+            // them here keeps AppKit from beeping.
+        }
+
+        #[unsafe(method(setMarkedText:selectedRange:replacementRange:))]
+        unsafe fn set_marked_text(
+            &self,
+            string: &AnyObject,
+            _selected_range: NSRange,
+            _replacement_range: NSRange,
+        ) {
+            self.ivars().marked.set(!text_of(string).is_empty());
+        }
+
+        #[unsafe(method(unmarkText))]
+        fn unmark_text(&self) {
+            self.ivars().marked.set(false);
+        }
+
+        #[unsafe(method(selectedRange))]
+        fn selected_range(&self) -> NSRange {
+            NSRange::new(NSNotFound as NSUInteger, 0)
+        }
+
+        #[unsafe(method(markedRange))]
+        fn marked_range(&self) -> NSRange {
+            if self.ivars().marked.get() {
+                NSRange::new(0, 1)
+            } else {
+                NSRange::new(NSNotFound as NSUInteger, 0)
+            }
+        }
+
+        #[unsafe(method(hasMarkedText))]
+        fn has_marked_text(&self) -> bool {
+            self.ivars().marked.get()
+        }
+
+        #[unsafe(method_id(attributedSubstringForProposedRange:actualRange:))]
+        unsafe fn attributed_substring(
+            &self,
+            _range: NSRange,
+            _actual_range: NSRangePointer,
+        ) -> Option<Retained<NSAttributedString>> {
+            None
+        }
+
+        #[unsafe(method_id(validAttributesForMarkedText))]
+        fn valid_attributes_for_marked_text(&self) -> Retained<NSArray<NSAttributedStringKey>> {
+            NSArray::new()
+        }
+
+        #[unsafe(method(firstRectForCharacterRange:actualRange:))]
+        unsafe fn first_rect_for_character_range(
+            &self,
+            _range: NSRange,
+            _actual_range: NSRangePointer,
+        ) -> NSRect {
+            // Input method windows open by the view's bottom left corner.
+            let rect = self.convertRect_toView(NSRect::new(NSPoint::new(0.0, 0.0), self.bounds().size), None);
+            self.window()
+                .map_or(rect, |window| window.convertRectToScreen(rect))
+        }
+
+        #[unsafe(method(characterIndexForPoint:))]
+        fn character_index_for_point(&self, _point: NSPoint) -> NSUInteger {
+            NSNotFound as NSUInteger
+        }
+    }
+);
+
+/// `NSEvent::characters`, or empty (a dead key's first press has none).
+fn characters(event: &NSEvent) -> String {
+    event
+        .characters()
+        .map(|text| text.to_string())
+        .unwrap_or_default()
+}
+
+/// The text of an `NSString` or `NSAttributedString`, as the input system hands either.
+fn text_of(string: &AnyObject) -> String {
+    if let Some(attributed) = string.downcast_ref::<NSAttributedString>() {
+        return attributed.string().to_string();
+    }
+    string
+        .downcast_ref::<NSString>()
+        .map(NSString::to_string)
+        .unwrap_or_default()
+}
+
+impl MirrorNSView {
+    pub fn new(mtm: MainThreadMarker, video_size: Arc<AtomicU64>) -> Retained<Self> {
+        let this = Self::alloc(mtm).set_ivars(Ivars {
+            translator: RefCell::new(InputTranslator::default()),
+            input: RefCell::new(None),
+            video_size,
+            marked: Cell::new(false),
+            observed: RefCell::new(None),
+        });
+        // SAFETY: NSView's designated initializer.
+        unsafe { msg_send![super(this), init] }
+    }
+
+    /// Where input goes: the session's channel, or nowhere while there is none.
+    pub fn set_input(&self, input: Option<UnboundedSender<ControlMessage>>) {
+        if input.is_none() {
+            // The session went: whatever is held on the phone is moot, but the translator
+            // must not think a finger or a key is still down.
+            let _ = self.ivars().translator.borrow_mut().release_all();
+        }
+        *self.ivars().input.borrow_mut() = input;
+    }
+
+    fn as_responder(&self) -> &NSResponder {
+        self
+    }
+
+    fn geometry(&self) -> Option<Geometry> {
+        let (width, height) = unpack_size(self.ivars().video_size.load(Ordering::Relaxed));
+        if width == 0 || height == 0 {
+            return None;
+        }
+        let size = self.bounds().size;
+        Some(Geometry {
+            view: ViewSize {
+                width: size.width,
+                height: size.height,
+            },
+            video: VideoSize { width, height },
+            flipped: self.isFlipped(),
+        })
+    }
+
+    fn point(&self, event: &NSEvent) -> (f64, f64) {
+        let point = self.convertPoint_fromView(event.locationInWindow(), None);
+        (point.x, point.y)
+    }
+
+    fn handle(&self, event: &InputEvent) {
+        // Without a video there is nowhere to map a touch; keys and text need none.
+        let geometry = self.geometry().unwrap_or(Geometry {
+            view: ViewSize {
+                width: 0.0,
+                height: 0.0,
+            },
+            video: VideoSize {
+                width: 0,
+                height: 0,
+            },
+            flipped: false,
+        });
+        let messages = self
+            .ivars()
+            .translator
+            .borrow_mut()
+            .translate(event, geometry);
+        self.send(messages);
+    }
+
+    fn release_all(&self) {
+        let messages = self.ivars().translator.borrow_mut().release_all();
+        self.send(messages);
+    }
+
+    /// Queues `messages` for the session, in order. Never blocks the main thread.
+    fn send(&self, messages: Vec<ControlMessage>) {
+        let input = self.ivars().input.borrow();
+        let Some(input) = input.as_ref() else { return };
+        for message in messages {
+            if input.send(message).is_err() {
+                // The session ended; the screen will say so.
+                return;
+            }
+        }
+    }
+
+    /// Releases the keys when the window this view is in stops being the key window.
+    fn observe_window(&self) {
+        let center = NSNotificationCenter::defaultCenter();
+        let name = unsafe { NSWindowDidResignKeyNotification };
+        if let Some(old) = self.ivars().observed.borrow_mut().take() {
+            // SAFETY: removes this view's registration for that window, made below.
+            unsafe { center.removeObserver_name_object(self, Some(name), Some(&old)) };
+        }
+        if let Some(window) = self.window() {
+            // SAFETY: `windowDidResignKey:` is a method of this class taking the notification;
+            // the registration is removed above when the window changes, and AppKit drops it
+            // when the view is deallocated (macOS 10.11+).
+            unsafe {
+                center.addObserver_selector_name_object(
+                    self,
+                    sel!(windowDidResignKey:),
+                    Some(name),
+                    Some(&window),
+                );
+            }
+            *self.ivars().observed.borrow_mut() = Some(window);
+        }
+    }
+}

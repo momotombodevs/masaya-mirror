@@ -1,0 +1,45 @@
+[package]
+name = "masaya-nsh"
+description = "Masaya as a native macOS app (NSH spike): device list and mirror, 100% Rust."
+version.workspace = true
+# NSH needs edition 2024 and Rust 1.88 (let-chains); the rest of the workspace stays on 2021/1.85.
+edition = "2024"
+rust-version = "1.88"
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+publish = false
+
+[lib]
+name = "masaya_nsh"
+
+[[bin]]
+name = "masaya-nsh"
+path = "src/main.rs"
+
+[dependencies]
+log = "0.4"
+masaya-core = { path = "../masaya-core" }
+nsh-base = "=0.4.0"
+nsh-core = "=0.4.0"
+serde_json.workspace = true
+thiserror.workspace = true
+tokio = { version = "1", features = ["macros", "sync"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
+env_logger = "0.11"
+nsh-platform-macos = "=0.4.0"
+# The same objc2 generation NSH uses (objc2 0.6, objc2-* 0.3.2), for the mirror's native view.
+objc2 = "0.6.3"
+block2 = "0.6.2"
+objc2-app-kit = { version = "0.3.2", default-features = false, features = ["std", "NSEvent", "NSGraphics", "NSResponder", "NSTextInputClient", "NSView", "NSWindow", "objc2-quartz-core"] }
+objc2-foundation = { version = "0.3.2", default-features = false, features = ["std", "NSArray", "NSAttributedString", "NSGeometry", "NSNotification", "NSObjCRuntime", "NSProcessInfo", "NSRange", "NSString"] }
+objc2-av-foundation = { version = "0.3.2", default-features = false, features = ["std", "AVAnimation", "AVQueuedSampleBufferRendering", "AVSampleBufferDisplayLayer", "AVSampleBufferVideoRenderer", "AVVideoPerformanceMetrics", "block2", "objc2-core-media", "objc2-core-video", "objc2-quartz-core"] }
+objc2-core-foundation = { version = "0.3.2", default-features = false, features = ["std", "CFArray", "CFDictionary", "CFNumber", "CFString"] }
+objc2-core-media = { version = "0.3.2", default-features = false, features = ["std", "CMBase", "CMBlockBuffer", "CMFormatDescription", "CMSampleBuffer", "CMTime"] }
+objc2-quartz-core = { version = "0.3.2", default-features = false, features = ["std", "CALayer", "objc2-core-foundation"] }
+
+[dev-dependencies]
+nsh-engine = "=0.4.0"
+nsh-testing = { version = "=0.4.0", default-features = false }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }

@@ -1,7 +1,7 @@
 //! Masaya core: everything that talks to a phone, with no UI or windowing dependencies.
 //!
-//! The Tauri shell (`src-tauri`) is a thin layer over this crate. Keeping the core free of Tauri
-//! lets it be compiled and tested anywhere, including CI machines without WebView libraries.
+//! Desktop shells are thin layers over this crate. Keeping the core free of UI code lets it be
+//! compiled and tested anywhere, including CI machines without windowing libraries.
 
 pub mod adb;
 pub mod error;

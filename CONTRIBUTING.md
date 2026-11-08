@@ -21,15 +21,16 @@ pnpm dev:debug      # igual, con DevTools
 Para entender cómo está armada la app, lee [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) y las
 decisiones en [docs/adr/](docs/adr/).
 
-## Migración a Tauri (en curso)
+## Rust (en curso)
 
-El backend en Rust vive en `crates/masaya-core` (adb y scrcpy) y `src-tauri` (la capa de Tauri). Hace
-falta [Rust estable](https://rustup.rs) y, en Linux, las [dependencias de Tauri](https://tauri.app/start/prerequisites/).
-La decisión y el plan están en [docs/adr/0003-migracion-a-tauri.md](docs/adr/0003-migracion-a-tauri.md).
+El backend en Rust vive en `crates/masaya-core` (adb y scrcpy, sin dependencias de UI). Hace falta
+[Rust estable](https://rustup.rs). `crates/masaya-nsh` es un experimento de app nativa para macOS
+(Apple Silicon, macOS 14+) con [NSH](https://crates.io/crates/nsh-core); necesita Rust 1.88 o superior y no
+se compila con `cargo test` en la raíz.
 
 ```bash
-cargo test -p masaya-core   # el core se prueba sin WebView ni GTK
-pnpm tauri:dev              # abre la app con Tauri (Electron sigue siendo `pnpm dev`)
+cargo test                  # solo el core: funciona en cualquier sistema
+cargo run -p masaya-nsh     # abre el experimento nativo (solo macOS)
 ```
 
 ## Antes de abrir un PR

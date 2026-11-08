@@ -1,0 +1,7 @@
+{
+  "name": "Masaya",
+  "id": "dev.momotombo.app.masayamirror",
+  "appearance": "system",
+  "rust": ".",
+  "root": "App"
+}

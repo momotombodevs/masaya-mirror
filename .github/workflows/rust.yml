@@ -1,0 +1,43 @@
+name: Rust
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    paths:
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'crates/**'
+      - '.github/workflows/rust.yml'
+
+concurrency:
+  group: rust-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  core:
+    name: Core (fmt, clippy, test)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all --check
+      - run: cargo clippy -p masaya-core --all-targets -- -D warnings
+      - run: cargo test -p masaya-core
+
+  nsh:
+    name: NSH spike (macOS, optional)
+    runs-on: macos-15
+    # The spike may break while it is explored; it does not block a merge.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo clippy -p masaya-nsh --all-targets -- -D warnings
+      - run: cargo test -p masaya-nsh
