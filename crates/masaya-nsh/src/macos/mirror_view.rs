@@ -15,8 +15,8 @@ use nsh_platform_macos::{ComponentContext, NativeComponent};
 use objc2::MainThreadMarker;
 use objc2::rc::Retained;
 use objc2::runtime::{NSObjectProtocol, ProtocolObject};
-use objc2_foundation::{NSActivityOptions, NSProcessInfo, NSString};
 use objc2_app_kit::NSView;
+use objc2_foundation::{NSActivityOptions, NSProcessInfo, NSString};
 
 use super::input_view::MirrorNSView;
 use objc2_av_foundation::{
@@ -481,9 +481,10 @@ impl MirrorView {
         }
         let renderer = unsafe { layer.sampleBufferRenderer() };
         // `MASAYA_NO_PROBE=1`: metrics without the present probe, to see what the probe costs.
-        let probe = (metrics::enabled() && !metrics::is_on(metrics::env_value("MASAYA_NO_PROBE").as_deref()))
-            .then(|| PresentProbe::start(renderer.clone()))
-            .flatten();
+        let probe = (metrics::enabled()
+            && !metrics::is_on(metrics::env_value("MASAYA_NO_PROBE").as_deref()))
+        .then(|| PresentProbe::start(renderer.clone()))
+        .flatten();
         let sink = Arc::new(LayerSink::new(renderer));
         if metrics::enabled() {
             let counted = sink.clone();
