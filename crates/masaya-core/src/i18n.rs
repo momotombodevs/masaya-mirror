@@ -1,5 +1,5 @@
-//! The few messages the core produces itself. Mirrors the `main.*` keys of
-//! `src/shared/i18n/messages.ts`, so users see the same text on either backend.
+//! The few messages the core produces itself, in Spanish and English. The wording comes from the
+//! `main.*` messages of the removed Electron app, so users see the text they already know.
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Locale {
@@ -56,8 +56,8 @@ impl Msg<'_> {
             (Self::InstallFailed, En) => "Could not install the APK.".into(),
             (Self::DisconnectedFrom(address), Es) => format!("Desconectado de {address}."),
             (Self::DisconnectedFrom(address), En) => format!("Disconnected from {address}."),
-            (Self::ScrcpyMissing(path), Es) => format!("Falta scrcpy-server. Ejecuta `pnpm setup:tools`. Ruta: {path}"),
-            (Self::ScrcpyMissing(path), En) => format!("scrcpy-server is missing. Run `pnpm setup:tools`. Path: {path}"),
+            (Self::ScrcpyMissing(path), Es) => format!("Falta scrcpy-server. Ejecuta `./scripts/setup-scrcpy.sh`. Ruta: {path}"),
+            (Self::ScrcpyMissing(path), En) => format!("scrcpy-server is missing. Run `./scripts/setup-scrcpy.sh`. Path: {path}"),
             (Self::MirrorStartFailed, Es) => "No se pudo iniciar la duplicación.".into(),
             (Self::MirrorStartFailed, En) => "Could not start mirroring.".into(),
         }

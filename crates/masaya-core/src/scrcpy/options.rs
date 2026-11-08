@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-/// Must match the `scrcpy-server.jar` in `resources/scrcpy-server` (see `scripts/setup-scrcpy.mjs`).
+/// Must match the `scrcpy-server.jar` in `resources/scrcpy-server` (see `scripts/setup-scrcpy.sh`).
 pub const SERVER_VERSION: &str = "3.3.3";
 /// Where the jar is pushed on the device.
 pub const SERVER_REMOTE_PATH: &str = "/data/local/tmp/scrcpy-server.jar";
@@ -23,7 +23,7 @@ impl VideoCodec {
     }
 }
 
-/// What the user can tune. Same fields and defaults as `MirrorOptions` in `src/shared/mirror`.
+/// What the user can tune. Same fields and defaults as the removed Electron app's `MirrorOptions`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", default)]
 pub struct MirrorOptions {

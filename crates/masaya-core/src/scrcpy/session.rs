@@ -1,5 +1,5 @@
 //! Starting a mirror session: push the server, launch it, connect its sockets and hand back the
-//! streams. Ports `ScrcpyService.startMirror` and `mirror-tango.ts`.
+//! streams. Ported from the removed Electron app (`ScrcpyService.startMirror`, `mirror-tango.ts`).
 
 use std::collections::VecDeque;
 use std::path::{Path, PathBuf};
@@ -856,7 +856,7 @@ mod tests {
         assert!(matches!(&error, SessionError::ServerMissing(path) if path == &missing));
         assert_eq!(
             error.user_message(Locale::Es),
-            "Falta scrcpy-server. Ejecuta `pnpm setup:tools`. Ruta: /nonexistent/scrcpy-server.jar"
+            "Falta scrcpy-server. Ejecuta `./scripts/setup-scrcpy.sh`. Ruta: /nonexistent/scrcpy-server.jar"
         );
         assert!(mock.pushed().is_empty(), "nothing is pushed without a jar");
     }

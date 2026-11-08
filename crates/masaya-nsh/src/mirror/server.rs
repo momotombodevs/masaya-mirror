@@ -1,5 +1,4 @@
-//! Where `scrcpy-server.jar` is. Ports `server_jar` from the removed Tauri shell: the bundled copy
-//! in a release, the repository's in development.
+//! Where `scrcpy-server.jar` is: the bundled copy in a release, the repository's in development.
 
 use std::path::{Path, PathBuf};
 
@@ -10,7 +9,7 @@ const JAR: &str = "scrcpy-server/scrcpy-server.jar";
 
 /// The places to look, in order: the environment's choice, the app bundle's `Resources`
 /// (`Masaya.app/Contents/MacOS/<exe>` → `Contents/Resources/...`), then the repository's
-/// `resources/`, where `pnpm setup:tools` downloads it.
+/// `resources/`, where `scripts/setup-scrcpy.sh` downloads it.
 pub fn jar_candidates(
     env: Option<PathBuf>,
     exe: Option<&Path>,

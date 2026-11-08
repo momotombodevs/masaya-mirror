@@ -1,4 +1,4 @@
-//! Finding the `adb` executable. Ports `adb-path.resolver.ts`.
+//! Finding the `adb` executable. Ported from the removed Electron app's `adb-path.resolver.ts`.
 //!
 //! GUI apps often miss the shell's PATH entries, so besides `PATH` the lookup also tries the usual
 //! Android SDK and package-manager locations.
