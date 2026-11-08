@@ -123,12 +123,13 @@ impl DeviceSource for AdbSource {
                 .map_err(|error| error.user_message(locale))?;
             let jar = server::server_jar()
                 .map_err(|path| Msg::ScrcpyMissing(&path.to_string_lossy()).text(locale))?;
+            // Read at each start, so a changed setting applies to the next mirror.
+            let options = self.settings.with_settings(mirror_options);
             ScrcpySession::start(
                 &AdbServer::default(),
                 &serial,
                 &jar,
-                // Read at each start, so a changed setting applies to the next mirror.
-                &mirror_options(&self.settings.get()),
+                &options,
                 StartConfig::default(),
             )
             .await

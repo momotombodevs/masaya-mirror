@@ -9,12 +9,16 @@
 //! - Every write goes to a temp file beside `settings.json` and is renamed over it, so a crash
 //!   never leaves half a file.
 //!
+//! - A file that exists but cannot be read or parsed is copied to `settings.json.bak` before the
+//!   first save replaces it.
+//!
 //! [`SettingsHub`] is the one copy the whole process shares: every window reads it and can
 //! subscribe to its changes.
 
 use std::io::{self, Write as _};
+use std::os::unix::fs::{OpenOptionsExt as _, PermissionsExt as _};
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 
 use masaya_core::scrcpy::{MirrorOptions, VideoCodec};
 use serde::Serialize;
@@ -174,11 +178,7 @@ impl Settings {
             },
             adb_path: non_empty_string(raw.get("adbPath")),
             save_directory: non_empty_string(raw.get("saveDirectory")),
-            extra: raw
-                .iter()
-                .filter(|(key, _)| !KNOWN_KEYS.contains(&key.as_str()))
-                .map(|(key, value)| (key.clone(), value.clone()))
-                .collect(),
+            extra: extra_keys(raw),
         }
     }
 
@@ -227,7 +227,7 @@ fn parse_mirror(value: Option<&Value>) -> Option<MirrorSettings> {
 
 /// Settings written by the first version stored only a quality preset (`MIRROR_QUALITY_PRESETS`).
 fn legacy_mirror(raw: &Map<String, Value>) -> Option<MirrorSettings> {
-    let (max_size, video_bit_rate) = match raw.get("quality").and_then(Value::as_str)? {
+    let (max_size, video_bit_rate) = match raw.get(LEGACY_QUALITY_KEY).and_then(Value::as_str)? {
         "balanced" => (1280, 8_000_000),
         "high" => (1920, 16_000_000),
         "max" => (2560, 32_000_000),
@@ -240,11 +240,35 @@ fn legacy_mirror(raw: &Map<String, Value>) -> Option<MirrorSettings> {
     })
 }
 
+/// The keys [`Settings`] does not read. The legacy `quality` preset is dropped once a valid
+/// `mirror` replaces it.
+fn extra_keys(raw: &Map<String, Value>) -> Map<String, Value> {
+    let migrated = parse_mirror(raw.get("mirror")).is_some();
+    raw.iter()
+        .filter(|(key, _)| !KNOWN_KEYS.contains(&key.as_str()))
+        .filter(|(key, _)| !(migrated && key.as_str() == LEGACY_QUALITY_KEY))
+        .map(|(key, value)| (key.clone(), value.clone()))
+        .collect()
+}
+
+const LEGACY_QUALITY_KEY: &str = "quality";
+
 fn non_empty_string(value: Option<&Value>) -> Option<String> {
     value
         .and_then(Value::as_str)
         .filter(|text| !text.is_empty())
         .map(str::to_owned)
+}
+
+/// Overrides [`default_path`] for [`SettingsHub::global`]; tests point it at a temp file.
+pub const SETTINGS_PATH_ENV: &str = "MASAYA_SETTINGS_PATH";
+
+/// `$MASAYA_SETTINGS_PATH` when set, else [`default_path`].
+pub fn app_path() -> Option<PathBuf> {
+    std::env::var_os(SETTINGS_PATH_ENV)
+        .filter(|path| !path.is_empty())
+        .map(PathBuf::from)
+        .or_else(default_path)
 }
 
 /// `~/Library/Application Support/Masaya/settings.json`, Electron's `userData` folder. `None`
@@ -260,26 +284,49 @@ pub fn default_path() -> Option<PathBuf> {
     )
 }
 
+/// What [`load`] found.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LoadState {
+    /// Read and parsed (bad fields fall back to their defaults), or no file yet.
+    Fine,
+    /// The file is there but could not be read or is not JSON: it must be backed up before it
+    /// is replaced.
+    Damaged,
+}
+
 /// Reads `path`. No file is the normal first run; anything else is logged and gives defaults.
-pub fn load(path: &Path) -> Settings {
+pub fn load(path: &Path) -> (Settings, LoadState) {
     let text = match std::fs::read_to_string(path) {
         Ok(text) => text,
-        Err(error) if error.kind() == io::ErrorKind::NotFound => return Settings::default(),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {
+            return (Settings::default(), LoadState::Fine);
+        }
         Err(error) => {
             log::error!("could not read the settings file, using defaults: {error}");
-            return Settings::default();
+            return (Settings::default(), LoadState::Damaged);
         }
     };
     match serde_json::from_str::<Value>(&text) {
-        Ok(raw) => Settings::from_json(&raw),
+        Ok(raw) => (Settings::from_json(&raw), LoadState::Fine),
         Err(error) => {
             log::error!("the settings file is not valid JSON, using defaults: {error}");
-            Settings::default()
+            (Settings::default(), LoadState::Damaged)
         }
     }
 }
 
-/// Writes `settings` to `path` through a temp file in the same folder, renamed over it.
+/// `settings.json.bak` beside `path`.
+pub fn backup_path(path: &Path) -> PathBuf {
+    let mut name = path.file_name().unwrap_or_default().to_os_string();
+    name.push(".bak");
+    path.with_file_name(name)
+}
+
+/// Mode of a settings file that did not exist before.
+const NEW_FILE_MODE: u32 = 0o644;
+
+/// Writes `settings` to `path` through a temp file in the same folder, renamed over it. The temp
+/// file is private (0600) while it is written, then takes the mode of the file it replaces.
 pub fn save(path: &Path, settings: &Settings) -> io::Result<()> {
     let dir = path.parent().unwrap_or_else(|| Path::new("."));
     std::fs::create_dir_all(dir)?;
@@ -290,9 +337,19 @@ pub fn save(path: &Path, settings: &Settings) -> io::Result<()> {
         let mut text =
             serde_json::to_string_pretty(&settings.to_json()).map_err(io::Error::other)?;
         text.push('\n');
-        let mut file = std::fs::File::create(&temp)?;
+        let mode = match std::fs::metadata(path) {
+            Ok(metadata) => metadata.permissions().mode() & 0o7777,
+            Err(_) => NEW_FILE_MODE,
+        };
+        let mut file = std::fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(true)
+            .mode(0o600)
+            .open(&temp)?;
         file.write_all(text.as_bytes())?;
         file.sync_all()?;
+        file.set_permissions(std::fs::Permissions::from_mode(mode))?;
         std::fs::rename(&temp, path)
     })();
     if result.is_err() {
@@ -308,53 +365,75 @@ pub struct SettingsHub {
     inner: Arc<HubInner>,
 }
 
+/// Called synchronously after each change, with the new settings.
+type Observer = Box<dyn Fn(&Settings) + Send + Sync>;
+
 struct HubInner {
     /// `None`: kept in memory only (no `$HOME`, or a test).
     path: Option<PathBuf>,
     sender: watch::Sender<Settings>,
     /// One read-modify-write at a time, so two windows cannot lose each other's change.
-    writing: Mutex<()>,
+    writing: Mutex<WriteState>,
+    observers: Mutex<Vec<Observer>>,
+}
+
+struct WriteState {
+    /// The file on disk could not be read: copy it to `.bak` before replacing it.
+    backup_pending: bool,
 }
 
 impl SettingsHub {
     /// Loads `path` (defaults when it is missing or unreadable) and saves every change to it.
     pub fn open(path: PathBuf) -> Self {
-        let settings = load(&path);
-        Self::with(Some(path), settings)
+        let (settings, state) = load(&path);
+        Self::with(Some(path), settings, state == LoadState::Damaged)
     }
 
     /// Settings that are never saved.
     pub fn in_memory(settings: Settings) -> Self {
-        Self::with(None, settings)
+        Self::with(None, settings, false)
     }
 
-    fn with(path: Option<PathBuf>, settings: Settings) -> Self {
+    fn with(path: Option<PathBuf>, settings: Settings, backup_pending: bool) -> Self {
         Self {
             inner: Arc::new(HubInner {
                 path,
                 sender: watch::Sender::new(settings),
-                writing: Mutex::new(()),
+                writing: Mutex::new(WriteState { backup_pending }),
+                observers: Mutex::new(Vec::new()),
             }),
         }
     }
 
-    /// The app's settings, from [`default_path`], loaded on first use.
+    /// The app's settings, from [`app_path`], loaded on first use. Unit tests get settings in
+    /// memory, so they never touch the user's file.
     pub fn global() -> &'static SettingsHub {
         static GLOBAL: OnceLock<SettingsHub> = OnceLock::new();
-        GLOBAL.get_or_init(|| match default_path() {
-            Some(path) => Self::open(path),
-            None => {
-                log::warn!("no $HOME: settings are not saved");
-                Self::in_memory(Settings::default())
+        GLOBAL.get_or_init(|| {
+            if cfg!(test) {
+                return Self::in_memory(Settings::default());
+            }
+            match app_path() {
+                Some(path) => Self::open(path),
+                None => {
+                    log::warn!("no $HOME: settings are not saved");
+                    Self::in_memory(Settings::default())
+                }
             }
         })
+    }
+
+    /// The file the settings are saved to; `None` in memory.
+    pub fn path(&self) -> Option<&Path> {
+        self.inner.path.as_deref()
     }
 
     pub fn get(&self) -> Settings {
         self.inner.sender.borrow().clone()
     }
 
-    /// Reads one value without cloning the whole settings.
+    /// Reads one value without cloning the whole settings. Holds a read lock while `read` runs:
+    /// calling [`SettingsHub::update`] from inside `read` deadlocks.
     pub fn with_settings<T>(&self, read: impl FnOnce(&Settings) -> T) -> T {
         read(&self.inner.sender.borrow())
     }
@@ -364,28 +443,77 @@ impl SettingsHub {
         self.inner.sender.subscribe()
     }
 
+    /// Runs `observer` right after each change, on the thread that made it. It runs inside
+    /// [`SettingsHub::update`]: it must be quick and must not call `update` (that deadlocks).
+    pub fn observe(&self, observer: impl Fn(&Settings) + Send + Sync + 'static) {
+        lock(&self.inner.observers).push(Box::new(observer));
+    }
+
     /// Changes the settings, saves them and tells the subscribers. Out-of-range values go back to
     /// their defaults. A failed save is logged and the change stays in memory for this run.
+    ///
+    /// Blocking: it writes (and fsyncs) the file, so call it off the UI thread, or use
+    /// [`SettingsHub::update_async`]. `change` runs under the hub's write lock: calling `update`
+    /// from inside it, or from inside [`SettingsHub::with_settings`], deadlocks.
     pub fn update(&self, change: impl FnOnce(&mut Settings)) -> Settings {
-        let _writing = self
-            .inner
-            .writing
-            .lock()
-            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        let mut writing = lock(&self.inner.writing);
         let mut next = self.get();
         change(&mut next);
         let next = next.sanitized();
         if next == *self.inner.sender.borrow() {
             return next;
         }
-        if let Some(path) = &self.inner.path
-            && let Err(error) = save(path, &next)
-        {
-            log::error!("could not save the settings file: {error}");
+        if let Some(path) = &self.inner.path {
+            save_with_backup(&mut writing, path, &next);
         }
         self.inner.sender.send_replace(next.clone());
+        for observer in lock(&self.inner.observers).iter() {
+            observer(&next);
+        }
         next
     }
+
+    /// [`SettingsHub::update`] on Tokio's blocking pool. Needs a Tokio runtime (`background`
+    /// tasks have one).
+    pub async fn update_async(
+        &self,
+        change: impl FnOnce(&mut Settings) + Send + 'static,
+    ) -> Result<Settings, tokio::task::JoinError> {
+        let hub = self.clone();
+        tokio::task::spawn_blocking(move || hub.update(change)).await
+    }
+}
+
+/// Saves, first copying a damaged file to `.bak` (overwriting an older backup). Without a backup
+/// the file is not replaced: the change stays in memory and the backup is retried on the next
+/// change.
+fn save_with_backup(writing: &mut WriteState, path: &Path, settings: &Settings) {
+    if writing.backup_pending {
+        let backup = backup_path(path);
+        match std::fs::copy(path, &backup) {
+            Ok(_) => {
+                log::warn!("kept the unreadable settings file as {}", backup.display());
+                writing.backup_pending = false;
+            }
+            // Gone since it was read: nothing left to keep.
+            Err(error) if error.kind() == io::ErrorKind::NotFound => {
+                writing.backup_pending = false;
+            }
+            Err(error) => {
+                log::error!("could not back up the unreadable settings file, not saving: {error}");
+                return;
+            }
+        }
+    }
+    if let Err(error) = save(path, settings) {
+        log::error!("could not save the settings file: {error}");
+    }
+}
+
+fn lock<T>(mutex: &Mutex<T>) -> MutexGuard<'_, T> {
+    mutex
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
 }
 
 #[cfg(test)]
@@ -712,8 +840,120 @@ mod tests {
         assert_eq!(written["alwaysOnTop"], json!(true));
         assert_eq!(written["language"], json!("es"));
         assert_eq!(written["windowBounds"], json!({ "x": 1 }));
-        assert_eq!(written["quality"], json!("high"));
+        // The preset is now saved as `mirror`, which replaces it.
         assert_eq!(written["mirror"]["maxSize"], json!(1920));
+        assert_eq!(written["mirror"]["videoBitRate"], json!(16_000_000));
+        assert!(written.get("quality").is_none());
+    }
+
+    #[test]
+    fn a_corrupt_file_is_backed_up_before_the_first_save() {
+        let dir = TempDir::new("masaya-settings");
+        let path = dir.path().join("settings.json");
+        let backup = dir.path().join("settings.json.bak");
+        std::fs::write(&backup, "an older backup").unwrap();
+        std::fs::write(&path, "{not json").unwrap();
+        let hub = SettingsHub::open(path.clone());
+
+        hub.update(|settings| settings.always_on_top = true);
+        assert_eq!(std::fs::read_to_string(&backup).unwrap(), "{not json");
+        assert_eq!(read_json(&path)["alwaysOnTop"], json!(true));
+
+        // Only once: the next save does not back up the good file over the damaged one.
+        hub.update(|settings| settings.always_on_top = false);
+        assert_eq!(std::fs::read_to_string(&backup).unwrap(), "{not json");
+        assert_eq!(read_dir(dir.path()), ["settings.json", "settings.json.bak"]);
+    }
+
+    #[test]
+    fn an_unreadable_file_is_backed_up_before_the_first_save() {
+        let dir = TempDir::new("masaya-settings");
+        let path = dir.path().join("settings.json");
+        // Not UTF-8: `read_to_string` fails with something other than NotFound.
+        std::fs::write(&path, [0xff, 0xfe, 0x00]).unwrap();
+        let hub = SettingsHub::open(path.clone());
+        assert_eq!(hub.get(), Settings::default());
+
+        hub.update(|settings| settings.show_clicks = false);
+        assert_eq!(
+            std::fs::read(backup_path(&path)).unwrap(),
+            [0xff, 0xfe, 0x00]
+        );
+        assert_eq!(read_json(&path)["showClicks"], json!(false));
+    }
+
+    #[test]
+    fn a_good_file_is_not_backed_up() {
+        let dir = TempDir::new("masaya-settings");
+        let path = dir.path().join("settings.json");
+        std::fs::write(&path, r#"{"alwaysOnTop": true}"#).unwrap();
+        SettingsHub::open(path).update(|settings| settings.navigation_bar = false);
+        assert_eq!(read_dir(dir.path()), ["settings.json"]);
+    }
+
+    #[test]
+    fn a_new_file_is_0644_and_a_replaced_one_keeps_its_mode() {
+        let dir = TempDir::new("masaya-settings");
+        let path = dir.path().join("settings.json");
+        let mode = |path: &Path| std::fs::metadata(path).unwrap().permissions().mode() & 0o777;
+        save(&path, &Settings::default()).unwrap();
+        assert_eq!(mode(&path), 0o644);
+
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
+        save(&path, &Settings::default()).unwrap();
+        assert_eq!(mode(&path), 0o600);
+    }
+
+    #[test]
+    fn a_valid_mirror_drops_the_legacy_preset() {
+        let with_mirror = Settings::from_json(&json!({
+            "quality": "max",
+            "mirror": { "maxSize": 1280, "videoBitRate": 16_000_000, "videoCodec": "h264" },
+        }));
+        assert!(!with_mirror.extra.contains_key("quality"));
+        assert!(with_mirror.to_json().get("quality").is_none());
+        // Without a valid mirror it is the only record of the user's choice: kept.
+        let legacy_only = Settings::from_json(&json!({ "quality": "max" }));
+        assert_eq!(legacy_only.extra.get("quality"), Some(&json!("max")));
+    }
+
+    #[test]
+    fn observers_run_after_each_change() {
+        let hub = SettingsHub::in_memory(Settings::default());
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let record = seen.clone();
+        hub.observe(move |settings| record.lock().unwrap().push(settings.language));
+        hub.update(|settings| settings.language = Language::En);
+        hub.update(|settings| settings.language = Language::En);
+        hub.update(|settings| settings.language = Language::Es);
+        assert_eq!(*seen.lock().unwrap(), [Language::En, Language::Es]);
+    }
+
+    #[tokio::test]
+    async fn update_async_saves_off_the_calling_thread() {
+        let dir = TempDir::new("masaya-settings");
+        let path = dir.path().join("settings.json");
+        let hub = SettingsHub::open(path.clone());
+        let saved = hub
+            .update_async(|settings| settings.recording_format = RecordingFormat::Gif)
+            .await
+            .unwrap();
+        assert_eq!(saved.recording_format, RecordingFormat::Gif);
+        assert_eq!(read_json(&path)["recordingFormat"], json!("gif"));
+    }
+
+    #[test]
+    fn the_env_var_overrides_the_app_path() {
+        // Read only: never set here, so parallel tests see no change of the environment.
+        match std::env::var_os(SETTINGS_PATH_ENV) {
+            Some(path) => assert_eq!(app_path(), Some(PathBuf::from(path))),
+            None => assert_eq!(app_path(), default_path()),
+        }
+    }
+
+    #[test]
+    fn unit_tests_never_use_the_users_file() {
+        assert_eq!(SettingsHub::global().path(), None);
     }
 
     #[test]

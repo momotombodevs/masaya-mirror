@@ -1,5 +1,7 @@
 //! The device list's states, headless, with a scripted device source in place of adb.
 
+mod common;
+
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -77,6 +79,7 @@ fn TestApp() -> impl IntoElement {
 }
 
 fn start(script: Script) -> (Headless, Arc<Script>) {
+    common::isolate();
     let script = Arc::new(script);
     let _one_at_a_time = START
         .lock()

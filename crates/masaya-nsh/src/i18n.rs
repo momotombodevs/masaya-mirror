@@ -10,7 +10,7 @@ use std::sync::atomic::{AtomicU8, Ordering};
 
 pub use masaya_core::Locale;
 
-use crate::settings::Language;
+use crate::settings::{Language, Settings, SettingsHub};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Key {
@@ -183,33 +183,71 @@ const ENGLISH: u8 = 2;
 
 static CURRENT: AtomicU8 = AtomicU8::new(UNRESOLVED);
 
-/// The app's language. Resolved from the saved settings and the system language on first use.
-pub fn locale() -> Locale {
-    match CURRENT.load(Ordering::Relaxed) {
-        SPANISH => Locale::Es,
-        ENGLISH => Locale::En,
-        _ => {
-            let locale = initial_locale();
-            set_locale(locale);
-            locale
-        }
+fn encode(locale: Locale) -> u8 {
+    match locale {
+        Locale::Es => SPANISH,
+        Locale::En => ENGLISH,
     }
 }
 
-/// Changes the app's language for the texts read from now on.
+fn decode(value: u8) -> Option<Locale> {
+    match value {
+        SPANISH => Some(Locale::Es),
+        ENGLISH => Some(Locale::En),
+        _ => None,
+    }
+}
+
+/// The app's language. Resolved from the saved settings and the system language on first use;
+/// from then on it follows changes of the `language` setting.
+///
+/// TODO(F4): screens read their texts when they render, so a change of language shows only on
+/// what renders next. Re-render the open windows when the locale changes.
+pub fn locale() -> Locale {
+    if let Some(locale) = decode(CURRENT.load(Ordering::Acquire)) {
+        return locale;
+    }
+    let resolved = initial_locale();
+    match CURRENT.compare_exchange(
+        UNRESOLVED,
+        encode(resolved),
+        Ordering::AcqRel,
+        Ordering::Acquire,
+    ) {
+        // Only the first resolution subscribes, so the observer is registered once.
+        Ok(_) => {
+            follow_settings();
+            resolved
+        }
+        // Another thread resolved it, or `set_locale` ran, first: theirs stands.
+        Err(current) => decode(current).unwrap_or(resolved),
+    }
+}
+
+/// Changes the app's language for the texts read from now on. Called before the first
+/// [`locale`] (tests do), it also stops the language from following the settings.
 pub fn set_locale(locale: Locale) {
-    let value = match locale {
-        Locale::Es => SPANISH,
-        Locale::En => ENGLISH,
-    };
-    CURRENT.store(value, Ordering::Relaxed);
+    CURRENT.store(encode(locale), Ordering::Release);
+}
+
+/// The language `settings` asks for on this Mac.
+pub fn locale_for(settings: &Settings) -> Locale {
+    resolve_locale(settings.language, &system_language())
+}
+
+/// Keeps the app's language in step with `hub`'s `language` setting.
+pub fn follow_language(hub: &SettingsHub) {
+    hub.observe(|settings| set_locale(locale_for(settings)));
 }
 
 #[cfg(not(test))]
 fn initial_locale() -> Locale {
-    let preference =
-        crate::settings::SettingsHub::global().with_settings(|settings| settings.language);
-    resolve_locale(preference, &system_language())
+    SettingsHub::global().with_settings(locale_for)
+}
+
+#[cfg(not(test))]
+fn follow_settings() {
+    follow_language(SettingsHub::global());
 }
 
 /// Unit tests never read the user's settings: they see the default language, Spanish.
@@ -219,10 +257,47 @@ fn initial_locale() -> Locale {
 }
 
 #[cfg(test)]
+fn follow_settings() {}
+
+#[cfg(test)]
 mod tests {
     use std::collections::HashSet;
 
     use super::*;
+
+    /// Each key and the one after it: an exhaustive match, so a new key must be linked in here,
+    /// and then [`Key::ALL`] must list it for `all_lists_every_key` to pass.
+    fn next(key: Key) -> Option<Key> {
+        Some(match key {
+            Key::DevicesTitle => Key::Loading,
+            Key::Loading => Key::EmptyTitle,
+            Key::EmptyTitle => Key::EmptyHint,
+            Key::EmptyHint => Key::Refresh,
+            Key::Refresh => Key::AdbNotFound,
+            Key::AdbNotFound => Key::ListFailed,
+            Key::ListFailed => Key::Retry,
+            Key::Retry => Key::StatusDevice,
+            Key::StatusDevice => Key::StatusOffline,
+            Key::StatusOffline => Key::StatusUnauthorized,
+            Key::StatusUnauthorized => Key::StatusUnknown,
+            Key::StatusUnknown => Key::HintUnauthorized,
+            Key::HintUnauthorized => Key::HintReconnect,
+            Key::HintReconnect => Key::Back,
+            Key::Back => Key::MirrorStarting,
+            Key::MirrorStarting => Key::MirrorFailed,
+            Key::MirrorFailed => Key::MirrorEnded,
+            Key::MirrorEnded => Key::MirrorNoVideo,
+            Key::MirrorNoVideo => Key::MirrorReconnect,
+            Key::MirrorReconnect => return None,
+        })
+    }
+
+    #[test]
+    fn all_lists_every_key() {
+        let chain: Vec<Key> =
+            std::iter::successors(Some(Key::DevicesTitle), |key| next(*key)).collect();
+        assert_eq!(chain, Key::ALL);
+    }
 
     #[test]
     fn system_follows_spanish_and_anything_else_is_english() {
@@ -242,15 +317,34 @@ mod tests {
     }
 
     #[test]
-    fn every_text_exists_and_differs_between_screens() {
+    fn every_text_exists() {
         for locale in [Locale::Es, Locale::En] {
-            let texts: HashSet<&str> = Key::ALL.iter().map(|key| text(*key, locale)).collect();
-            assert_eq!(
-                texts.len(),
-                Key::ALL.len(),
-                "two keys share a text in {locale:?}"
-            );
-            assert!(texts.iter().all(|text| !text.trim().is_empty()));
+            for key in Key::ALL {
+                assert!(
+                    !text(key, locale).trim().is_empty(),
+                    "{key:?} in {locale:?}"
+                );
+            }
+        }
+    }
+
+    /// Where one screen shows several texts at once, each must be told apart.
+    #[test]
+    fn statuses_and_buttons_are_told_apart() {
+        let groups = [
+            &[
+                Key::StatusDevice,
+                Key::StatusOffline,
+                Key::StatusUnauthorized,
+                Key::StatusUnknown,
+            ][..],
+            &[Key::Refresh, Key::Retry, Key::Back, Key::MirrorReconnect][..],
+        ];
+        for locale in [Locale::Es, Locale::En] {
+            for group in groups {
+                let texts: HashSet<&str> = group.iter().map(|key| text(*key, locale)).collect();
+                assert_eq!(texts.len(), group.len(), "{group:?} in {locale:?}");
+            }
         }
     }
 
@@ -284,6 +378,17 @@ mod tests {
     fn unit_tests_default_to_spanish() {
         assert_eq!(locale(), Locale::Es);
         assert_eq!(t(Key::Retry), "Reintentar");
+    }
+
+    #[test]
+    fn a_picked_language_wins_over_the_system_in_settings() {
+        let mut settings = Settings {
+            language: Language::En,
+            ..Settings::default()
+        };
+        assert_eq!(locale_for(&settings), Locale::En);
+        settings.language = Language::Es;
+        assert_eq!(locale_for(&settings), Locale::Es);
     }
 
     #[cfg(target_os = "macos")]
