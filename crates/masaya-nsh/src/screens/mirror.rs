@@ -430,15 +430,6 @@ pub fn mirror_screen(
     let settings = live_settings(SettingsHub::global());
     // In full screen only the phone shows: no toolbar, no navigation bar (as Electron's).
     let full_screen = signal(false);
-    if let Some(mut events) = events {
-        spawn(async move {
-            while let Some(event) = events.recv().await {
-                match event {
-                    WindowEvent::FullScreen(on) => full_screen.set(on),
-                }
-            }
-        });
-    }
     // Always on top floats this window above the others; every window follows the setting.
     let always_on_top = computed(move || settings.with(|settings| settings.always_on_top));
     effect(move || {
@@ -478,6 +469,18 @@ pub fn mirror_screen(
         }
         ToolbarAction::FullScreen => toggle_full_screen(),
     });
+    if let Some(mut events) = events {
+        // The menu's actions on this window's phone go where the toolbar's do.
+        let on_action = on_action.clone();
+        spawn(async move {
+            while let Some(event) = events.recv().await {
+                match event {
+                    WindowEvent::FullScreen(on) => full_screen.set(on),
+                    WindowEvent::Phone(action) => on_action(ToolbarAction::Phone(action)),
+                }
+            }
+        });
+    }
 
     view()
         .flex_1()

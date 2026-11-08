@@ -8,6 +8,7 @@ pub mod layout;
 pub mod logging;
 #[cfg(target_os = "macos")]
 pub mod macos;
+pub mod menu;
 pub mod metrics;
 pub mod mirror;
 pub mod reconnect;
@@ -66,6 +67,17 @@ pub fn shell(source: Arc<dyn source::DeviceSource>, mirrors: OpenMirrors) -> imp
     // The phones with a window open, whichever thread their windows run on.
     // Subscribed before the first read, so a window that opens in between is not missed.
     let mut serials = mirrors.subscribe();
+    // Device > Refresh List, from whichever window is key.
+    let mut refreshes = mirrors.refresh_requests();
+    {
+        let devices = devices.clone();
+        spawn(async move {
+            while refreshes.changed().await.is_ok() {
+                refreshes.borrow_and_update();
+                devices.retry();
+            }
+        });
+    }
     let mirroring = signal(serials.borrow_and_update().clone());
     {
         spawn(async move {

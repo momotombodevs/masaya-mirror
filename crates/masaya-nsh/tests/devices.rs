@@ -9,6 +9,7 @@ use std::time::Duration;
 use masaya_core::ErrorCode;
 use masaya_core::adb::{AndroidDevice, DeviceStatus};
 use masaya_nsh::i18n::{Key, t};
+use masaya_nsh::mirror::actions::PhoneAction;
 use masaya_nsh::settings::SettingsHub;
 use masaya_nsh::source::{DeviceSource, DevicesFuture, DevicesResult, LoadError, MirrorFuture};
 use masaya_nsh::windows::{MirrorRequest, OpenMirrors, WindowEvent, WindowHost};
@@ -549,4 +550,41 @@ fn the_window_floats_while_always_on_top_is_on() {
     }
     SettingsHub::global().update(|settings| settings.always_on_top = false);
     assert!(sent_level(app, WindowLevel::Floating));
+}
+
+#[test]
+fn the_menus_refresh_reloads_the_list_starting_adb() {
+    // Only a load that starts adb after the first one finds the phone.
+    let mut started = start_root(
+        Script::new(|index, start_server| {
+            if index > 0 && start_server {
+                Ok(vec![pixel()])
+            } else {
+                Ok(Vec::new())
+            }
+        }),
+        Root::of::<TestApp>(),
+        Key::Loading,
+    );
+    let app = &mut started.app;
+    app.wait_for(t(Key::EmptyTitle)).unwrap();
+    started.mirrors.request_refresh();
+    app.wait_for("Pixel 8").unwrap();
+}
+
+#[test]
+fn a_menu_action_on_a_window_without_a_phone_says_it_did_not_arrive() {
+    let mut started = start_root(
+        Script::new(|_, _| Ok(vec![pixel()])),
+        Root::of::<TestMirrorWindow>(),
+        Key::MirrorStarting,
+    );
+    let app = &mut started.app;
+    app.wait_for(t(Key::MirrorFailed)).unwrap();
+    let rotate = WindowEvent::Phone(PhoneAction::Rotate);
+    assert!(started.mirrors.send("A1", 1, rotate));
+    app.wait_for(t(Key::MirrorNotSent)).unwrap();
+    // The toolbar's message passes.
+    app.wait_for_gone(t(Key::MirrorNotSent), Duration::from_secs(5))
+        .unwrap();
 }

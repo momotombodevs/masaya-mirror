@@ -12,6 +12,8 @@ use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 use tokio::sync::watch;
 
+use crate::mirror::actions::PhoneAction;
+
 /// A mirror window to make.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MirrorRequest {
@@ -49,6 +51,8 @@ pub enum Opened {
 pub enum WindowEvent {
     /// The window entered (`true`) or left full screen.
     FullScreen(bool),
+    /// The menu asked for this on the window's phone (the window is key).
+    Phone(PhoneAction),
 }
 
 #[derive(Default)]
@@ -65,6 +69,8 @@ struct State {
 pub struct OpenMirrors {
     state: Arc<Mutex<State>>,
     serials: Arc<watch::Sender<BTreeSet<String>>>,
+    /// Bumped by each refresh the menu asks for: the list loads again.
+    refreshes: Arc<watch::Sender<u64>>,
     host: Option<Arc<dyn WindowHost>>,
 }
 
@@ -74,6 +80,7 @@ impl OpenMirrors {
         Self {
             state: Arc::default(),
             serials: Arc::new(watch::Sender::new(BTreeSet::new())),
+            refreshes: Arc::new(watch::Sender::new(0)),
             host,
         }
     }
@@ -182,6 +189,17 @@ impl OpenMirrors {
     /// The open phones, each time they change.
     pub fn subscribe(&self) -> watch::Receiver<BTreeSet<String>> {
         self.serials.subscribe()
+    }
+
+    /// Device > Refresh List: the list loads the phones again, whichever window is key.
+    pub fn request_refresh(&self) {
+        self.refreshes
+            .send_modify(|count| *count = count.wrapping_add(1));
+    }
+
+    /// Each refresh asked for from now on.
+    pub fn refresh_requests(&self) -> watch::Receiver<u64> {
+        self.refreshes.subscribe()
     }
 
     fn publish(&self, state: &State) {
