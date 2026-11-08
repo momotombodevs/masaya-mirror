@@ -79,11 +79,12 @@ pub enum Key {
     MenuMinimize,
     MenuClose,
     MenuBringAllToFront,
+    MenuExitFullScreen,
 }
 
 impl Key {
     /// Every key, for tests that walk the whole catalog.
-    pub const ALL: [Key; 65] = [
+    pub const ALL: [Key; 66] = [
         Key::DevicesTitle,
         Key::Loading,
         Key::EmptyTitle,
@@ -149,6 +150,7 @@ impl Key {
         Key::MenuMinimize,
         Key::MenuClose,
         Key::MenuBringAllToFront,
+        Key::MenuExitFullScreen,
     ];
 }
 
@@ -231,8 +233,8 @@ pub fn text(key: Key, locale: Locale) -> &'static str {
         (Key::ToolbarVolumeUp, En) => "Volume up",
         (Key::ToolbarVolumeDown, Es) => "Bajar volumen",
         (Key::ToolbarVolumeDown, En) => "Volume down",
-        (Key::ToolbarPower, Es) => "Encender o apagar pantalla",
-        (Key::ToolbarPower, En) => "Turn screen on or off",
+        (Key::ToolbarPower, Es) => "Botón de encendido",
+        (Key::ToolbarPower, En) => "Power button",
         (Key::ToolbarRotate, Es) => "Girar pantalla",
         (Key::ToolbarRotate, En) => "Rotate screen",
         (Key::ToolbarFullScreen, Es) => "Pantalla completa",
@@ -247,8 +249,8 @@ pub fn text(key: Key, locale: Locale) -> &'static str {
         (Key::NavigationRecents, Es) => "Apps recientes",
         (Key::NavigationRecents, En) => "Recent apps",
         // The toolbar's status when a press found no session.
-        (Key::MirrorNotSent, Es) => "No llegó al teléfono.",
-        (Key::MirrorNotSent, En) => "It did not reach the phone.",
+        (Key::MirrorNotSent, Es) => "No se envió: el teléfono no está conectado.",
+        (Key::MirrorNotSent, En) => "Not sent: the phone isn't connected.",
         // The menu bar (menu.*).
         (Key::MenuAbout, Es) => "Acerca de Masaya",
         (Key::MenuAbout, En) => "About Masaya",
@@ -284,15 +286,15 @@ pub fn text(key: Key, locale: Locale) -> &'static str {
         (Key::MenuVolumeUp, En) => "Volume Up",
         (Key::MenuVolumeDown, Es) => "Bajar volumen",
         (Key::MenuVolumeDown, En) => "Volume Down",
-        (Key::MenuPower, Es) => "Encender o apagar pantalla",
-        (Key::MenuPower, En) => "Turn Screen On or Off",
+        (Key::MenuPower, Es) => "Botón de encendido",
+        (Key::MenuPower, En) => "Power Button",
         (Key::MenuBack, Es) => "Atrás",
         (Key::MenuBack, En) => "Back",
         (Key::MenuHome, Es) => "Inicio",
         (Key::MenuHome, En) => "Home",
         (Key::MenuRecents, Es) => "Apps recientes",
         (Key::MenuRecents, En) => "Recent Apps",
-        (Key::MenuAlwaysOnTop, Es) => "Siempre visible",
+        (Key::MenuAlwaysOnTop, Es) => "Mantener encima",
         (Key::MenuAlwaysOnTop, En) => "Always on Top",
         (Key::MenuShowClicks, Es) => "Mostrar clics",
         (Key::MenuShowClicks, En) => "Show Clicks",
@@ -300,7 +302,7 @@ pub fn text(key: Key, locale: Locale) -> &'static str {
         (Key::MenuNavigationBar, En) => "Navigation Bar",
         (Key::MenuView, Es) => "Ver",
         (Key::MenuView, En) => "View",
-        (Key::MenuFullScreen, Es) => "Pantalla completa",
+        (Key::MenuFullScreen, Es) => "Entrar en pantalla completa",
         (Key::MenuFullScreen, En) => "Enter Full Screen",
         (Key::MenuWindow, Es) => "Ventana",
         (Key::MenuWindow, En) => "Window",
@@ -310,6 +312,9 @@ pub fn text(key: Key, locale: Locale) -> &'static str {
         (Key::MenuClose, En) => "Close",
         (Key::MenuBringAllToFront, Es) => "Traer todo al frente",
         (Key::MenuBringAllToFront, En) => "Bring All to Front",
+        // The View item while the key window is in full screen.
+        (Key::MenuExitFullScreen, Es) => "Salir de pantalla completa",
+        (Key::MenuExitFullScreen, En) => "Exit Full Screen",
     }
 }
 
@@ -323,6 +328,22 @@ pub fn mirror_label(name: &str, locale: Locale) -> String {
     match locale {
         Locale::Es => format!("Pantalla de {name}"),
         Locale::En => format!("{name} screen"),
+    }
+}
+
+/// Announced when the stream of `name` drops and the reconnect starts.
+pub fn reconnecting_announcement(name: &str, locale: Locale) -> String {
+    match locale {
+        Locale::Es => format!("Se perdió la conexión con {name}. Reconectando…"),
+        Locale::En => format!("Lost connection to {name}. Reconnecting…"),
+    }
+}
+
+/// Announced when the reconnect to `name` gives up.
+pub fn gave_up_announcement(name: &str, locale: Locale) -> String {
+    match locale {
+        Locale::Es => format!("No se pudo reconectar con {name}."),
+        Locale::En => format!("Could not reconnect to {name}."),
     }
 }
 
@@ -559,7 +580,8 @@ mod tests {
             Key::MenuWindow => Key::MenuMinimize,
             Key::MenuMinimize => Key::MenuClose,
             Key::MenuClose => Key::MenuBringAllToFront,
-            Key::MenuBringAllToFront => return None,
+            Key::MenuBringAllToFront => Key::MenuExitFullScreen,
+            Key::MenuExitFullScreen => return None,
         })
     }
 
@@ -644,6 +666,14 @@ mod tests {
         for locale in [Locale::Es, Locale::En] {
             assert!(text(Key::AdbNotFound, locale).contains(text(Key::Retry, locale)));
             assert!(text(Key::MirrorGaveUpHint, locale).contains(text(Key::Retry, locale)));
+        }
+    }
+
+    #[test]
+    fn the_reconnect_announcements_name_the_phone() {
+        for locale in [Locale::Es, Locale::En] {
+            assert!(reconnecting_announcement("Pixel 8", locale).contains("Pixel 8"));
+            assert!(gave_up_announcement("Pixel 8", locale).contains("Pixel 8"));
         }
     }
 

@@ -106,6 +106,14 @@ impl Reconnect {
         self.next_attempt()
     }
 
+    /// Try again by hand (after giving up): a fresh cycle with the whole budget, whatever the
+    /// earlier drops spent, so the button always tries.
+    pub fn retry(&mut self) -> Next {
+        self.run = self.run.wrapping_add(1);
+        self.used = 0;
+        self.next_attempt()
+    }
+
     /// The attempt of `run` could not open the mirror: the next one, or give up. `None` for a
     /// report of a cycle that was cancelled or begun again since.
     pub fn failed(&mut self, run: u64) -> Option<Next> {
@@ -232,6 +240,24 @@ mod tests {
         assert_eq!(n, 1);
         assert!(reconnect.succeeded(run, now));
         assert_eq!(reconnect.state(), ReconnectState::Idle);
+    }
+
+    #[test]
+    fn trying_again_by_hand_always_gets_the_whole_budget() {
+        let mut reconnect = reconnect();
+        let start = Instant::now();
+        // Drops right after each reconnect spend the budget until it gives up.
+        for drop in 0..3 {
+            let (_, _, run) = attempt(reconnect.begin(start + MS(drop)));
+            reconnect.succeeded(run, start + MS(drop));
+        }
+        assert_eq!(reconnect.begin(start + MS(10)), Next::GaveUp);
+        // A press of Try again: a full budget at once.
+        let (n, delay, run) = attempt(reconnect.retry());
+        assert_eq!((n, delay), (1, MS(100)));
+        reconnect.failed(run);
+        reconnect.failed(run);
+        assert_eq!(reconnect.failed(run), Some(Next::GaveUp));
     }
 
     #[test]

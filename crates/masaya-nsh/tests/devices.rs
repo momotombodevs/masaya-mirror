@@ -133,7 +133,8 @@ fn TestApp() -> impl IntoElement {
     masaya_nsh::shell(next.script, next.mirrors)
 }
 
-/// A mirror window's screen for phone `A1`, its window opened under generation 1.
+/// A mirror window's screen for phone `A1`, its window opened under generation 1, hearing its
+/// window's events as a real window's screen does.
 #[component]
 fn TestMirror() -> impl IntoElement {
     let next = NEXT.lock().expect("next").take();
@@ -144,25 +145,8 @@ fn TestMirror() -> impl IntoElement {
         next.script,
         "A1".to_owned(),
         "Pixel 8".to_owned(),
-        None,
-        move || mirrors.close_window("A1", 1),
-    )
-}
-
-/// [`TestMirror`], hearing its window's events as a real window's screen does.
-#[component]
-fn TestMirrorWindow() -> impl IntoElement {
-    let next = NEXT.lock().expect("next").take();
-    let next = next.expect("the test sets a source");
-    let mirrors = next.mirrors;
-    mirrors.open_or_focus("A1", "Pixel 8");
-    let events = mirrors.listen("A1", 1);
-    masaya_nsh::screens::mirror::mirror_screen(
-        next.script,
-        "A1".to_owned(),
-        "Pixel 8".to_owned(),
-        Some(events),
-        move || mirrors.close_window("A1", 1),
+        mirrors,
+        1,
     )
 }
 
@@ -506,7 +490,7 @@ fn sent_level(app: &Headless, level: WindowLevel) -> bool {
 fn full_screen_shows_only_the_phone() {
     let mut started = start_root(
         Script::new(|_, _| Ok(vec![pixel()])),
-        Root::of::<TestMirrorWindow>(),
+        Root::of::<TestMirror>(),
         Key::MirrorStarting,
     );
     let app = &mut started.app;
@@ -532,7 +516,7 @@ fn full_screen_shows_only_the_phone() {
 fn the_window_floats_while_always_on_top_is_on() {
     let mut started = start_root(
         Script::new(|_, _| Ok(vec![pixel()])),
-        Root::of::<TestMirrorWindow>(),
+        Root::of::<TestMirror>(),
         Key::MirrorStarting,
     );
     let app = &mut started.app;
@@ -576,7 +560,7 @@ fn the_menus_refresh_reloads_the_list_starting_adb() {
 fn a_menu_action_on_a_window_without_a_phone_says_it_did_not_arrive() {
     let mut started = start_root(
         Script::new(|_, _| Ok(vec![pixel()])),
-        Root::of::<TestMirrorWindow>(),
+        Root::of::<TestMirror>(),
         Key::MirrorStarting,
     );
     let app = &mut started.app;

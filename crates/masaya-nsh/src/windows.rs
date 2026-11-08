@@ -62,6 +62,8 @@ struct State {
     next_generation: u64,
     /// Where each open window's screen hears its [`WindowEvent`]s, with the window's generation.
     listeners: BTreeMap<String, (u64, UnboundedSender<WindowEvent>)>,
+    /// The open windows whose video runs now (the menu enables the phone's items for them).
+    running: BTreeSet<String>,
 }
 
 /// The phones with a mirror window open (see the module docs). Cheap to clone: clones share it.
@@ -142,18 +144,42 @@ impl OpenMirrors {
         }
         state.open.remove(serial);
         state.listeners.remove(serial);
+        state.running.remove(serial);
         self.publish(&state);
         true
     }
 
     /// The screen of the window of `serial` made under `generation` hears its events on the
-    /// receiver returned, until the window closes. A newer listen replaces it.
+    /// receiver returned, until the window closes. A newer listen replaces it. A window that is
+    /// not the open one of its phone (it closed, or a newer one opened) hears nothing.
     pub fn listen(&self, serial: &str, generation: u64) -> UnboundedReceiver<WindowEvent> {
         let (sender, receiver) = unbounded_channel();
-        self.state()
-            .listeners
-            .insert(serial.to_owned(), (generation, sender));
+        let mut state = self.state();
+        if state.open.get(serial) == Some(&generation) {
+            state
+                .listeners
+                .insert(serial.to_owned(), (generation, sender));
+        }
         receiver
+    }
+
+    /// The video of the window of `serial` made under `generation` runs (`true`) or not.
+    pub fn set_running(&self, serial: &str, generation: u64, running: bool) {
+        let mut state = self.state();
+        if state.open.get(serial) != Some(&generation) {
+            return;
+        }
+        if running {
+            state.running.insert(serial.to_owned());
+        } else {
+            state.running.remove(serial);
+        }
+    }
+
+    /// Whether the video of the window of `serial` made under `generation` runs.
+    pub fn is_running(&self, serial: &str, generation: u64) -> bool {
+        let state = self.state();
+        state.open.get(serial) == Some(&generation) && state.running.contains(serial)
     }
 
     /// Tells the screen of the window of `serial` made under `generation` about `event`. Whether
@@ -353,6 +379,36 @@ mod tests {
         mirrors.closed("A1", 1);
         assert!(!mirrors.send("A1", 1, WindowEvent::FullScreen(false)));
         assert!(events.try_recv().is_err());
+    }
+
+    #[test]
+    fn a_closed_or_older_window_cannot_listen() {
+        let (mirrors, _) = with_recorder();
+        mirrors.open_or_focus("A1", "Pixel 8");
+        let mut stale = mirrors.listen("A1", 0);
+        assert!(!mirrors.send("A1", 0, WindowEvent::FullScreen(true)));
+        assert!(stale.try_recv().is_err());
+        let mut never = mirrors.listen("Z9", 1);
+        assert!(never.try_recv().is_err());
+    }
+
+    #[test]
+    fn the_running_state_belongs_to_the_open_window() {
+        let (mirrors, _) = with_recorder();
+        mirrors.open_or_focus("A1", "Pixel 8");
+        assert!(!mirrors.is_running("A1", 1));
+        mirrors.set_running("A1", 1, true);
+        assert!(mirrors.is_running("A1", 1));
+        // An older window's report changes nothing.
+        mirrors.set_running("A1", 0, false);
+        assert!(mirrors.is_running("A1", 1));
+        mirrors.set_running("A1", 1, false);
+        assert!(!mirrors.is_running("A1", 1));
+        // A closed window forgets it.
+        mirrors.set_running("A1", 1, true);
+        mirrors.closed("A1", 1);
+        mirrors.open_or_focus("A1", "Pixel 8");
+        assert!(!mirrors.is_running("A1", 2));
     }
 
     #[test]

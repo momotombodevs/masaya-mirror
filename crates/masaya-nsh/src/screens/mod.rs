@@ -1,3 +1,4 @@
+pub mod controller;
 pub mod devices;
 pub mod mirror;
 pub mod toolbar;

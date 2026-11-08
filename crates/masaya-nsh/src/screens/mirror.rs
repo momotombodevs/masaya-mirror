@@ -1,11 +1,10 @@
-//! The mirror of one phone, the root of its own window ([`MirrorWindow`]): starts the scrcpy
-//! session, shows the video in the `masaya.mirror` native view once it attaches, and closes
-//! everything when the window goes.
+//! The mirror of one phone, the root of its own window ([`MirrorWindow`]): the toolbar, the
+//! video in the `masaya.mirror` native view, the navigation bar, and the screens of a failed
+//! start or a reconnect. What it does over time (open, attach, reconnect) is the controller's
+//! ([`super::controller`]).
 
-use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::time::Instant;
 
 use masaya_core::scrcpy::ScrcpySession;
 use nsh_base::{button, theme};
@@ -13,13 +12,12 @@ use nsh_core::desktop::WindowLevel;
 use nsh_core::element::desktop::{set_level, toggle_full_screen};
 use nsh_core::prelude::*;
 use serde_json::json;
-use tokio::sync::mpsc::UnboundedReceiver;
-use tokio::task::AbortHandle;
 
 use crate::copy;
 use crate::i18n::{self, Key, t};
-use crate::mirror::{actions, control, pump, sink};
-use crate::reconnect::{Next, Reconnect};
+use crate::mirror::{actions, sink};
+use crate::reconnect::Reconnect;
+use crate::screens::controller::{Mirror, Opener};
 use crate::screens::live_settings;
 use crate::screens::toolbar::{ToolbarAction, mirror_toolbar, navigation_bar};
 use crate::settings::SettingsHub;
@@ -27,7 +25,6 @@ use crate::source::{AdbSource, DeviceSource};
 use crate::state::{MirrorKind, MirrorView};
 use crate::status::{STATUS_TIMEOUT, StatusMessage};
 use crate::windows::{OpenMirrors, WindowEvent};
-use crate::{bench, metrics};
 
 /// The phone a mirror window shows.
 #[derive(Clone, PartialEq, Props)]
@@ -49,362 +46,48 @@ pub fn MirrorWindow(props: MirrorWindowProps) -> impl IntoElement {
         label,
         generation,
     } = props;
-    let mirrors = OpenMirrors::global();
-    let events = mirrors.listen(&serial, generation);
-    let on_close = {
-        let serial = serial.clone();
-        move || mirrors.close_window(&serial, generation)
-    };
-    mirror_screen(source, serial, label, Some(events), on_close)
+    mirror_screen(
+        source,
+        serial,
+        label,
+        OpenMirrors::global().clone(),
+        generation,
+    )
 }
 
 /// The native view that shows the video (registered by `main.rs` on macOS).
 pub const MIRROR_COMPONENT: &str = "masaya.mirror";
 
-/// How long the native view may take to attach before the screen gives up on it.
-const ATTACH_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
-
-/// What [`Running`] closes: the scrcpy session, or a fake in tests.
-trait Session {
-    /// Closes the sockets, which stops the server on the phone.
-    fn close(self);
-}
-
-impl Session for ScrcpySession {
-    fn close(self) {
-        ScrcpySession::close(self);
-    }
-}
-
-/// What the screen owns while it shows: closed and aborted when it goes or starts again.
-struct Running<S: Session = ScrcpySession> {
-    /// The start in progress: starting again or closing the window cancels it.
-    starting: Option<AbortHandle>,
-    session: Option<S>,
-    pump: Option<AbortHandle>,
-    /// The task that sends the view's input to the phone, in order.
-    input: Option<AbortHandle>,
-    key: Option<String>,
-    /// The view attached and the video flows.
-    attached: bool,
-    /// Bumped by every stop: a task started for an earlier attempt sees it and does nothing.
-    generation: u64,
-    /// Where the video and the input of the session meet the view.
-    registry: &'static sink::Registry,
-    /// This screen's token for the dropped-moves counter of the metrics.
-    metrics_owner: u64,
-}
-
-impl<S: Session> Running<S> {
-    fn new(registry: &'static sink::Registry) -> Self {
-        Self {
-            starting: None,
-            session: None,
-            pump: None,
-            input: None,
-            key: None,
-            attached: false,
-            generation: 0,
-            registry,
-            metrics_owner: metrics::new_owner(),
-        }
-    }
-
-    fn stop(&mut self) {
-        self.generation = self.generation.wrapping_add(1);
-        self.attached = false;
-        for task in [self.starting.take(), self.pump.take(), self.input.take()]
-            .into_iter()
-            .flatten()
-        {
-            task.abort();
-        }
-        if let Some(session) = self.session.take() {
-            session.close();
-        }
-        if let Some(key) = self.key.take() {
-            self.registry.close(&key);
-            metrics::clear_dropped_moves(self.metrics_owner);
-        }
-    }
-}
-
-impl Running<ScrcpySession> {
-    /// Keeps a started session: its input channel and task, and its key in the registry.
-    fn begin(&mut self, key: &str, session: ScrcpySession) {
-        // One channel and one task for the input: the phone gets every message in the order
-        // the view sent it.
-        let (sender, messages) = tokio::sync::mpsc::unbounded_channel();
-        self.registry.open(key);
-        self.registry.set_input(key, sender);
-        let control_handle = session.control();
-        let counted = control_handle.clone();
-        metrics::set_dropped_moves(
-            self.metrics_owner,
-            Box::new(move || counted.dropped_moves()),
-        );
-        let input = background(control::forward_in_order(messages, move |message| {
-            let control_handle = control_handle.clone();
-            async move {
-                match control_handle.send(&message).await {
-                    Ok(_) => true,
-                    Err(error) => {
-                        log::warn!("mirror: input stopped: {error}");
-                        false
-                    }
-                }
-            }
-        }));
-        self.starting = None;
-        self.input = Some(input.abort_handle());
-        self.session = Some(session);
-        self.key = Some(key.to_owned());
-    }
-}
-
-impl<S: Session> Drop for Running<S> {
-    /// A window's engine tears down without running cleanups: the last owner of the state
-    /// (the screen, or a task the teardown cancels) closes the session as it goes.
-    fn drop(&mut self) {
-        self.stop();
-    }
-}
-
-/// What a mirror screen does over its life: start the session, feed the view once it attaches,
-/// and bring the stream back when it drops without the user asking ([`Reconnect`]). Its tasks
-/// run under the screen's owner, so closing the window cancels them; a drop is a stream that
-/// ended while the screen still lives.
-struct Mirror {
-    source: Arc<dyn DeviceSource>,
-    serial: String,
-    state: Signal<MirrorView>,
-    owner: Owner,
-    running: RefCell<Running>,
-    reconnect: RefCell<Reconnect>,
-    /// Why the stream or the last attempt failed, for the screen after giving up.
-    last_error: RefCell<Option<String>>,
-    connecting: String,
-    live: String,
-}
-
-impl Mirror {
-    /// Starts from scratch: the first open, or Retry after a start that failed.
-    fn start(self: &Rc<Self>) {
-        self.reconnect.borrow_mut().cancel();
-        self.state.set(MirrorView::Starting);
-        log::debug!("mirror: connecting to {}", self.serial);
-        announce_for_accessibility(self.connecting.clone());
-        self.open(|this, result| {
-            if let Err(message) = result {
-                this.state.set(MirrorView::Failed(message));
-            }
-        });
-    }
-
-    /// Opens a session. Once it is open the screen shows the video (`Running`, which the view
-    /// attaches to); `done` hears whether it opened.
-    fn open(self: &Rc<Self>, done: impl FnOnce(&Rc<Self>, Result<(), String>) + 'static) {
-        self.running.borrow_mut().stop();
-        let generation = self.running.borrow().generation;
-        let this = self.clone();
-        self.owner.run(|| {
-            spawn(async move {
-                // `background` needs the runtime a task runs in, not a listener's.
-                if this.running.borrow().generation != generation {
-                    return;
-                }
-                let handle = background(this.source.clone().start_mirror(this.serial.clone()));
-                this.running.borrow_mut().starting = Some(handle.abort_handle());
-                let opened = match handle.await {
-                    Ok(Ok(session)) => {
-                        let key = sink::new_key(&this.serial);
-                        let (width, height) = (session.video.width, session.video.height);
-                        this.running.borrow_mut().begin(&key, session);
-                        Ok(MirrorView::Running { key, width, height })
-                    }
-                    Ok(Err(message)) => {
-                        log::warn!("mirror start failed: {message}");
-                        Err(message)
-                    }
-                    // Cancelled: the screen went or started again.
-                    Err(error) if error.is_cancelled() => return,
-                    Err(error) => {
-                        log::error!("mirror start task failed: {error}");
-                        Err(t(Key::MirrorFailed).to_owned())
-                    }
-                };
-                // The borrows above have ended: setting the state renders, which may stop.
-                let next = match opened {
-                    Ok(next) => next,
-                    Err(message) => return done(&this, Err(message)),
-                };
-                let key = next.key();
-                this.state.set(next);
-                done(&this, Ok(()));
-                // A view that never attaches (no native component) would leave the screen
-                // connecting forever.
-                let Some(key) = key else { return };
-                timer(ATTACH_TIMEOUT).await;
-                let attached = this.running.borrow().attached;
-                let current = this.state.with_untracked(MirrorView::key);
-                if !attached && current.as_deref() == Some(key.as_str()) {
-                    log::warn!("mirror: the video view never attached");
-                    this.running.borrow_mut().stop();
-                    this.state
-                        .set(MirrorView::Failed(t(Key::MirrorNoVideo).to_owned()));
-                }
-            })
-        });
-    }
-
-    /// The view attached under `key`: only now does the video start flowing, so the codec
-    /// configuration (the stream's first packet) always finds it.
-    fn attached(self: &Rc<Self>, key: String) {
-        let (reader, generation) = {
-            let mut running = self.running.borrow_mut();
-            if running.key.as_deref() != Some(key.as_str()) || running.attached {
-                return;
-            }
-            let reader = running.session.as_mut().and_then(ScrcpySession::take_video);
-            running.attached = reader.is_some();
-            (reader, running.generation)
-        };
-        let Some(reader) = reader else { return };
-        announce_for_accessibility(self.live.clone());
-        if let MirrorView::Running { width, height, .. } = self.state.get_untracked() {
-            bench::start_from_env(&key, width, height);
-        }
-        let this = self.clone();
-        self.owner.run(|| {
-            spawn(async move {
-                if this.running.borrow().generation != generation {
-                    return;
-                }
-                let handle =
-                    background(async move { pump::pump(reader, sink::registry(), &key).await });
-                this.running.borrow_mut().pump = Some(handle.abort_handle());
-                let ended = match handle.await {
-                    Ok(reason) => reason,
-                    // Aborted: the window closed or the screen started again, not a drop.
-                    Err(error) if error.is_cancelled() => return,
-                    Err(error) => Some(error.to_string()),
-                };
-                this.running.borrow_mut().stop();
-                this.dropped(ended);
-            })
-        });
-    }
-
-    /// The stream ended while the screen lives (cable pulled, server killed): reconnect.
-    fn dropped(self: &Rc<Self>, reason: Option<String>) {
-        match &reason {
-            Some(reason) => log::warn!("mirror stream of {} broke: {reason}", self.serial),
-            None => log::warn!("mirror stream of {} ended", self.serial),
-        }
-        *self.last_error.borrow_mut() = reason;
-        let next = self.reconnect.borrow_mut().begin(Instant::now());
-        self.follow(next);
-    }
-
-    /// Try again after the reconnect gave up.
-    fn reconnect_again(self: &Rc<Self>) {
-        let next = self.reconnect.borrow_mut().begin(Instant::now());
-        self.follow(next);
-    }
-
-    fn follow(self: &Rc<Self>, next: Next) {
-        let max = self.reconnect.borrow().max_attempts();
-        match next {
-            Next::AlreadyRunning => {}
-            Next::GaveUp => {
-                log::warn!(
-                    "mirror: gave up reconnecting to {} after {max} attempts",
-                    self.serial
-                );
-                announce_for_accessibility(t(Key::MirrorReconnectFailed).to_owned());
-                let detail = self.last_error.borrow().clone();
-                self.state.set(MirrorView::GaveUp(detail));
-            }
-            Next::Attempt {
-                attempt,
-                delay,
-                run,
-            } => {
-                log::info!(
-                    "mirror: reconnecting to {}, attempt {attempt}/{max} in {delay:?}",
-                    self.serial
-                );
-                if attempt == 1 {
-                    announce_for_accessibility(t(Key::MirrorReconnecting).to_owned());
-                }
-                self.state.set(MirrorView::Reconnecting { attempt, max });
-                let this = self.clone();
-                self.owner.run(|| {
-                    spawn(async move {
-                        timer(delay).await;
-                        if !this.reconnect.borrow().is_current(run) {
-                            return;
-                        }
-                        this.open(move |this, result| match result {
-                            Ok(()) => {
-                                log::info!(
-                                    "mirror: reconnected to {} on attempt {attempt}",
-                                    this.serial
-                                );
-                                this.reconnect.borrow_mut().succeeded(run, Instant::now());
-                            }
-                            Err(message) => {
-                                log::warn!("mirror: reconnect attempt {attempt} failed: {message}");
-                                *this.last_error.borrow_mut() = Some(message);
-                                let next = this.reconnect.borrow_mut().failed(run);
-                                if let Some(next) = next {
-                                    this.follow(next);
-                                }
-                            }
-                        });
-                    })
-                });
-            }
-        }
-    }
-}
-
-/// The mirror of `serial` (`label` names it to the screen reader). While the video shows, Escape
-/// goes to the phone as Back; without video (connecting, failed, gave up) Escape and the Close
-/// button call `on_close`. The window's close button and `⌘W` close it too. `events` are what
-/// the window's host tells the screen (full screen).
+/// The mirror of `serial` (`label` names it to the screen reader), in the window `mirrors` made
+/// under `generation`: the screen hears that window's events (full screen, the menu's actions),
+/// tells it whether the video runs, and closes it with its Close buttons.
+///
+/// While the video shows, Escape goes to the phone as Back; without it (connecting, failed, gave
+/// up) Escape closes the window. The window's close button and `⌘W` close it too.
 pub fn mirror_screen(
     source: Arc<dyn DeviceSource>,
     serial: String,
     label: String,
-    events: Option<UnboundedReceiver<WindowEvent>>,
-    on_close: impl Fn() + 'static,
+    mirrors: OpenMirrors,
+    generation: u64,
 ) -> impl IntoElement {
-    let state = signal(MirrorView::Starting);
-    // Tasks are started from buttons and events whose branch goes when the state changes: they
-    // run under the screen's owner, so they live as long as the screen.
-    let owner = Owner::current();
-    let mirror = Rc::new(Mirror {
-        source,
-        serial,
-        state,
-        owner,
-        running: RefCell::new(Running::new(sink::registry())),
-        reconnect: RefCell::new(Reconnect::default()),
-        last_error: RefCell::new(None),
-        connecting: copy::mirror_connecting_announcement(&label),
-        live: copy::mirror_live_announcement(&label),
-    });
-    {
-        let mirror = mirror.clone();
-        cleanup(move || {
-            mirror.reconnect.borrow_mut().cancel();
-            mirror.running.borrow_mut().stop();
-        });
-    }
+    let opener: Opener<ScrcpySession> = Rc::new(move |serial| source.clone().start_mirror(serial));
+    let mirror = Mirror::new(opener, serial.clone(), &label, Reconnect::default());
+    let state = mirror.state();
     mirror.start();
 
+    let events = mirrors.listen(&serial, generation);
+    let on_close: Rc<dyn Fn()> = {
+        let (mirrors, serial) = (mirrors.clone(), serial.clone());
+        Rc::new(move || mirrors.close_window(&serial, generation))
+    };
+
     let kind = computed(move || state.with(MirrorView::kind));
+    // The menu enables the phone's items only while the video runs, as the toolbar does.
+    {
+        let (mirrors, serial) = (mirrors.clone(), serial.clone());
+        effect(move || mirrors.set_running(&serial, generation, kind.get() == MirrorKind::Running));
+    }
     // Running and reconnecting share one branch: the video's view stays, on its last frame.
     let branch = computed(move || {
         let kind = kind.get();
@@ -415,13 +98,13 @@ pub fn mirror_screen(
         }
     });
     let video_label = copy::mirror_label(&label);
-    let on_close: Rc<dyn Fn()> = Rc::new(on_close);
     {
-        // With the video showing, its view has the keyboard and Escape goes to the phone; the
-        // check keeps Escape from closing the window if NSH's root has it then.
+        // With the video showing (or frozen while reconnecting), its view has the keyboard and
+        // Escape goes to the phone; the check keeps Escape from closing the window if NSH's
+        // root has it then.
         let on_close = on_close.clone();
         on_key("escape", move |_| {
-            if kind.get_untracked() != MirrorKind::Running {
+            if !kind.get_untracked().shows_video() {
                 on_close();
             }
         });
@@ -442,8 +125,13 @@ pub fn mirror_screen(
     let show_clicks = computed(move || settings.with(|settings| settings.show_clicks));
     let running_now = computed(move || kind.get() == MirrorKind::Running);
     let status = signal(StatusMessage::default());
-    // A passing message in the toolbar, gone after a while unless another replaced it.
+    // Tasks are started from buttons and events whose branch goes when the state changes: they
+    // run under the screen's owner, so they live as long as the screen.
+    let owner = Owner::current();
+    // A passing message in the toolbar (and for the screen reader), gone after a while unless
+    // another replaced it.
     let show_status = move |message: &str| {
+        announce_for_accessibility(message.to_owned());
         let mut token = 0;
         status.update(|status| token = status.show(message));
         owner.run(|| {
@@ -469,9 +157,10 @@ pub fn mirror_screen(
         }
         ToolbarAction::FullScreen => toggle_full_screen(),
     });
-    if let Some(mut events) = events {
+    {
         // The menu's actions on this window's phone go where the toolbar's do.
         let on_action = on_action.clone();
+        let mut events = events;
         spawn(async move {
             while let Some(event) = events.recv().await {
                 match event {
@@ -513,6 +202,8 @@ pub fn mirror_screen(
                             title: t(Key::MirrorFailed),
                             hint: None,
                             action: t(Key::Retry),
+                            // Nothing else says it: the alert does.
+                            alert: true,
                         },
                         move || mirror.start(),
                         on_close.clone(),
@@ -527,6 +218,8 @@ pub fn mirror_screen(
                             title: t(Key::MirrorReconnectFailed),
                             hint: Some(t(Key::MirrorGaveUpHint)),
                             action: t(Key::Retry),
+                            // The controller announces it, with the phone's name.
+                            alert: false,
                         },
                         move || mirror.reconnect_again(),
                         on_close.clone(),
@@ -534,19 +227,22 @@ pub fn mirror_screen(
                     .into_element()
                 }
                 MirrorKind::Running | MirrorKind::Reconnecting => {
-                    let mirror = mirror.clone();
+                    let attach = mirror.clone();
+                    let on_close = on_close.clone();
                     view()
                         .flex_1()
                         .child(
                             native(MIRROR_COMPONENT)
                                 .prop("session", move || json!(state.with(MirrorView::key)))
                                 .prop("showClicks", move || json!(show_clicks.get()))
+                                // Reactive: NSH's environment updates it when the system's
+                                // Reduce Motion changes.
                                 .prop("reduceMotion", move || json!(reduce_motion()))
                                 .on_native_event(move |event: &NativeEvent| {
                                     if &*event.name == "attached"
                                         && let Some(key) = event.data["session"].as_str()
                                     {
-                                        mirror.attached(key.to_owned());
+                                        attach.attached(key);
                                     }
                                 })
                                 .role(AccessibilityRole::Group)
@@ -557,7 +253,7 @@ pub fn mirror_screen(
                         )
                         .child(when(
                             move || kind.get() == MirrorKind::Reconnecting,
-                            move || reconnecting_overlay(state),
+                            move || reconnecting_overlay(state, on_close.clone()),
                         ))
                         .into_element()
                 }
@@ -569,9 +265,9 @@ pub fn mirror_screen(
         ))
 }
 
-/// Over the video's last frame while the stream comes back: what happened and which attempt
-/// runs.
-fn reconnecting_overlay(state: Signal<MirrorView>) -> impl IntoElement {
+/// Over the video's last frame while the stream comes back: what happened, which attempt runs,
+/// and a way to close the window instead of waiting.
+fn reconnecting_overlay(state: Signal<MirrorView>, on_close: Rc<dyn Fn()>) -> impl IntoElement {
     view()
         .absolute()
         .inset_0()
@@ -580,6 +276,8 @@ fn reconnecting_overlay(state: Signal<MirrorView>) -> impl IntoElement {
         .gap_3()
         .p_6()
         .bg(rgba(0x0000_0099))
+        .role(AccessibilityRole::Group)
+        .label(t(Key::MirrorReconnecting))
         .child(
             text(t(Key::MirrorReconnecting))
                 .text_center()
@@ -597,6 +295,17 @@ fn reconnecting_overlay(state: Signal<MirrorView>) -> impl IntoElement {
             .text_center()
             .text_size(px(12.0))
             .text_color(white()),
+        )
+        .child(
+            button()
+                .on_press(move || on_close())
+                .px_4()
+                .py_2()
+                .rounded(move || theme().radius)
+                .border_1()
+                .border_color(white())
+                .active(|s| s.opacity(0.6))
+                .child(text(t(Key::Close)).text_color(white())),
         )
 }
 
@@ -622,6 +331,8 @@ struct Problem {
     hint: Option<&'static str>,
     /// The main action: try again.
     action: &'static str,
+    /// Screen readers hear it as an alert (when nothing announces it already).
+    alert: bool,
 }
 
 /// A failure or an end: what happened, adb's or the stream's detail, what to do, how to try
@@ -636,9 +347,13 @@ fn problem(
         title,
         hint,
         action,
+        alert,
     } = words;
-    centered()
-        .role(AccessibilityRole::Alert)
+    let mut screen = centered();
+    if alert {
+        screen = screen.role(AccessibilityRole::Alert);
+    }
+    screen
         .child(
             text(title)
                 .text_center()
@@ -683,60 +398,4 @@ fn problem(
                         .child(text(t(Key::Close)).text_color(move || theme().foreground)),
                 ),
         )
-}
-
-#[cfg(test)]
-mod tests {
-    use std::sync::atomic::{AtomicUsize, Ordering};
-
-    use super::*;
-
-    /// Counts its closes.
-    struct Fake(Arc<AtomicUsize>);
-
-    impl Session for Fake {
-        fn close(self) {
-            self.0.fetch_add(1, Ordering::SeqCst);
-        }
-    }
-
-    fn registry() -> &'static sink::Registry {
-        Box::leak(Box::default())
-    }
-
-    fn running(closes: &Arc<AtomicUsize>, registry: &'static sink::Registry) -> Running<Fake> {
-        let mut running = Running::new(registry);
-        running.session = Some(Fake(closes.clone()));
-        running.key = Some("A1#1".into());
-        registry.open("A1#1");
-        running
-    }
-
-    #[test]
-    fn dropping_the_state_closes_the_session_and_its_key() {
-        let closes = Arc::new(AtomicUsize::new(0));
-        let registry = registry();
-        let running = running(&closes, registry);
-
-        // The engine's teardown drops it without running the screen's cleanup.
-        drop(running);
-        assert_eq!(closes.load(Ordering::SeqCst), 1);
-        assert!(!registry.is_open("A1#1"));
-    }
-
-    #[test]
-    fn a_stop_then_a_drop_closes_each_once() {
-        let closes = Arc::new(AtomicUsize::new(0));
-        let registry = registry();
-        let mut running = running(&closes, registry);
-
-        running.stop();
-        assert_eq!(closes.load(Ordering::SeqCst), 1);
-        assert!(!registry.is_open("A1#1"));
-        // Something opens the key again: the drop that follows must not close it a second time.
-        registry.open("A1#1");
-        drop(running);
-        assert_eq!(closes.load(Ordering::SeqCst), 1);
-        assert!(registry.is_open("A1#1"));
-    }
 }

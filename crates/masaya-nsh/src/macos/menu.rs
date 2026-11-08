@@ -73,7 +73,10 @@ fn validate(mtm: MainThreadMarker, item: &NSMenuItem) -> bool {
             NSControlStateValueOff
         });
     }
-    !command.mirror_only() || windows::key_mirror(mtm).is_some()
+    // The phone's items, as the toolbar's buttons: only while the key window's video runs.
+    !command.mirror_only()
+        || windows::key_mirror(mtm)
+            .is_some_and(|(serial, generation, mirrors)| mirrors.is_running(&serial, generation))
 }
 
 /// Carries out one of the app's commands (AppKit's own never get here).
