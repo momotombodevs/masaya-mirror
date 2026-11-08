@@ -46,3 +46,8 @@ pub fn mirror_live_announcement(name: &str) -> String {
 pub fn mirror_title(label: &str, id: &str) -> String {
     format!("{label} · {id}")
 }
+
+/// Which reconnect attempt runs: "Intento 3 de 12".
+pub fn reconnect_attempt(attempt: usize, max: usize) -> String {
+    i18n::reconnect_attempt(attempt, max, locale())
+}

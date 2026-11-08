@@ -10,6 +10,7 @@ pub mod logging;
 pub mod macos;
 pub mod metrics;
 pub mod mirror;
+pub mod reconnect;
 pub mod screens;
 pub mod settings;
 pub mod source;

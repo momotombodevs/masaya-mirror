@@ -5,6 +5,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
+use std::time::Instant;
 
 use masaya_core::scrcpy::ScrcpySession;
 use nsh_base::{button, theme};
@@ -18,6 +19,7 @@ use tokio::task::AbortHandle;
 use crate::copy;
 use crate::i18n::{self, Key, t};
 use crate::mirror::{actions, control, pump, sink};
+use crate::reconnect::{Next, Reconnect};
 use crate::screens::live_settings;
 use crate::screens::toolbar::{ToolbarAction, mirror_toolbar, navigation_bar};
 use crate::settings::SettingsHub;
@@ -168,8 +170,207 @@ impl<S: Session> Drop for Running<S> {
     }
 }
 
+/// What a mirror screen does over its life: start the session, feed the view once it attaches,
+/// and bring the stream back when it drops without the user asking ([`Reconnect`]). Its tasks
+/// run under the screen's owner, so closing the window cancels them; a drop is a stream that
+/// ended while the screen still lives.
+struct Mirror {
+    source: Arc<dyn DeviceSource>,
+    serial: String,
+    state: Signal<MirrorView>,
+    owner: Owner,
+    running: RefCell<Running>,
+    reconnect: RefCell<Reconnect>,
+    /// Why the stream or the last attempt failed, for the screen after giving up.
+    last_error: RefCell<Option<String>>,
+    connecting: String,
+    live: String,
+}
+
+impl Mirror {
+    /// Starts from scratch: the first open, or Retry after a start that failed.
+    fn start(self: &Rc<Self>) {
+        self.reconnect.borrow_mut().cancel();
+        self.state.set(MirrorView::Starting);
+        log::debug!("mirror: connecting to {}", self.serial);
+        announce_for_accessibility(self.connecting.clone());
+        self.open(|this, result| {
+            if let Err(message) = result {
+                this.state.set(MirrorView::Failed(message));
+            }
+        });
+    }
+
+    /// Opens a session. Once it is open the screen shows the video (`Running`, which the view
+    /// attaches to); `done` hears whether it opened.
+    fn open(self: &Rc<Self>, done: impl FnOnce(&Rc<Self>, Result<(), String>) + 'static) {
+        self.running.borrow_mut().stop();
+        let generation = self.running.borrow().generation;
+        let this = self.clone();
+        self.owner.run(|| {
+            spawn(async move {
+                // `background` needs the runtime a task runs in, not a listener's.
+                if this.running.borrow().generation != generation {
+                    return;
+                }
+                let handle = background(this.source.clone().start_mirror(this.serial.clone()));
+                this.running.borrow_mut().starting = Some(handle.abort_handle());
+                let opened = match handle.await {
+                    Ok(Ok(session)) => {
+                        let key = sink::new_key(&this.serial);
+                        let (width, height) = (session.video.width, session.video.height);
+                        this.running.borrow_mut().begin(&key, session);
+                        Ok(MirrorView::Running { key, width, height })
+                    }
+                    Ok(Err(message)) => {
+                        log::warn!("mirror start failed: {message}");
+                        Err(message)
+                    }
+                    // Cancelled: the screen went or started again.
+                    Err(error) if error.is_cancelled() => return,
+                    Err(error) => {
+                        log::error!("mirror start task failed: {error}");
+                        Err(t(Key::MirrorFailed).to_owned())
+                    }
+                };
+                // The borrows above have ended: setting the state renders, which may stop.
+                let next = match opened {
+                    Ok(next) => next,
+                    Err(message) => return done(&this, Err(message)),
+                };
+                let key = next.key();
+                this.state.set(next);
+                done(&this, Ok(()));
+                // A view that never attaches (no native component) would leave the screen
+                // connecting forever.
+                let Some(key) = key else { return };
+                timer(ATTACH_TIMEOUT).await;
+                let attached = this.running.borrow().attached;
+                let current = this.state.with_untracked(MirrorView::key);
+                if !attached && current.as_deref() == Some(key.as_str()) {
+                    log::warn!("mirror: the video view never attached");
+                    this.running.borrow_mut().stop();
+                    this.state
+                        .set(MirrorView::Failed(t(Key::MirrorNoVideo).to_owned()));
+                }
+            })
+        });
+    }
+
+    /// The view attached under `key`: only now does the video start flowing, so the codec
+    /// configuration (the stream's first packet) always finds it.
+    fn attached(self: &Rc<Self>, key: String) {
+        let (reader, generation) = {
+            let mut running = self.running.borrow_mut();
+            if running.key.as_deref() != Some(key.as_str()) || running.attached {
+                return;
+            }
+            let reader = running.session.as_mut().and_then(ScrcpySession::take_video);
+            running.attached = reader.is_some();
+            (reader, running.generation)
+        };
+        let Some(reader) = reader else { return };
+        announce_for_accessibility(self.live.clone());
+        if let MirrorView::Running { width, height, .. } = self.state.get_untracked() {
+            bench::start_from_env(&key, width, height);
+        }
+        let this = self.clone();
+        self.owner.run(|| {
+            spawn(async move {
+                if this.running.borrow().generation != generation {
+                    return;
+                }
+                let handle =
+                    background(async move { pump::pump(reader, sink::registry(), &key).await });
+                this.running.borrow_mut().pump = Some(handle.abort_handle());
+                let ended = match handle.await {
+                    Ok(reason) => reason,
+                    // Aborted: the window closed or the screen started again, not a drop.
+                    Err(error) if error.is_cancelled() => return,
+                    Err(error) => Some(error.to_string()),
+                };
+                this.running.borrow_mut().stop();
+                this.dropped(ended);
+            })
+        });
+    }
+
+    /// The stream ended while the screen lives (cable pulled, server killed): reconnect.
+    fn dropped(self: &Rc<Self>, reason: Option<String>) {
+        match &reason {
+            Some(reason) => log::warn!("mirror stream of {} broke: {reason}", self.serial),
+            None => log::warn!("mirror stream of {} ended", self.serial),
+        }
+        *self.last_error.borrow_mut() = reason;
+        let next = self.reconnect.borrow_mut().begin(Instant::now());
+        self.follow(next);
+    }
+
+    /// Try again after the reconnect gave up.
+    fn reconnect_again(self: &Rc<Self>) {
+        let next = self.reconnect.borrow_mut().begin(Instant::now());
+        self.follow(next);
+    }
+
+    fn follow(self: &Rc<Self>, next: Next) {
+        let max = self.reconnect.borrow().max_attempts();
+        match next {
+            Next::AlreadyRunning => {}
+            Next::GaveUp => {
+                log::warn!(
+                    "mirror: gave up reconnecting to {} after {max} attempts",
+                    self.serial
+                );
+                announce_for_accessibility(t(Key::MirrorReconnectFailed).to_owned());
+                let detail = self.last_error.borrow().clone();
+                self.state.set(MirrorView::GaveUp(detail));
+            }
+            Next::Attempt {
+                attempt,
+                delay,
+                run,
+            } => {
+                log::info!(
+                    "mirror: reconnecting to {}, attempt {attempt}/{max} in {delay:?}",
+                    self.serial
+                );
+                if attempt == 1 {
+                    announce_for_accessibility(t(Key::MirrorReconnecting).to_owned());
+                }
+                self.state.set(MirrorView::Reconnecting { attempt, max });
+                let this = self.clone();
+                self.owner.run(|| {
+                    spawn(async move {
+                        timer(delay).await;
+                        if !this.reconnect.borrow().is_current(run) {
+                            return;
+                        }
+                        this.open(move |this, result| match result {
+                            Ok(()) => {
+                                log::info!(
+                                    "mirror: reconnected to {} on attempt {attempt}",
+                                    this.serial
+                                );
+                                this.reconnect.borrow_mut().succeeded(run, Instant::now());
+                            }
+                            Err(message) => {
+                                log::warn!("mirror: reconnect attempt {attempt} failed: {message}");
+                                *this.last_error.borrow_mut() = Some(message);
+                                let next = this.reconnect.borrow_mut().failed(run);
+                                if let Some(next) = next {
+                                    this.follow(next);
+                                }
+                            }
+                        });
+                    })
+                });
+            }
+        }
+    }
+}
+
 /// The mirror of `serial` (`label` names it to the screen reader). While the video shows, Escape
-/// goes to the phone as Back; without video (connecting, failed, ended) Escape and the Close
+/// goes to the phone as Back; without video (connecting, failed, gave up) Escape and the Close
 /// button call `on_close`. The window's close button and `⌘W` close it too. `events` are what
 /// the window's host tells the screen (full screen).
 pub fn mirror_screen(
@@ -183,116 +384,36 @@ pub fn mirror_screen(
     // Tasks are started from buttons and events whose branch goes when the state changes: they
     // run under the screen's owner, so they live as long as the screen.
     let owner = Owner::current();
-    let running = Rc::new(RefCell::new(Running::new(sink::registry())));
+    let mirror = Rc::new(Mirror {
+        source,
+        serial,
+        state,
+        owner,
+        running: RefCell::new(Running::new(sink::registry())),
+        reconnect: RefCell::new(Reconnect::default()),
+        last_error: RefCell::new(None),
+        connecting: copy::mirror_connecting_announcement(&label),
+        live: copy::mirror_live_announcement(&label),
+    });
     {
-        let running = running.clone();
-        cleanup(move || running.borrow_mut().stop());
+        let mirror = mirror.clone();
+        cleanup(move || {
+            mirror.reconnect.borrow_mut().cancel();
+            mirror.running.borrow_mut().stop();
+        });
     }
-
-    let start = {
-        let running = running.clone();
-        let connecting = copy::mirror_connecting_announcement(&label);
-        Rc::new(move || {
-            running.borrow_mut().stop();
-            let generation = running.borrow().generation;
-            state.set(MirrorView::Starting);
-            log::debug!("mirror: connecting to {serial}");
-            announce_for_accessibility(connecting.clone());
-            let (source, serial, running) = (source.clone(), serial.clone(), running.clone());
-            owner.run(|| {
-                spawn(async move {
-                    // `background` needs the runtime a task runs in, not a listener's.
-                    if running.borrow().generation != generation {
-                        return;
-                    }
-                    let handle = background(source.start_mirror(serial.clone()));
-                    running.borrow_mut().starting = Some(handle.abort_handle());
-                    let next = match handle.await {
-                        Ok(Ok(session)) => {
-                            let key = sink::new_key(&serial);
-                            let (width, height) = (session.video.width, session.video.height);
-                            running.borrow_mut().begin(&key, session);
-                            Some(MirrorView::Running { key, width, height })
-                        }
-                        Ok(Err(message)) => {
-                            log::warn!("mirror start failed: {message}");
-                            Some(MirrorView::Failed(message))
-                        }
-                        // Cancelled: the screen went or started again.
-                        Err(error) if error.is_cancelled() => None,
-                        Err(error) => {
-                            log::error!("mirror start task failed: {error}");
-                            Some(MirrorView::Failed(t(Key::MirrorFailed).to_owned()))
-                        }
-                    };
-                    // The borrow above has ended: setting the state renders, which may stop.
-                    let Some(next) = next else { return };
-                    let key = next.key();
-                    state.set(next);
-                    // A view that never attaches (no native component) would leave the screen
-                    // connecting forever.
-                    let Some(key) = key else { return };
-                    timer(ATTACH_TIMEOUT).await;
-                    let attached = running.borrow().attached;
-                    let current = state.with_untracked(MirrorView::key);
-                    if !attached && current.as_deref() == Some(key.as_str()) {
-                        log::warn!("mirror: the video view never attached");
-                        running.borrow_mut().stop();
-                        state.set(MirrorView::Failed(t(Key::MirrorNoVideo).to_owned()));
-                    }
-                })
-            });
-        })
-    };
-    start();
-
-    // The view attached under `key`: only now does the video start flowing, so the codec
-    // configuration (the stream's first packet) always finds it.
-    let on_attached = {
-        let running = running.clone();
-        let live = copy::mirror_live_announcement(&label);
-        move |key: String| {
-            let (reader, generation) = {
-                let mut running = running.borrow_mut();
-                if running.key.as_deref() != Some(key.as_str()) || running.attached {
-                    return;
-                }
-                let reader = running.session.as_mut().and_then(ScrcpySession::take_video);
-                running.attached = reader.is_some();
-                (reader, running.generation)
-            };
-            let Some(reader) = reader else { return };
-            announce_for_accessibility(live.clone());
-            if let MirrorView::Running { width, height, .. } = state.get_untracked() {
-                bench::start_from_env(&key, width, height);
-            }
-            let running = running.clone();
-            owner.run(|| {
-                spawn(async move {
-                    if running.borrow().generation != generation {
-                        return;
-                    }
-                    let handle =
-                        background(async move { pump::pump(reader, sink::registry(), &key).await });
-                    running.borrow_mut().pump = Some(handle.abort_handle());
-                    let ended = match handle.await {
-                        Ok(reason) => reason,
-                        // Aborted: the screen went or started again, nothing to show.
-                        Err(error) if error.is_cancelled() => return,
-                        Err(error) => Some(error.to_string()),
-                    };
-                    if let Some(reason) = &ended {
-                        log::warn!("mirror stream broke: {reason}");
-                    }
-                    running.borrow_mut().stop();
-                    state.set(MirrorView::Ended(ended));
-                })
-            });
-        }
-    };
+    mirror.start();
 
     let kind = computed(move || state.with(MirrorView::kind));
-    let on_attached = Rc::new(on_attached);
+    // Running and reconnecting share one branch: the video's view stays, on its last frame.
+    let branch = computed(move || {
+        let kind = kind.get();
+        if kind.shows_video() {
+            MirrorKind::Running
+        } else {
+            kind
+        }
+    });
     let video_label = copy::mirror_label(&label);
     let on_close: Rc<dyn Fn()> = Rc::new(on_close);
     {
@@ -377,12 +498,12 @@ pub fn mirror_screen(
             )
         })
         .child(view().flex_1().child(dynamic(move || {
-            match kind.get() {
+            match branch.get() {
                 MirrorKind::Starting => centered()
                     .child(muted(t(Key::MirrorStarting)))
                     .into_element(),
                 MirrorKind::Failed => {
-                    let start = start.clone();
+                    let mirror = mirror.clone();
                     problem(
                         state,
                         Problem {
@@ -390,43 +511,51 @@ pub fn mirror_screen(
                             hint: None,
                             action: t(Key::Retry),
                         },
-                        move || start(),
+                        move || mirror.start(),
                         on_close.clone(),
                     )
                     .into_element()
                 }
-                MirrorKind::Ended => {
-                    let start = start.clone();
+                MirrorKind::GaveUp => {
+                    let mirror = mirror.clone();
                     problem(
                         state,
                         Problem {
-                            title: t(Key::MirrorEnded),
-                            hint: Some(t(Key::MirrorEndedHint)),
-                            action: t(Key::MirrorReconnect),
+                            title: t(Key::MirrorReconnectFailed),
+                            hint: Some(t(Key::MirrorGaveUpHint)),
+                            action: t(Key::Retry),
                         },
-                        move || start(),
+                        move || mirror.reconnect_again(),
                         on_close.clone(),
                     )
                     .into_element()
                 }
-                MirrorKind::Running => {
-                    let on_attached = on_attached.clone();
-                    native(MIRROR_COMPONENT)
-                        .prop("session", move || json!(state.with(MirrorView::key)))
-                        .prop("showClicks", move || json!(show_clicks.get()))
-                        .prop("reduceMotion", move || json!(reduce_motion()))
-                        .on_native_event(move |event: &NativeEvent| {
-                            if &*event.name == "attached"
-                                && let Some(key) = event.data["session"].as_str()
-                            {
-                                on_attached(key.to_owned());
-                            }
-                        })
-                        .role(AccessibilityRole::Group)
-                        .label(video_label.clone())
-                        .hint(t(Key::MirrorVideoHint))
+                MirrorKind::Running | MirrorKind::Reconnecting => {
+                    let mirror = mirror.clone();
+                    view()
                         .flex_1()
-                        .bg(black())
+                        .child(
+                            native(MIRROR_COMPONENT)
+                                .prop("session", move || json!(state.with(MirrorView::key)))
+                                .prop("showClicks", move || json!(show_clicks.get()))
+                                .prop("reduceMotion", move || json!(reduce_motion()))
+                                .on_native_event(move |event: &NativeEvent| {
+                                    if &*event.name == "attached"
+                                        && let Some(key) = event.data["session"].as_str()
+                                    {
+                                        mirror.attached(key.to_owned());
+                                    }
+                                })
+                                .role(AccessibilityRole::Group)
+                                .label(video_label.clone())
+                                .hint(t(Key::MirrorVideoHint))
+                                .flex_1()
+                                .bg(black()),
+                        )
+                        .child(when(
+                            move || kind.get() == MirrorKind::Reconnecting,
+                            move || reconnecting_overlay(state),
+                        ))
                         .into_element()
                 }
             }
@@ -435,6 +564,37 @@ pub fn mirror_screen(
             move || !full_screen.get() && settings.with(|settings| settings.navigation_bar),
             move || navigation_bar(running_now, on_action.clone()),
         ))
+}
+
+/// Over the video's last frame while the stream comes back: what happened and which attempt
+/// runs.
+fn reconnecting_overlay(state: Signal<MirrorView>) -> impl IntoElement {
+    view()
+        .absolute()
+        .inset_0()
+        .items_center()
+        .justify_center()
+        .gap_3()
+        .p_6()
+        .bg(rgba(0x0000_0099))
+        .child(
+            text(t(Key::MirrorReconnecting))
+                .text_center()
+                .text_color(white()),
+        )
+        .child(
+            text(move || {
+                state.with(|view| match view {
+                    MirrorView::Reconnecting { attempt, max } => {
+                        copy::reconnect_attempt(*attempt, *max)
+                    }
+                    _ => String::new(),
+                })
+            })
+            .text_center()
+            .text_size(px(12.0))
+            .text_color(white()),
+        )
 }
 
 fn centered() -> View {
