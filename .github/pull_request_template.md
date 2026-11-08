@@ -9,8 +9,7 @@
 ## Checklist
 
 - [ ] La rama base es `develop` (solo los PR de publicación van a `main`)
-- [ ] `pnpm typecheck`
-- [ ] `pnpm lint`
-- [ ] `pnpm format:check` (Prettier)
-- [ ] `pnpm test`
-- [ ] Probado en un teléfono real con `pnpm dev`
+- [ ] `cargo fmt --all --check`
+- [ ] `cargo clippy --workspace --all-targets -- -D warnings`
+- [ ] `cargo test`
+- [ ] Probado en un teléfono real con `cargo run -p masaya-nsh`

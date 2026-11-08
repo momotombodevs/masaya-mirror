@@ -1,7 +1,9 @@
 # Arquitectura
 
-Masaya es una app Electron con tres procesos de código. El video nunca pasa por el proceso de
-interfaz principal: viaja por un canal dedicado y se decodifica en la ventana del espejo.
+Masaya es una app nativa de macOS (14 o superior, Apple Silicon) escrita solo en Rust. La interfaz usa
+[NSH](https://crates.io/crates/nsh-core) 0.4.0; el video se decodifica por hardware con VideoToolbox y se
+dibuja en un `AVSampleBufferDisplayLayer`, sin pasar por la interfaz. La decisión está en
+[ADR-0004](adr/0004-app-nativa-con-nsh.md).
 
 ## Vista general
 
@@ -10,119 +12,76 @@ flowchart LR
   subgraph Device[Dispositivo Android]
     S[scrcpy-server]
   end
-  subgraph Main[Proceso principal]
-    A[AdbService]
-    SC[ScrcpyService]
-    W[MirrorWindowService]
-    H[Handlers IPC + validación]
+  subgraph Core[masaya-core]
+    A[adb: cli + protocolo]
+    SC[scrcpy: sesión, streams, control]
   end
-  subgraph Win[Ventana del espejo]
-    P[Preload]
-    R[React + WebCodecs]
+  subgraph App[masaya-nsh]
+    UI[Pantallas NSH: lista y espejo]
+    P[pump: tarea tokio]
+    V[Vista nativa del espejo]
+    I[Entrada: mouse y teclado]
   end
   A -- adb devices --> Device
-  SC -- adb + socket --> S
-  SC -- MessagePort: init y paquetes de video --> R
-  R -- invoke: control, opciones, captura --> P --> H --> SC
-  W -- crea y posee --> Win
+  SC -- adb + sockets --> S
+  UI --> SC
+  SC -- paquetes H.264 --> P -- Registry / FrameSink --> V
+  I -- canal ordenado --> SC
 ```
 
-| Proceso   | Responsabilidad                                                                                         | Código         |
-| --------- | ------------------------------------------------------------------------------------------------------- | -------------- |
-| Principal | Encontrar `adb`, listar dispositivos, abrir sesiones scrcpy, crear ventanas, menú, diálogos de guardado | `src/main`     |
-| Preload   | Exponer a cada ventana solo su parte de la API                                                          | `src/preload`  |
-| Renderer  | Lista de dispositivos y ventana del espejo                                                              | `src/renderer` |
+| Crate         | Responsabilidad                                                                          | Compila en      |
+| ------------- | ---------------------------------------------------------------------------------------- | --------------- |
+| `masaya-core` | Encontrar `adb`, listar dispositivos, protocolo scrcpy (sesión, video, audio, control)   | Cualquier sistema |
+| `masaya-nsh`  | Pantallas, vista nativa del espejo, traducir mouse y teclado, H.264 a formato de macOS    | Solo macOS      |
 
-`src/shared` contiene lo único que ven los tres: contratos IPC (`*.contract.ts`), el tipo `Result` y los
-tipos del espejo.
+El core no depende de la interfaz, así que CI lo prueba en Linux. En la app, las reglas viven en módulos
+puros (`state`, `input`, `mirror::h264`) sin tipos de NSH ni AppKit, y se prueban con tests unitarios; las
+pantallas reciben un `DeviceSource`, que en los tests es un falso.
 
 ## Flujos
 
 ### Listar dispositivos
 
-`DeviceList` → `useDevices` → `listDevices` (IPC) → `AdbService` ejecuta `adb devices -l` y
-`parseAdbDevicesOutput` lo convierte en `AndroidDevice[]`. La lista se refresca al enfocar la ventana, cada
-5 s y con ⌘/Ctrl+R.
+`DevicesStore` (`store.rs`) pertenece a la ventana, no a la pantalla: ejecuta `adb devices -l` cada 2 s y
+`masaya_core::adb::device` convierte la salida en dispositivos. Volver del espejo conserva la lista. La
+pantalla (`screens/devices.rs`) muestra carga, vacío, error (con Reintentar) y los teléfonos con su estado y
+qué hacer si no se pueden abrir.
 
-### Encontrar adb y conectar por Wi-Fi
-
-`AdbService` busca `adb` en este orden: el que el usuario eligió en la app (guardado en
-`settings.json`), `ADB_PATH`, el SDK de Android, el `PATH` y las rutas habituales. Si no hay ninguno, el
-error `ADB_NOT_FOUND_MESSAGE` hace que `App` muestre `AdbSetupPanel` (descargar, elegir o reintentar). Elegir
-un archivo lo valida con `adb version` antes de guardarlo.
-
-`WifiConnectDialog` solo ofrece la vinculación por QR; `disconnectDevice` quita un dispositivo Wi-Fi.
-`setup.handlers.ts` rechaza a las ventanas del espejo y ejecuta `adb pair|connect|disconnect` sin shell. adb informa de muchos fallos con código 0, por eso `AdbService` lee el texto de respuesta.
-
-**Vinculación por QR** (`QrPairingService`): el proceso principal genera un nombre y una contraseña
-aleatorios y el renderer dibuja `WIFI:T:ADB;S:<nombre>;P:<contraseña>;;` como QR (`QrPairingPanel`). Al
-escanearlo, el teléfono anuncia por mDNS un servicio `_adb-tls-pairing` con ese nombre; el servicio consulta
-`adb mdns services`, empareja solo con el servicio cuyo nombre coincide y después conecta con el servicio
-`_adb-tls-connect` de la misma IP. Si `adb mdns check` falla (red o adb sin mDNS) se avisa y se sugiere otra red o USB. Solo hay una vinculación activa; cerrar el diálogo la cancela.
-
-### Preferencias y Ajustes
-
-`PreferencesService` guarda `settings.json` en la carpeta de datos del usuario. Los renderers ven solo
-`Preferences` (video del espejo, barra de navegación, siempre visible, acción al capturar); la ruta de `adb` y
-la última carpeta de capturas son solo del proceso principal. `shared/preferences/parse.ts` es la única fuente
-de validación: `parsePreferencesPatch` (estricta, para peticiones de una ventana) y `readPreferences`
-(tolerante, para el archivo: conserva lo válido, usa el valor por defecto en el resto y migra el formato
-antiguo que guardaba solo un preajuste de calidad).
-
-La ventana del espejo tiene una **pantalla de Ajustes** (`SettingsPanel`, ⌘/Ctrl+,) agrupada en _Ventana_,
-_Calidad de imagen_ y _Dispositivo_. Cambiar el video reinicia el stream (`applyOptions`) y guarda el valor
-solo si el cambio se aplicó. «Siempre visible» llama a `setAlwaysOnTop` en el proceso principal. Los ajustes
-del dispositivo (`adb shell settings get|put` de `show_touches` y `stay_on_while_plugged_in`) pasan por
-`device-settings.handlers.ts`, que solo acepta una clave conocida y la ventana dueña del dispositivo.
-
-La ventana arranca con el tamaño que deja sitio a la barra de navegación solo si está activada
-(`isNavigationBarShown`).
+`masaya_core::adb::path` busca `adb` en `ADB_PATH`, el SDK de Android (`ANDROID_HOME`, `ANDROID_SDK_ROOT`),
+las rutas habituales y el `PATH`.
 
 ### Abrir un espejo
 
-1. La lista pide `openMirrorWindow`; `MirrorWindowService` crea una ventana por dispositivo.
-2. La ventana pide `openMirror`; `ScrcpyService` sube `scrcpy-server`, arranca el cliente y crea un
-   `MessageChannelMain`. Un extremo viaja a la ventana (`mirror:port`).
-3. `MirrorStreamSession` envía `init` con el códec y el tamaño, y después cada paquete de video.
-4. El renderer mete los paquetes en una **cola acotada** (`packet-queue.ts`) y un `WebCodecsVideoDecoder`
-   los dibuja en un `<canvas>`. Si el decodificador va lento, se descartan cuadros hasta el siguiente
-   keyframe para que la latencia no crezca.
+1. `screens/mirror.rs` arranca la sesión: `masaya_core::scrcpy::session` sube `scrcpy-server.jar`
+   (`mirror::server` lo busca en `MASAYA_SCRCPY_SERVER`, en `Resources` del bundle o en `resources/` del
+   repositorio), lo lanza y conecta los sockets.
+2. `mirror::pump` corre en un worker de tokio y pasa cada paquete al `Registry` (`mirror::sink`) bajo la clave
+   de la sesión. Guarda la última configuración del códec, así una vista que llega tarde puede decodificar.
+3. La vista nativa `masaya.mirror` (`macos/mirror_view.rs`) registra su `FrameSink`; `mirror::h264` convierte
+   Annex-B en AVCC y la capa lo decodifica y lo dibuja en cuanto llega, manteniendo la proporción.
+
+Un paquete malformado del teléfono es un error, nunca un panic. Aun así, `release` usa `panic = "unwind"` para
+que un panic en una tarea no cierre la app.
 
 ### Control
 
-`useMirrorInput` traduce eventos del navegador en mensajes (`touch`, `scroll`, `key`, `text`). Los
-movimientos se agrupan por puntero y por cuadro de animación (`control-coalescer.ts`). En el proceso
-principal, `parseControlMessage` los valida y `ScrcpyService` los ejecuta **de uno en uno por
-dispositivo**, para que no se reordenen.
+`macos/input_view.rs` lee los eventos de AppKit y `input` los traduce a mensajes scrcpy: clic izquierdo es el
+dedo, derecho es Atrás y central es Inicio; la rueda y el trackpad se convierten en muescas
+(`input::scroll`); `input::mapping` lleva el punto de la vista a la pantalla del teléfono teniendo en cuenta
+las bandas del letterbox. El texto pasa por `NSTextInputClient`, así llegan acentos y métodos de entrada.
 
-### Teclas del dispositivo e instalar APK
-
-Los botones Atrás, Inicio, Recientes, volumen y encendido envían una pulsación (`key` abajo y arriba) por el
-mismo canal de control (`useDeviceKeys`). Instalar un APK (`installApk`, solo desde la ventana dueña del
-dispositivo) llega por el selector de archivos o arrastrando un `.apk` a la ventana; el preload traduce el
-`File` a una ruta con `webUtils.getPathForFile`. El proceso principal exige ruta absoluta, extensión `.apk` y
-archivo existente, y ejecuta `adb -s <id> install -r -t`.
-
-### Cambiar la calidad
-
-`setMirrorOptions` cierra la sesión **sin avisar a la ventana** (`notifyRenderer: false`) y abre otra con
-las nuevas opciones. La calidad elegida se guarda como preferencia y la usan las ventanas nuevas. La ventana recibe un puerto nuevo y reinicia el decodificador. Si avisara del cierre,
-la ventana se cerraría sola.
+`mirror::control` envía los mensajes por **un solo canal por sesión** y una tarea los manda de uno en uno,
+para que un movimiento posterior no adelante a una pulsación anterior. Al perder el foco se levanta el dedo y
+se sueltan las teclas.
 
 ## Límites de confianza
 
-El renderer no es de confianza. Cada canal IPC:
-
-1. valida el identificador de dispositivo (`parseDeviceId`);
-2. comprueba que quien llama sea la ventana dueña de ese dispositivo (`handleOwnedDevice`);
-3. valida el resto del mensaje con reglas numéricas explícitas (`parseNumericFields`): los campos
-   obligatorios deben existir y estar dentro de rango.
-
-Además, cada ventana recibe una API recortada (`exposeOnly` en `masaya.api.ts`): la ventana principal
-no puede enviar control y la del espejo no puede listar dispositivos ni cambiar `adb`. Las acciones de
-configuración (`setup.handlers.ts`) también rechazan a las ventanas del espejo en el proceso principal.
+Lo que llega del teléfono (video, mensajes del dispositivo) no es de confianza: el core y `mirror::h264`
+validan longitudes y formatos y devuelven errores. `masaya_core::scrcpy::validate` comprueba los rangos de
+opciones y mensajes de control antes de convertirlos en bytes. `adb` se lanza directamente, sin un shell local de por medio.
 
 ## Decisiones
 
-- [ADR 0001 — El video viaja por MessagePort y se decodifica en la ventana](adr/0001-video-por-messageport.md)
-- [ADR 0002 — Contratos IPC con validación en el proceso principal](adr/0002-validacion-ipc.md)
+- [ADR 0004 — Reescribir Masaya como app nativa en Rust con NSH](adr/0004-app-nativa-con-nsh.md)
+- Historial de la app Electron, ya reemplazada: [ADR 0001](adr/0001-video-por-messageport.md),
+  [ADR 0002](adr/0002-validacion-ipc.md) y [ADR 0003](adr/0003-migracion-a-tauri.md).

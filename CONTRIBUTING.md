@@ -9,46 +9,39 @@ Gracias por querer ayudar. Los reportes de errores, las ideas y los PR son bienv
 
 ## Preparar el entorno
 
-Necesitas Node.js 20 o superior, pnpm 10 (`corepack enable`) y `adb` (Android platform-tools). Los
-detalles están en el [README](README.md#requisitos).
+Necesitas un Mac con Apple Silicon y macOS 14 o superior, [Rust](https://rustup.rs) 1.88 o superior y
+`adb` (Android platform-tools). Los detalles están en el [README](README.md#requisitos).
 
 ```bash
-pnpm install        # también descarga scrcpy-server y verifica su hash
-pnpm dev            # abre la app con recarga en caliente
-pnpm dev:debug      # igual, con DevTools
+./scripts/setup-scrcpy.sh   # descarga scrcpy-server si falta y verifica su SHA-256
+cargo run -p masaya-nsh     # abre la app
 ```
 
-Para entender cómo está armada la app, lee [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) y las
-decisiones en [docs/adr/](docs/adr/).
+`crates/masaya-core` (adb y scrcpy) no depende de la interfaz y compila en cualquier sistema con
+`cargo test -p masaya-core`; `crates/masaya-nsh` es la app y solo compila en macOS.
 
-## Rust (en curso)
-
-El backend en Rust vive en `crates/masaya-core` (adb y scrcpy, sin dependencias de UI). Hace falta
-[Rust estable](https://rustup.rs). `crates/masaya-nsh` es un experimento de app nativa para macOS
-(Apple Silicon, macOS 14+) con [NSH](https://crates.io/crates/nsh-core); necesita Rust 1.88 o superior y no
-se compila con `cargo test` en la raíz.
-
-```bash
-cargo test                  # solo el core: funciona en cualquier sistema
-cargo run -p masaya-nsh     # abre el experimento nativo (solo macOS)
-```
+Para entender cómo está armada la app, lee [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), las
+decisiones en [docs/adr/](docs/adr/) y el plan en [docs/plans/](docs/plans/).
 
 ## Antes de abrir un PR
 
 ```bash
-pnpm check          # typecheck, lint, formato y tests (lo mismo que CI)
-pnpm format         # si falla el formato, Prettier lo arregla
+cargo fmt --all                                        # formato
+cargo clippy --workspace --all-targets -- -D warnings  # lint
+cargo test                                             # core y app
 ```
 
-Y pruébalo en un teléfono real con `pnpm dev`: los tests no cubren el espejo ni el control. En el PR
-cuenta qué teléfono, versión de Android y conexión (USB o Wi-Fi) usaste.
+CI ejecuta lo mismo: el core en Linux y la app en macOS, y los dos bloquean el merge.
+
+Y pruébalo en un teléfono real con `cargo run -p masaya-nsh`: los tests no cubren el espejo ni el
+control. En el PR cuenta qué teléfono, versión de Android y conexión (USB o Wi-Fi) usaste.
 
 ## Ramas
 
 - Trabaja en una rama propia desde `develop` (`feat/…`, `fix/…`, `docs/…`).
 - Abre el PR hacia **`develop`**.
-- `develop` → `main` es solo para publicar versiones: cada merge a `main` con una versión nueva en
-  `package.json` crea una release. El proceso está en [docs/RELEASING.md](docs/RELEASING.md).
+- `develop` → `main` es solo para publicar versiones: el PR debe subir `version` en
+  `[workspace.package]` de `Cargo.toml`. El proceso está en [docs/RELEASING.md](docs/RELEASING.md).
 
 ## Commits
 

@@ -1,6 +1,6 @@
 # ADR-0002: Contratos IPC con validación en el proceso principal
 
-**Estado:** Aceptada
+**Estado:** Superseded by [ADR-0004](0004-app-nativa-con-nsh.md) (2026-11-07). La app Electron se eliminó; se conserva como registro histórico.
 **Fecha:** 2026-10-19
 
 ## Contexto
