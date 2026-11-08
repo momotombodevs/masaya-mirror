@@ -16,17 +16,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Fetch main
+        run: git fetch --no-tags --depth=1 origin +refs/heads/main:refs/remotes/origin/main
+      # Newer than main's version, and its tag does not exist yet.
       - name: Bump the workspace version before merging to main
-        run: |
-          version="$(sed -n '/^\[workspace\.package\]/,/^\[/s/^version *= *"\(.*\)"/\1/p' Cargo.toml)"
-          if [ -z "${version}" ]; then
-            echo "Could not read [workspace.package] version from Cargo.toml." >&2
-            exit 1
-          fi
-          if git ls-remote --exit-code --tags origin "refs/tags/v${version}" > /dev/null; then
-            echo "v${version} is already released; bump [workspace.package] version in Cargo.toml." >&2
-            exit 1
-          fi
+        run: sh scripts/check-version.sh origin/main
 
   core:
     name: Core (fmt, clippy, test)

@@ -18,17 +18,17 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+      - name: Fetch main
+        run: git fetch --no-tags --depth=1 origin +refs/heads/main:refs/remotes/origin/main
+      # From any branch but main the version must be newer than main's; on main, where it is equal
+      # after the merge, only the tag check applies. Either way the tag v<version> must not exist.
       - id: version
-        name: Read the version and check that its tag is new
+        name: Read the version and check that it is new
         run: |
-          version="$(sed -n '/^\[workspace\.package\]/,/^\[/s/^version *= *"\(.*\)"/\1/p' Cargo.toml)"
-          if [ -z "${version}" ]; then
-            echo "Could not read [workspace.package] version from Cargo.toml." >&2
-            exit 1
-          fi
-          if git ls-remote --exit-code --tags origin "refs/tags/v${version}" > /dev/null; then
-            echo "v${version} is already released; bump [workspace.package] version in Cargo.toml." >&2
-            exit 1
+          if [ "${GITHUB_REF_NAME}" = "main" ]; then
+            version="$(sh scripts/check-version.sh)"
+          else
+            version="$(sh scripts/check-version.sh origin/main)"
           fi
           echo "version=${version}" >> "$GITHUB_OUTPUT"
       - uses: dtolnay/rust-toolchain@stable
