@@ -1,8 +1,8 @@
 [workspace]
 resolver = "2"
 members = ["crates/masaya-core", "crates/masaya-nsh"]
-# The app (`masaya-nsh`) is macOS-only. On other systems build and test the core alone with
-# `-p masaya-core`, as CI does on Linux.
+# The app (`masaya-nsh`) is macOS-only, so a bare `cargo build` or `cargo test` is expected to fail
+# on Linux (and Windows). There, build and test the core alone with `-p masaya-core`, as CI does.
 default-members = ["crates/masaya-core", "crates/masaya-nsh"]
 
 [workspace.package]

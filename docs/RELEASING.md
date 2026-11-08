@@ -13,8 +13,9 @@ La versión vive en `[workspace.package]` de `Cargo.toml` (por ejemplo `0.4.0`, 
 heredan los dos crates.
 
 1. En tu rama, sube `version` en `Cargo.toml` y ejecuta `cargo build` para que `Cargo.lock` se actualice.
-2. Abre el PR de `develop` hacia `main`. El job **Version is new** de `.github/workflows/rust.yml` falla si
-   ya existe el tag `v<versión>`.
+2. Abre el PR de `develop` hacia `main`. El job **Version is new** de `.github/workflows/rust.yml`
+   (`scripts/check-version.sh origin/main`) falla si la versión no es mayor que la de `main` o si ya existe
+   el tag `v<versión>`, y también si no puede consultar los tags.
 
 ## Build de prueba
 

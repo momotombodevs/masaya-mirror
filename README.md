@@ -44,12 +44,16 @@ cargo test                  # tests del core y de la app
 `resources/scrcpy-server/scrcpy-server.jar` ya está en el repositorio; el script lo descarga de la
 release oficial de scrcpy solo si falta y falla si el hash no coincide.
 
-| Comando                                                  | Qué hace                                       |
-| -------------------------------------------------------- | ---------------------------------------------- |
-| `cargo fmt --all --check`                                | Formato (lo mismo que CI)                      |
-| `cargo clippy --workspace --all-targets -- -D warnings`  | Lint (lo mismo que CI)                         |
-| `cargo test -p masaya-core`                              | Solo el core: funciona en cualquier sistema    |
-| `cargo build --release -p masaya-nsh`                    | Binario optimizado en `target/release/`        |
+Los comandos de CI, tal cual (el core corre en Linux y la app en macOS):
+
+| Comando                                                             | Qué hace                                |
+| ------------------------------------------------------------------- | --------------------------------------- |
+| `cargo fmt --all --check`                                           | Formato de todo el workspace            |
+| `cargo clippy -p masaya-core --all-targets --locked -- -D warnings` | Lint del core (cualquier sistema)       |
+| `cargo test -p masaya-core --locked`                                | Tests del core (cualquier sistema)      |
+| `cargo clippy -p masaya-nsh --all-targets --locked -- -D warnings`  | Lint de la app (solo macOS)             |
+| `cargo test -p masaya-nsh --locked`                                 | Tests de la app (solo macOS)            |
+| `cargo build --release --locked -p masaya-nsh`                      | Binario optimizado en `target/release/` |
 
 La `.app` firmada y notarizada llega en la fase F5; ver [docs/RELEASING.md](docs/RELEASING.md).
 

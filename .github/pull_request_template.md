@@ -10,6 +10,8 @@
 
 - [ ] La rama base es `develop` (solo los PR de publicación van a `main`)
 - [ ] `cargo fmt --all --check`
-- [ ] `cargo clippy --workspace --all-targets -- -D warnings`
-- [ ] `cargo test`
+- [ ] `cargo clippy -p masaya-core --all-targets --locked -- -D warnings`
+- [ ] `cargo test -p masaya-core --locked`
+- [ ] En macOS: `cargo clippy -p masaya-nsh --all-targets --locked -- -D warnings`
+- [ ] En macOS: `cargo test -p masaya-nsh --locked`
 - [ ] Probado en un teléfono real con `cargo run -p masaya-nsh`

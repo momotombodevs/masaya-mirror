@@ -25,13 +25,18 @@ decisiones en [docs/adr/](docs/adr/) y el plan en [docs/plans/](docs/plans/).
 
 ## Antes de abrir un PR
 
+Ejecuta lo mismo que CI (`cargo fmt --all` corrige el formato si el primero falla):
+
 ```bash
-cargo fmt --all                                        # formato
-cargo clippy --workspace --all-targets -- -D warnings  # lint
-cargo test                                             # core y app
+cargo fmt --all --check
+cargo clippy -p masaya-core --all-targets --locked -- -D warnings
+cargo test -p masaya-core --locked
+# solo en macOS: la app
+cargo clippy -p masaya-nsh --all-targets --locked -- -D warnings
+cargo test -p masaya-nsh --locked
 ```
 
-CI ejecuta lo mismo: el core en Linux y la app en macOS, y los dos bloquean el merge.
+CI corre el core en Linux y la app en macOS, y los dos jobs bloquean el merge.
 
 Y pruébalo en un teléfono real con `cargo run -p masaya-nsh`: los tests no cubren el espejo ni el
 control. En el PR cuenta qué teléfono, versión de Android y conexión (USB o Wi-Fi) usaste.
