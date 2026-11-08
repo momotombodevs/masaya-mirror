@@ -10,6 +10,7 @@ use nsh_core::prelude::*;
 use tokio::sync::Notify;
 use tokio::task::AbortHandle;
 
+use crate::i18n::{Key, t};
 use crate::source::{DeviceSource, DevicesResult, LoadError};
 use crate::state::{DevicesModel, DevicesView};
 
@@ -114,6 +115,6 @@ async fn load(
     in_flight.borrow_mut().take();
     joined.unwrap_or_else(|error| {
         log::error!("device list task failed: {error}");
-        Err(LoadError::other(crate::copy::LIST_FAILED))
+        Err(LoadError::other(t(Key::ListFailed)))
     })
 }

@@ -6,6 +6,8 @@
 //! ```
 #![cfg(target_os = "macos")]
 
+mod common;
+
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{Duration, Instant};
@@ -44,6 +46,7 @@ impl FrameSink for Counting {
 #[test]
 #[ignore = "needs a phone: set MASAYA_TEST_SERIAL"]
 fn a_real_phone_streams_frames_and_follows_a_tap_and_a_swipe() {
+    common::isolate();
     let Ok(serial) = std::env::var("MASAYA_TEST_SERIAL") else {
         panic!("set MASAYA_TEST_SERIAL to the phone's serial (adb get-serialno)");
     };

@@ -2,12 +2,15 @@
 
 pub mod bench;
 pub mod copy;
+pub mod i18n;
 pub mod input;
+pub mod logging;
 #[cfg(target_os = "macos")]
 pub mod macos;
 pub mod metrics;
 pub mod mirror;
 pub mod screens;
+pub mod settings;
 pub mod source;
 pub mod state;
 pub mod store;
@@ -16,7 +19,6 @@ pub mod windows;
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use masaya_core::Locale;
 use nsh_base::theme;
 use nsh_core::prelude::*;
 
@@ -45,7 +47,7 @@ fn components(components: &nsh_platform_macos::Components) {
 /// ([`screens::mirror::MirrorWindow`]).
 #[component]
 pub fn App() -> impl IntoElement {
-    let source: Arc<dyn source::DeviceSource> = Arc::new(AdbSource::new(Locale::default()));
+    let source: Arc<dyn source::DeviceSource> = Arc::new(AdbSource::new(i18n::locale()));
     let mirrors = OpenMirrors::global().clone();
     // `MASAYA_AUTO_OPEN=<serial>` (benchmarks): that phone's mirror opens at launch.
     if let Some(serial) = metrics::env_value(metrics::AUTO_OPEN_ENV) {

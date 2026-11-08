@@ -1,12 +1,14 @@
 //! The device list's states and the mirror screen, headless, with a scripted device source in
 //! place of adb and a recorder in place of the mirror windows.
 
+mod common;
+
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use masaya_core::ErrorCode;
 use masaya_core::adb::{AndroidDevice, DeviceStatus};
-use masaya_nsh::copy;
+use masaya_nsh::i18n::{Key, t};
 use masaya_nsh::source::{DeviceSource, DevicesFuture, DevicesResult, LoadError, MirrorFuture};
 use masaya_nsh::windows::{MirrorRequest, OpenMirrors, WindowHost};
 use nsh_core::prelude::*;
@@ -149,7 +151,9 @@ struct Started {
     windows: Arc<Windows>,
 }
 
-fn start_root(script: Script, root: Root, first: &str) -> Started {
+/// `first` is a key, not its text: reading a text before `isolate` would read the user's settings.
+fn start_root(script: Script, root: Root, first: Key) -> Started {
+    common::isolate();
     let script = Arc::new(script);
     let windows = Arc::new(Windows::default());
     let mirrors = OpenMirrors::new(Some(windows.clone()));
@@ -162,7 +166,8 @@ fn start_root(script: Script, root: Root, first: &str) -> Started {
     });
     let mut app = Headless::start(EngineConfig::new(root)).expect("the app starts");
     // Once the first state shows, the root took what the test handed it.
-    app.wait_for(first).expect("the root shows its first state");
+    app.wait_for(t(first))
+        .expect("the root shows its first state");
     assert!(NEXT.lock().expect("next").is_none());
     Started {
         app,
@@ -173,7 +178,7 @@ fn start_root(script: Script, root: Root, first: &str) -> Started {
 }
 
 fn start(script: Script) -> (Headless, Arc<Script>) {
-    let started = start_root(script, Root::of::<TestApp>(), copy::LOADING);
+    let started = start_root(script, Root::of::<TestApp>(), Key::Loading);
     (started.app, started.script)
 }
 
@@ -207,9 +212,9 @@ fn shows_loading_then_the_empty_state_and_refreshes_on_demand() {
     let (mut app, source) = start(held);
 
     gate.notify_one();
-    app.wait_for(copy::EMPTY_TITLE).unwrap();
-    assert!(app.screen().shows(copy::EMPTY_HINT));
-    app.press(copy::REFRESH).unwrap();
+    app.wait_for(t(Key::EmptyTitle)).unwrap();
+    assert!(app.screen().shows(t(Key::EmptyHint)));
+    app.press(t(Key::Refresh)).unwrap();
     app.wait_for("Pixel 8").unwrap();
     let calls = source.calls();
     assert!(calls[0], "the first load starts adb");
@@ -228,17 +233,17 @@ fn a_missing_adb_says_how_to_install_it_and_retry_recovers() {
             Ok(vec![pixel()])
         }
     }));
-    app.wait_for(copy::ADB_NOT_FOUND).unwrap();
-    app.press(copy::RETRY).unwrap();
+    app.wait_for(t(Key::AdbNotFound)).unwrap();
+    app.press(t(Key::Retry)).unwrap();
     app.wait_for("Pixel 8").unwrap();
 }
 
 #[test]
 fn other_errors_show_a_header_and_the_detail() {
     let (mut app, _) = start(Script::new(|_, _| Err(LoadError::other("adb no responde"))));
-    app.wait_for(copy::LIST_FAILED).unwrap();
+    app.wait_for(t(Key::ListFailed)).unwrap();
     assert!(app.screen().shows("adb no responde"));
-    assert!(app.screen().shows(copy::RETRY));
+    assert!(app.screen().shows(t(Key::Retry)));
 }
 
 #[test]
@@ -254,7 +259,7 @@ fn the_list_refreshes_every_two_seconds_without_going_back_to_loading() {
     // The real clock runs: the next refresh lands within `wait_for`'s 5 s.
     app.wait_for("Galaxy S23").unwrap();
     assert!(app.screen().shows("Pixel 8"));
-    assert!(!app.screen().shows(copy::LOADING));
+    assert!(!app.screen().shows(t(Key::Loading)));
     let calls = source.calls();
     assert!(
         calls[1..].iter().all(|start_server| !start_server),
@@ -278,7 +283,7 @@ fn a_failed_refresh_keeps_the_list() {
     for _ in 0..100 {
         assert!(app.screen().shows("Pixel 8"), "the row stayed");
         assert!(
-            !app.screen().shows(copy::LIST_FAILED),
+            !app.screen().shows(t(Key::ListFailed)),
             "no error over a list"
         );
         if app.screen().shows("Galaxy S23") {
@@ -300,12 +305,12 @@ fn an_unauthorized_phone_says_what_to_do_and_an_online_one_opens_its_window() {
             ])
         }),
         Root::of::<TestApp>(),
-        copy::LOADING,
+        Key::Loading,
     );
     let app = &mut started.app;
-    app.wait_for(copy::HINT_UNAUTHORIZED).unwrap();
-    assert!(app.screen().shows(copy::STATUS_UNAUTHORIZED));
-    assert!(app.screen().shows(copy::STATUS_DEVICE));
+    app.wait_for(t(Key::HintUnauthorized)).unwrap();
+    assert!(app.screen().shows(t(Key::StatusUnauthorized)));
+    assert!(app.screen().shows(t(Key::StatusDevice)));
     // A phone that is not authorized does not open (pressing a disabled button may be refused).
     let _ = app.press("Moto G");
     assert!(started.windows.opened.lock().unwrap().is_empty());
@@ -313,18 +318,18 @@ fn an_unauthorized_phone_says_what_to_do_and_an_online_one_opens_its_window() {
     app.press("Pixel 8").unwrap();
     // The phone's row says its window is open, in place of its status; the list stays, it
     // never goes to loading.
-    app.wait_for(copy::MIRRORING).unwrap();
+    app.wait_for(t(Key::Mirroring)).unwrap();
     assert_eq!(
         app.screen()
             .texts()
             .iter()
-            .filter(|text| text.trim() == copy::STATUS_DEVICE)
+            .filter(|text| text.trim() == t(Key::StatusDevice))
             .count(),
         0,
         "the open phone's status gave way to the badge (the other row is unauthorized)"
     );
     assert!(app.screen().shows("Moto G"));
-    assert!(!app.screen().shows(copy::LOADING));
+    assert!(!app.screen().shows(t(Key::Loading)));
     assert_eq!(
         *started.windows.opened.lock().unwrap(),
         [MirrorRequest {
@@ -349,12 +354,12 @@ fn opening_an_open_phone_again_focuses_its_window() {
     let mut started = start_root(
         Script::new(|_, _| Ok(vec![pixel()])),
         Root::of::<TestApp>(),
-        copy::LOADING,
+        Key::Loading,
     );
     let app = &mut started.app;
     app.wait_for("Pixel 8").unwrap();
     app.press("Pixel 8").unwrap();
-    app.wait_for(copy::MIRRORING).unwrap();
+    app.wait_for(t(Key::Mirroring)).unwrap();
     app.press("Pixel 8").unwrap();
     for _ in 0..50 {
         if !started.windows.focused.lock().unwrap().is_empty() {
@@ -371,18 +376,18 @@ fn the_badge_goes_when_the_window_closes() {
     let mut started = start_root(
         Script::new(|_, _| Ok(vec![pixel()])),
         Root::of::<TestApp>(),
-        copy::LOADING,
+        Key::Loading,
     );
     let app = &mut started.app;
     app.wait_for("Pixel 8").unwrap();
     app.press("Pixel 8").unwrap();
-    app.wait_for(copy::MIRRORING).unwrap();
+    app.wait_for(t(Key::Mirroring)).unwrap();
     // The window closes on another thread, as a real one closes on the main thread.
     let mirrors = started.mirrors.clone();
     std::thread::spawn(move || assert!(mirrors.closed("A1", 1)))
         .join()
         .unwrap();
-    app.wait_for_gone(copy::MIRRORING, Duration::from_secs(5))
+    app.wait_for_gone(t(Key::Mirroring), Duration::from_secs(5))
         .unwrap();
     assert!(app.screen().shows("Pixel 8"));
 }
@@ -392,10 +397,10 @@ fn escape_without_video_closes_the_window() {
     let mut started = start_root(
         Script::new(|_, _| Ok(vec![pixel()])),
         Root::of::<TestMirror>(),
-        copy::MIRROR_STARTING,
+        Key::MirrorStarting,
     );
     let app = &mut started.app;
-    app.wait_for(copy::MIRROR_FAILED).unwrap();
+    app.wait_for(t(Key::MirrorFailed)).unwrap();
     // No video: Escape has nothing to send to the phone, so it closes the window.
     app.press_key("escape").unwrap();
     assert_eq!(started.windows.wait_for_close(app), [("A1".to_owned(), 1)]);
@@ -406,12 +411,12 @@ fn a_failed_mirror_can_be_closed_from_the_screen() {
     let mut started = start_root(
         Script::new(|_, _| Ok(vec![pixel()])),
         Root::of::<TestMirror>(),
-        copy::MIRROR_STARTING,
+        Key::MirrorStarting,
     );
     let app = &mut started.app;
-    app.wait_for(copy::MIRROR_FAILED).unwrap();
-    assert!(app.screen().shows(copy::RETRY));
-    app.press(copy::CLOSE).unwrap();
+    app.wait_for(t(Key::MirrorFailed)).unwrap();
+    assert!(app.screen().shows(t(Key::Retry)));
+    app.press(t(Key::Close)).unwrap();
     assert_eq!(started.windows.wait_for_close(app), [("A1".to_owned(), 1)]);
 }
 
@@ -427,14 +432,14 @@ fn an_open_phone_that_went_offline_still_shows_its_window() {
             Ok(vec![phone("A1", status, "Pixel 8")])
         }),
         Root::of::<TestApp>(),
-        copy::LOADING,
+        Key::Loading,
     );
     let app = &mut started.app;
     app.wait_for("Pixel 8").unwrap();
     app.press("Pixel 8").unwrap();
-    app.wait_for(copy::MIRRORING).unwrap();
+    app.wait_for(t(Key::Mirroring)).unwrap();
     // The 2 s refresh finds it offline: its row says what to do, and still opens its window.
-    app.wait_for(copy::HINT_RECONNECT).unwrap();
+    app.wait_for(t(Key::HintReconnect)).unwrap();
     app.press("Pixel 8").unwrap();
     for _ in 0..50 {
         if !started.windows.focused.lock().unwrap().is_empty() {
@@ -450,13 +455,13 @@ fn a_mirror_that_cannot_start_says_why_and_retries() {
     let mut started = start_root(
         Script::new(|_, _| Ok(vec![pixel()])),
         Root::of::<TestMirror>(),
-        copy::MIRROR_STARTING,
+        Key::MirrorStarting,
     );
     let app = &mut started.app;
-    app.wait_for(copy::MIRROR_FAILED).unwrap();
+    app.wait_for(t(Key::MirrorFailed)).unwrap();
     assert!(app.screen().shows("Sin teléfono de prueba"));
-    app.press(copy::RETRY).unwrap();
-    app.wait_for(copy::MIRROR_FAILED).unwrap();
+    app.press(t(Key::Retry)).unwrap();
+    app.wait_for(t(Key::MirrorFailed)).unwrap();
     // The retry ran a second start for the same phone.
     for _ in 0..50 {
         if started.script.mirrors.lock().expect("mirrors").len() >= 2 {

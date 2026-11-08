@@ -4,17 +4,16 @@
 fn main() -> impl std::process::Termination {
     use nsh_platform_macos as platform;
 
-    let mut logger = env_logger::Builder::from_default_env();
-    if masaya_nsh::metrics::enabled() {
-        // The measurements' lines, whatever `RUST_LOG` says.
-        logger.filter_module("masaya::", log::LevelFilter::Info);
-    }
-    logger.init();
+    // The terminal (`RUST_LOG`) and `~/Library/Logs/Masaya/nsh.log`; with metrics on, the
+    // measurements' lines whatever `RUST_LOG` says.
+    masaya_nsh::logging::init(masaya_nsh::metrics::enabled());
     let components = platform::Components::default();
     masaya_nsh::macos::register(&components);
     // Runs once the app's loop starts, after `run_app` has made the list window and the menu.
     dispatch2::DispatchQueue::main().exec_async(|| {
-        masaya_nsh::macos::windows::install_devices_menu(masaya_nsh::copy::MENU_DEVICES);
+        masaya_nsh::macos::windows::install_devices_menu(masaya_nsh::i18n::t(
+            masaya_nsh::i18n::Key::MenuDevices,
+        ));
     });
     let exit = platform::run_app(
         platform::AppSource::Rust(platform::Root::of::<masaya_nsh::App>()),

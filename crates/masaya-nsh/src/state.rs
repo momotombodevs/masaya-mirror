@@ -5,6 +5,7 @@ use std::collections::HashMap;
 use masaya_core::adb::{AndroidDevice, DeviceStatus};
 
 use crate::copy;
+use crate::i18n::{Key, t};
 use crate::source::{DevicesResult, LoadError};
 
 /// The mirror screen's state.
@@ -75,10 +76,10 @@ impl DeviceRow {
 
     pub fn status_text(&self) -> &'static str {
         match self.status {
-            DeviceStatus::Device => copy::STATUS_DEVICE,
-            DeviceStatus::Unauthorized => copy::STATUS_UNAUTHORIZED,
-            DeviceStatus::Offline => copy::STATUS_OFFLINE,
-            DeviceStatus::Unknown => copy::STATUS_UNKNOWN,
+            DeviceStatus::Device => t(Key::StatusDevice),
+            DeviceStatus::Unauthorized => t(Key::StatusUnauthorized),
+            DeviceStatus::Offline => t(Key::StatusOffline),
+            DeviceStatus::Unknown => t(Key::StatusUnknown),
         }
     }
 
@@ -86,8 +87,8 @@ impl DeviceRow {
     pub fn hint(&self) -> Option<&'static str> {
         match self.status {
             DeviceStatus::Device => None,
-            DeviceStatus::Unauthorized => Some(copy::HINT_UNAUTHORIZED),
-            DeviceStatus::Offline | DeviceStatus::Unknown => Some(copy::HINT_RECONNECT),
+            DeviceStatus::Unauthorized => Some(t(Key::HintUnauthorized)),
+            DeviceStatus::Offline | DeviceStatus::Unknown => Some(t(Key::HintReconnect)),
         }
     }
 
@@ -326,11 +327,11 @@ mod tests {
         assert_eq!(rows[0].hint(), None);
         assert_eq!(rows[0].accessibility_label(), "Abrir Pixel 8");
         assert!(!rows[1].openable());
-        assert_eq!(rows[1].hint(), Some(copy::HINT_UNAUTHORIZED));
+        assert_eq!(rows[1].hint(), Some(t(Key::HintUnauthorized)));
         assert_eq!(rows[1].status_text(), "Sin autorizar");
         assert_eq!(
             rows[1].accessibility_label(),
-            format!("Moto G, Sin autorizar. {}", copy::HINT_UNAUTHORIZED)
+            format!("Moto G, Sin autorizar. {}", t(Key::HintUnauthorized))
         );
         assert!(!rows[2].openable());
         assert_eq!(rows[2].status_text(), "Desconectado");

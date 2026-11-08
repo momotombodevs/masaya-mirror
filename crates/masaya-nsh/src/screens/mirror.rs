@@ -6,7 +6,6 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
 
-use masaya_core::Locale;
 use masaya_core::scrcpy::ScrcpySession;
 use nsh_base::{button, theme};
 use nsh_core::prelude::*;
@@ -14,6 +13,7 @@ use serde_json::json;
 use tokio::task::AbortHandle;
 
 use crate::copy;
+use crate::i18n::{self, Key, t};
 use crate::mirror::{control, pump, sink};
 use crate::source::{AdbSource, DeviceSource};
 use crate::state::{MirrorKind, MirrorView};
@@ -34,7 +34,7 @@ pub struct MirrorWindowProps {
 /// A mirror window's root: the phone of `serial`, through adb.
 #[component]
 pub fn MirrorWindow(props: MirrorWindowProps) -> impl IntoElement {
-    let source: Arc<dyn DeviceSource> = Arc::new(AdbSource::new(Locale::default()));
+    let source: Arc<dyn DeviceSource> = Arc::new(AdbSource::new(i18n::locale()));
     let MirrorWindowProps {
         serial,
         label,
@@ -211,7 +211,7 @@ pub fn mirror_screen(
                         Err(error) if error.is_cancelled() => None,
                         Err(error) => {
                             log::error!("mirror start task failed: {error}");
-                            Some(MirrorView::Failed(copy::MIRROR_FAILED.to_owned()))
+                            Some(MirrorView::Failed(t(Key::MirrorFailed).to_owned()))
                         }
                     };
                     // The borrow above has ended: setting the state renders, which may stop.
@@ -227,7 +227,7 @@ pub fn mirror_screen(
                     if !attached && current.as_deref() == Some(key.as_str()) {
                         log::warn!("mirror: the video view never attached");
                         running.borrow_mut().stop();
-                        state.set(MirrorView::Failed(copy::MIRROR_NO_VIDEO.to_owned()));
+                        state.set(MirrorView::Failed(t(Key::MirrorNoVideo).to_owned()));
                     }
                 })
             });
@@ -300,16 +300,16 @@ pub fn mirror_screen(
         .bg(move || theme().background)
         .child(dynamic(move || match kind.get() {
             MirrorKind::Starting => centered()
-                .child(muted(copy::MIRROR_STARTING))
+                .child(muted(t(Key::MirrorStarting)))
                 .into_element(),
             MirrorKind::Failed => {
                 let start = start.clone();
                 problem(
                     state,
                     Problem {
-                        title: copy::MIRROR_FAILED,
+                        title: t(Key::MirrorFailed),
                         hint: None,
-                        action: copy::RETRY,
+                        action: t(Key::Retry),
                     },
                     move || start(),
                     on_close.clone(),
@@ -321,9 +321,9 @@ pub fn mirror_screen(
                 problem(
                     state,
                     Problem {
-                        title: copy::MIRROR_ENDED,
-                        hint: Some(copy::MIRROR_ENDED_HINT),
-                        action: copy::MIRROR_RECONNECT,
+                        title: t(Key::MirrorEnded),
+                        hint: Some(t(Key::MirrorEndedHint)),
+                        action: t(Key::MirrorReconnect),
                     },
                     move || start(),
                     on_close.clone(),
@@ -343,7 +343,7 @@ pub fn mirror_screen(
                     })
                     .role(AccessibilityRole::Group)
                     .label(video_label.clone())
-                    .hint(copy::MIRROR_VIDEO_HINT)
+                    .hint(t(Key::MirrorVideoHint))
                     .flex_1()
                     .bg(black())
                     .into_element()
@@ -431,7 +431,7 @@ fn problem(
                         .border_1()
                         .border_color(move || theme().border)
                         .active(|s| s.opacity(0.6))
-                        .child(text(copy::CLOSE).text_color(move || theme().foreground)),
+                        .child(text(t(Key::Close)).text_color(move || theme().foreground)),
                 ),
         )
 }
