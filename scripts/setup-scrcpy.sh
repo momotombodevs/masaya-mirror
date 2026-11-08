@@ -7,7 +7,8 @@
 set -eu
 
 VERSION="${SCRCPY_SERVER_VERSION:-3.3.3}"
-EXPECTED="${SCRCPY_SERVER_SHA256:-7e70323ba7f259649dd4acce97ac4fefbae8102b2c6d91e2e7be613fd5354be0}"
+EXPECTED="$(printf '%s' "${SCRCPY_SERVER_SHA256:-7e70323ba7f259649dd4acce97ac4fefbae8102b2c6d91e2e7be613fd5354be0}" |
+  tr '[:upper:]' '[:lower:]')"
 URL="https://github.com/Genymobile/scrcpy/releases/download/v${VERSION}/scrcpy-server-v${VERSION}"
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -19,8 +20,15 @@ fail() {
   exit 1
 }
 
+# shasum ships with macOS; minimal Linux images often have only sha256sum.
 sha256() {
-  shasum -a 256 "$1" | cut -d ' ' -f 1
+  if command -v shasum > /dev/null 2>&1; then
+    shasum -a 256 "$1" | cut -d ' ' -f 1
+  elif command -v sha256sum > /dev/null 2>&1; then
+    sha256sum "$1" | cut -d ' ' -f 1
+  else
+    fail "neither shasum nor sha256sum is installed"
+  fi
 }
 
 if [ -f "$SERVER_FILE" ]; then
@@ -33,16 +41,22 @@ if [ -f "$SERVER_FILE" ]; then
 fi
 
 mkdir -p "$SERVER_DIR"
-tmp="${SERVER_FILE}.download"
-trap 'rm -f "$tmp"' EXIT INT TERM
+tmp="$(mktemp "${SERVER_FILE}.XXXXXX")"
+# Exiting on a signal runs the EXIT trap, which removes the partial download.
+trap 'rm -f "$tmp"' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 echo "Downloading scrcpy-server v${VERSION}..."
-curl --fail --location --silent --show-error --output "$tmp" "$URL" || fail "download from ${URL} failed"
+curl --fail --location --silent --show-error --retry 3 --connect-timeout 15 --proto '=https' --proto-redir '=https' \
+  --output "$tmp" "$URL" || fail "download from ${URL} failed"
 
 found="$(sha256 "$tmp")"
 if [ "$found" != "$EXPECTED" ]; then
   fail "downloaded scrcpy-server hash mismatch. Expected ${EXPECTED} but found ${found}"
 fi
 
+# mktemp creates the file 0600; the jar is read by whoever runs the app.
+chmod 644 "$tmp"
 mv "$tmp" "$SERVER_FILE"
 echo "scrcpy-server ready at ${SERVER_FILE}"
