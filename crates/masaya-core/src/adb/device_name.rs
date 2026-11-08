@@ -1,4 +1,4 @@
-//! A phone's marketing name. Ports `device-name.ts`.
+//! A phone's marketing name. Ported from the removed Electron app's `device-name.ts`.
 
 /// Properties that hold a phone's marketing name, best first. Xiaomi fills the `marketname` pair,
 /// Oppo/OnePlus/Realme the `oplus` one and Huawei `marketing_name`. `ro.product.model` is the last

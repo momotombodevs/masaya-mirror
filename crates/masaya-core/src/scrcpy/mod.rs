@@ -1,8 +1,8 @@
 //! The scrcpy protocol, version 3.3.x: how to launch the server, what it sends back (video, audio
 //! and device messages) and what the client may send it (control messages).
 //!
-//! Byte layouts are the ones `@yume-chan/scrcpy` 2.3 uses for server 3.3.3, which is what the
-//! Electron build ships. All integers are big-endian.
+//! Byte layouts are the ones `@yume-chan/scrcpy` 2.3 uses for server 3.3.3, the server version this
+//! app ships. All integers are big-endian.
 
 pub mod control;
 pub mod frame;

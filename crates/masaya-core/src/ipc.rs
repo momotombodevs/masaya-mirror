@@ -1,7 +1,7 @@
 //! The result shape every command answers with.
 //!
-//! It serializes exactly like `Result<T>` in `src/shared/ipc/result.ts`, so the React renderer
-//! keeps branching on `ok` and `code` whether the backend is Electron or Rust:
+//! It keeps the JSON shape of the removed Electron app's IPC results, so a caller branches on `ok`
+//! and `code`:
 //!
 //! ```json
 //! { "ok": true, "value": 1 }

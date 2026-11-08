@@ -1,5 +1,5 @@
 //! Device types and the parsers for what `adb` prints.
-//! Ports `parseAdbDevicesOutput` and `parseMdnsServices` from `adb.service.ts`.
+//! Ports `parseAdbDevicesOutput` and `parseMdnsServices` from the removed Electron app's `adb.service.ts`.
 
 use serde::{Deserialize, Serialize};
 

@@ -32,7 +32,7 @@ impl AdbError {
         }
     }
 
-    /// Same mapping as `commandFailure` in the Electron main process.
+    /// Same mapping as `commandFailure` in the removed Electron app.
     pub fn into_ipc<T>(self, locale: Locale) -> IpcResult<T> {
         match self {
             Self::NotFound => IpcResult::adb_not_found(),

@@ -2,6 +2,8 @@
 
 Plan generado el 2026-11-07 tras aceptar [ADR-0004](../adr/0004-app-nativa-con-nsh.md). Estado: **pendiente de aprobación**.
 
+> **Actualización 2026-11-07:** el usuario decidió retirar Electron ya, en el PR 2 del stack. F6 queda hecha salvo el aviso a usuarios de v0.3.3 y la web, que pasan a F5; el script de scrcpy ya está portado a shell (`scripts/setup-scrcpy.sh`); los runners de macOS pasan a `macos-15`.
+
 Meta: paridad con Electron en macOS 14+ (Apple Silicon) con ~6× menos memoria y ~4× menos CPU; después, retirar Electron.
 Éxito: lista de paridad verificada con S23 + emulador; benchmark de ADR-0004 sin regresión (RSS < 150 MB con un espejo, CPU arrastrando ≤ 12 %); beta NSH estable antes de F6.
 Fuera de alcance: Windows, Linux, iPhone, Mac Intel; zoom web, DevTools, recarga forzada; vibrancy; recordar posición de ventanas; fallback WebM.
@@ -46,7 +48,7 @@ Verificación común: `cargo fmt --all --check`, `cargo clippy -p masaya-nsh --a
 - **1.7 Reconexión automática** (1 d): porta `useReconnect` (12 intentos) y sus tests.
 - **1.8 Menú de la app y atajos** (1 d): cada acción de la barra con ítem de menú y atajo (con el foco en el espejo, las teclas van al teléfono).
 
-Salida de F1: S23 y emulador a la vez, rotar, teclas, pantalla completa, siempre visible, desenchufar y reconectar; benchmark sin regresión; Electron sin cambios.
+Salida de F1: S23 y emulador a la vez, rotar, teclas, pantalla completa, siempre visible, desenchufar y reconectar; benchmark sin regresión. (Electron ya no existe en el repositorio: ver la actualización del inicio.)
 
 ## Ramas
 

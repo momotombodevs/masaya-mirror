@@ -19,6 +19,8 @@ release que la corrija, si lo quieres.
 
 Solo la última versión publicada en
 [Releases](https://github.com/momotombodevs/masaya-mirror/releases) recibe correcciones.
+La app Electron (v0.3.3 y anteriores, incluidas las versiones de Windows, Linux y Mac Intel) ya no
+recibe correcciones.
 
 ## Alcance
 
@@ -28,14 +30,14 @@ Masaya ejecuta código fuera de su propio proceso, así que interesa todo lo que
   `shell`. Un argumento que no se escape bien, o un `adb` tomado de una ruta inesperada, es un problema
   de seguridad.
 - **scrcpy-server en el teléfono:** la app copia `scrcpy-server.jar` al dispositivo y lo ejecuta con
-  permisos de shell de adb. El archivo va en el repositorio y se verifica por SHA-256 al instalar
-  (`scripts/setup-scrcpy.mjs`).
+  permisos de shell de adb. El archivo va en el repositorio; `scripts/setup-scrcpy.sh` comprueba el
+  SHA-256 fijado cuando lo descarga (o cuando ya existe), pero la app no lo vuelve a verificar al
+  ejecutarse, y `MASAYA_SCRCPY_SERVER` puede apuntar a otro jar.
 - **Conexión por Wi-Fi:** el emparejamiento por código QR y adb por TCP exponen el teléfono en la red
   local mientras están activos.
-- **Ventanas e IPC:** las ventanas usan `sandbox`, `contextIsolation` y CSP, y el proceso principal valida
-  cada mensaje IPC. Una forma de saltarse eso desde el renderer entra en el alcance.
-- **Actualizaciones automáticas:** `electron-updater` descarga desde las GitHub Releases.
+- **Datos del teléfono:** el video y los mensajes que llegan del dispositivo se leen sin confiar en ellos;
+  un paquete malformado que tumbe la app o corrompa memoria entra en el alcance.
 
-Fuera del alcance: fallos de adb, scrcpy o Electron que no dependan de cómo los usa Masaya (repórtalos
+Fuera del alcance: fallos de adb, scrcpy o NSH que no dependan de cómo los usa Masaya (repórtalos
 en su proyecto), y lo que requiera que el atacante ya controle el equipo o tenga la depuración USB del
 teléfono autorizada.

@@ -1,6 +1,6 @@
 [package]
 name = "masaya-nsh"
-description = "Masaya as a native macOS app (NSH spike): device list and mirror, 100% Rust."
+description = "Masaya as a native macOS app: device list and mirror, 100% Rust."
 version.workspace = true
 # NSH needs edition 2024 and Rust 1.88 (let-chains); the rest of the workspace stays on 2021/1.85.
 edition = "2024"

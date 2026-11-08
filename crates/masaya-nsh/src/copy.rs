@@ -1,5 +1,5 @@
 //! Every text the app shows, in one place, so screens and tests use the same words. Status labels
-//! match the Electron app (`src/shared/i18n/messages.ts`, `devices.status.*`).
+//! keep the wording of the removed Electron app (`devices.status.*`).
 
 pub const DEVICES_TITLE: &str = "Dispositivos";
 pub const LOADING: &str = "Buscando dispositivos…";

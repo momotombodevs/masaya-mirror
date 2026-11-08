@@ -1,139 +1,60 @@
 name: Release
 
-# Every merge to main publishes the version in package.json, unless its tag already exists.
+# Manual only. Phase F5 of docs/plans/etapa-2-nsh.md adds the signed and notarized .app, the DMG and
+# the GitHub Release. Until then this builds an unsigned binary for testing.
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: release
   cancel-in-progress: false
 
-jobs:
-  verify:
-    name: Verify version and code
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.version.outputs.version }}
-      release: ${{ steps.version.outputs.release }}
-    steps:
-      - uses: actions/checkout@v4
-      - id: version
-        name: Read version and check whether its tag exists
-        run: |
-          version="$(node -p "require('./package.json').version")"
-          echo "version=${version}" >> "$GITHUB_OUTPUT"
-          if git ls-remote --exit-code --tags origin "refs/tags/v${version}" > /dev/null; then
-            echo "Tag v${version} already exists; nothing to release."
-            echo "release=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "release=true" >> "$GITHUB_OUTPUT"
-          fi
-      - if: steps.version.outputs.release == 'true'
-        uses: pnpm/action-setup@v4
-      - if: steps.version.outputs.release == 'true'
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-      - if: steps.version.outputs.release == 'true'
-        run: pnpm install --frozen-lockfile
-      - if: steps.version.outputs.release == 'true'
-        run: pnpm typecheck
-      - if: steps.version.outputs.release == 'true'
-        run: pnpm lint
-      - if: steps.version.outputs.release == 'true'
-        run: pnpm test
+permissions:
+  contents: read
 
-  package:
-    name: Package ${{ matrix.name }}
-    needs: verify
-    if: needs.verify.outputs.release == 'true'
-    runs-on: ${{ matrix.runner }}
-    permissions:
-      contents: read
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: macOS (arm64 + x64)
-            runner: macos-15
-            command: pnpm build:mac --publish never
-            artifact: masaya-macos
-            files: |
-              release/**/*.dmg
-              release/**/*.zip
-              release/**/*.blockmap
-              release/**/latest*.yml
-          - name: Windows (x64)
-            runner: windows-latest
-            command: pnpm build:win --publish never
-            artifact: masaya-windows
-            # Only the installer: win-unpacked/ also holds Masaya.exe and elevate.exe.
-            files: |
-              release/*/*.exe
-              release/**/*.blockmap
-              release/**/latest*.yml
-          - name: Linux (x64 + arm64)
-            runner: ubuntu-latest
-            command: pnpm build:linux --publish never
-            artifact: masaya-linux
-            files: |
-              release/**/*.AppImage
-              release/**/*.deb
-              release/**/latest*.yml
+jobs:
+  build:
+    name: Build masaya-nsh (macOS, unsigned)
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      # The publish job uploads the release; without --publish never electron-builder tries to on CI.
-      - name: Package
-        run: ${{ matrix.command }}
+      - name: Fetch main
+        run: git fetch --no-tags --depth=1 origin +refs/heads/main:refs/remotes/origin/main
+      # From any branch but main the version must be newer than main's; on main, where it is equal
+      # after the merge, only the tag check applies. Either way the tag v<version> must not exist.
+      - id: version
+        name: Read the version and check that it is new
+        run: |
+          if [ "${GITHUB_REF_NAME}" = "main" ]; then
+            version="$(sh scripts/check-version.sh)"
+          else
+            version="$(sh scripts/check-version.sh origin/main)"
+          fi
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --release --locked -p masaya-nsh
+      # A tarball keeps the binary's exec bit (upload-artifact alone would drop it). The binary does
+      # not find the jar in this layout by itself: testers set MASAYA_SCRCPY_SERVER, see
+      # docs/RELEASING.md. F5 replaces this with the .app, whose Resources the lookup does cover.
+      - name: Package the binary and scrcpy-server
+        id: package
         env:
-          # Signed only when the platform's certificate secrets exist; otherwise the installer
-          # stays unsigned (see docs/RELEASING.md).
-          CSC_LINK: ${{ matrix.runner == 'windows-latest' && secrets.WIN_CSC_LINK || matrix.runner == 'macos-15' && secrets.MAC_CSC_LINK || '' }}
-          CSC_KEY_PASSWORD: ${{ matrix.runner == 'windows-latest' && secrets.WIN_CSC_KEY_PASSWORD || matrix.runner == 'macos-15' && secrets.MAC_CSC_KEY_PASSWORD || '' }}
-          CSC_IDENTITY_AUTO_DISCOVERY: ${{ (matrix.runner == 'windows-latest' && secrets.WIN_CSC_LINK != '' || matrix.runner == 'macos-15' && secrets.MAC_CSC_LINK != '') && 'true' || 'false' }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          VERSION: ${{ steps.version.outputs.version }}
+          # No AppleDouble (._*) entries for extended attributes.
+          COPYFILE_DISABLE: 1
+        run: |
+          name="masaya-nsh-v${VERSION}-macos-arm64-unsigned"
+          staging="${RUNNER_TEMP}/${name}"
+          mkdir -p "${staging}/resources/scrcpy-server"
+          cp target/release/masaya-nsh "${staging}/masaya-nsh"
+          chmod 755 "${staging}/masaya-nsh"
+          cp resources/scrcpy-server/scrcpy-server.jar "${staging}/resources/scrcpy-server/scrcpy-server.jar"
+          tar -czf "${name}.tar.gz" -C "${staging}" .
+          tar -tvzf "${name}.tar.gz"
+          echo "name=${name}" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.artifact }}
-          path: ${{ matrix.files }}
+          name: ${{ steps.package.outputs.name }}
+          path: ${{ steps.package.outputs.name }}.tar.gz
           if-no-files-found: error
-
-  publish:
-    name: Publish GitHub Release
-    needs: [verify, package]
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          path: release-artifacts
-      - uses: softprops/action-gh-release@v2
-        with:
-          # Creates the tag on the merged commit; tags pushed with GITHUB_TOKEN do not re-trigger workflows.
-          tag_name: v${{ needs.verify.outputs.version }}
-          target_commitish: ${{ github.sha }}
-          files: |
-            release-artifacts/**/*.dmg
-            release-artifacts/**/*.exe
-            release-artifacts/**/*.AppImage
-            release-artifacts/**/*.deb
-            release-artifacts/**/*.zip
-            release-artifacts/**/*.blockmap
-            release-artifacts/**/latest*.yml
-          generate_release_notes: true
-          fail_on_unmatched_files: true
-          body: |
-            Instaladores para macOS (`.dmg`, Apple Silicon e Intel), Windows (`.exe`) y Linux (`.AppImage` y `.deb`, x64 y arm64).
-
-            Requiere `adb` instalado. En Windows, si SmartScreen avisa, usa **Más información → Ejecutar de todas formas**.

@@ -1,5 +1,5 @@
-//! Range checks for what the renderer sends. Ports `mirror-parsers.ts`: the webview is not
-//! trusted, so a message is checked here before it becomes bytes for the phone.
+//! Range checks for options and control messages, ported from the removed Electron app's
+//! `mirror-parsers.ts`: a message is checked here before it becomes bytes for the phone.
 
 use super::control::{ControlMessage, MAX_TEXT_BYTES};
 use super::options::MirrorOptions;

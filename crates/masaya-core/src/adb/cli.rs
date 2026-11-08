@@ -1,4 +1,5 @@
-//! One-shot adb commands through the `adb` executable. Ports `AdbService` from `adb.service.ts`.
+//! One-shot adb commands through the `adb` executable. Ports `AdbService` from the removed
+//! Electron app.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -86,7 +87,7 @@ impl AdbCli {
             .unwrap_or(false)
     }
 
-    /// Runs adb and returns stdout and stderr together, trimmed, like the Electron service.
+    /// Runs adb and returns stdout and stderr together, trimmed, like the removed Electron service.
     pub async fn run(&self, args: &[&str], timeout: Duration) -> Result<String, AdbError> {
         let path = self.executable_path().await.ok_or(AdbError::NotFound)?;
         run_executable(&path, args, timeout).await

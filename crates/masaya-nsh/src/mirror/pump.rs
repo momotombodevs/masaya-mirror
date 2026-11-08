@@ -1,5 +1,5 @@
-//! Forwards a session's video to its view until the phone stops sending. Ports the Tauri shell's
-//! `pump`: runs on a tokio worker (`nsh_core::background`), never on the engine thread.
+//! Forwards a session's video to its view until the phone stops sending. Runs on a tokio worker
+//! (`nsh_core::background`), never on the engine thread.
 
 use masaya_core::scrcpy::session::PacketReader;
 use masaya_core::scrcpy::stream::MediaPacket;

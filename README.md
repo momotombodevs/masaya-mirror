@@ -1,105 +1,78 @@
 # Masaya
 
-Espeja y controla dispositivos Android desde el escritorio (macOS, Windows y Linux). Pensada para QA:
-captura de pantalla, grabación de video y control con mouse y teclado, sin instalar scrcpy.
+Espeja y controla dispositivos Android desde el Mac. App nativa en Rust para **macOS 14 o superior en
+Apple Silicon**, construida con [NSH](https://crates.io/crates/nsh-core) sobre `crates/masaya-core`, sin
+Chromium ni Node. Pensada para QA, sin instalar scrcpy.
 
-- **Espejo en ventana propia** por dispositivo, con calidad ajustable (Equilibrada, Alta, Máxima).
-- **Control completo:** toques, multitouch, arrastre, rueda, teclado (incluye acentos y símbolos) y
-  clic derecho como «Atrás».
-- **Rotación:** la ventana gira con el teléfono y un botón de la barra gira la pantalla del dispositivo.
-- **Barra superior** con captura, grabación, pantalla completa y un menú con volumen, encendido de pantalla,
-  instalar APK y Ajustes. **Barra de navegación** (Atrás, Inicio, Recientes) bajo la pantalla.
-- **Pantalla de Ajustes** (⌘/Ctrl+,): ventana (barra de navegación, siempre visible, mostrar clics, qué hacer al capturar),
-  calidad de imagen (preajustes, resolución, velocidad de datos, códec) y dispositivo (mostrar toques,
-  mantener pantalla encendida).
-- **Instalar APK** desde la barra o arrastrando el archivo a la ventana del espejo.
-- **Portapapeles compartido:** lo que copias en el teléfono llega al equipo y al revés (se puede desactivar
-  en Ajustes).
-- **Audio del dispositivo** (Android 11 o superior), activable en Ajustes.
-- **Reconexión automática:** si se desconecta el cable o se cae el Wi-Fi, el espejo reintenta durante
-  aproximadamente un minuto y vuelve solo.
-- **Conexión por Wi-Fi sin cable:** escanea un código QR desde el teléfono y listo.
-- **Captura y grabación** desde la barra del espejo o con atajos. El video sale en **MP4 (H.264)** y, si
-  lo prefieres, en **GIF animado** (hasta 30 s, 480 px de ancho); se elige en Ajustes.
-- **Recuerda** tus ajustes y la carpeta donde guardas capturas y grabaciones.
-- **Tema claro/oscuro** y color de acento del sistema.
+> **Windows, Linux y Mac Intel ya no tienen soporte.** La última versión para ellos es la app Electron
+> [v0.3.3](https://github.com/momotombodevs/masaya-mirror/releases/tag/v0.3.3), que no recibe más
+> correcciones. La decisión está en [ADR-0004](docs/adr/0004-app-nativa-con-nsh.md).
+
+## Qué hace hoy
+
+- **Lista de dispositivos** con su estado (conectado, sin autorizar, desconectado) y qué hacer en cada caso;
+  se actualiza sola.
+- **Espejo** del teléfono con video H.264 decodificado por hardware (VideoToolbox).
+- **Control con mouse y teclado:** toques, arrastre, rueda y trackpad, teclado (incluye acentos y símbolos),
+  clic derecho como «Atrás» y clic central como «Inicio».
+
+La app se está portando por fases desde la versión Electron: ventanas por dispositivo, captura, grabación,
+APK, portapapeles, audio, Wi-Fi por QR y Ajustes llegan en las fases siguientes
+([plan de la etapa 2](docs/plans/etapa-2-nsh.md)).
 
 ## Requisitos
 
 | Herramienta                  | Versión             | Para qué                                                  |
 | ---------------------------- | ------------------- | --------------------------------------------------------- |
-| Node.js                      | 20 o superior       | Desarrollo y compilación                                  |
-| pnpm                         | 10                  | Gestor de paquetes (`corepack enable`)                    |
+| macOS                        | 14 o superior       | Apple Silicon                                             |
+| Rust                         | 1.88 o superior     | Compilar ([rustup](https://rustup.rs))                    |
 | adb (Android platform-tools) | cualquiera reciente | Comunicarse con el dispositivo. **La app no lo incluye.** |
 
 En el teléfono: activa las **Opciones de desarrollador** y la **Depuración USB**.
 
-La app busca `adb` en el que elijas dentro de la app, `ADB_PATH`, `ANDROID_HOME`, `ANDROID_SDK_ROOT`, las
-rutas habituales del SDK y el `PATH`. Si no lo encuentra, ofrece descargarlo o elegirlo.
+La app busca `adb` en `ADB_PATH`, `ANDROID_HOME`, `ANDROID_SDK_ROOT`, las rutas habituales del SDK y el
+`PATH`. La forma más rápida de tenerlo: `brew install android-platform-tools`.
 
 ## Empezar
 
 ```bash
-pnpm install        # también descarga scrcpy-server y verifica su hash
-pnpm dev            # abre la app con recarga en caliente
-pnpm dev:debug      # igual, con DevTools
+./scripts/setup-scrcpy.sh   # descarga scrcpy-server si falta y verifica su SHA-256
+cargo run -p masaya-nsh     # abre la app
+cargo test                  # tests del core y de la app
 ```
 
-## Scripts
+`resources/scrcpy-server/scrcpy-server.jar` ya está en el repositorio; el script lo descarga de la
+release oficial de scrcpy solo si falta y falla si el hash no coincide.
 
-| Comando                                      | Qué hace                                           |
-| -------------------------------------------- | -------------------------------------------------- |
-| `pnpm check`                                 | Typecheck, lint, formato y tests (lo mismo que CI) |
-| `pnpm typecheck` · `pnpm lint` · `pnpm test` | Cada comprobación por separado                     |
-| `pnpm format`                                | Formatea con Prettier                              |
-| `pnpm build:app`                             | Compila main, preload y renderer (sin empaquetar)  |
-| `pnpm build:mac`                             | DMG para Apple Silicon e Intel (solo en macOS)     |
-| `pnpm build:win`                             | Instalador NSIS x64 (en Windows)                   |
-| `pnpm build:linux`                           | AppImage y .deb, x64 y arm64 (en Linux)            |
-| `pnpm pack:dir`                              | Empaqueta sin instalador, para probar la config    |
+Los comandos de CI, tal cual (el core corre en Linux y la app en macOS):
 
-Los instaladores quedan en `release/<versión>/`. Detalles de versionado y firma en
-[docs/RELEASING.md](docs/RELEASING.md).
+| Comando                                                             | Qué hace                                |
+| ------------------------------------------------------------------- | --------------------------------------- |
+| `cargo fmt --all --check`                                           | Formato de todo el workspace            |
+| `cargo clippy -p masaya-core --all-targets --locked -- -D warnings` | Lint del core (cualquier sistema)       |
+| `cargo test -p masaya-core --locked`                                | Tests del core (cualquier sistema)      |
+| `cargo clippy -p masaya-nsh --all-targets --locked -- -D warnings`  | Lint de la app (solo macOS)             |
+| `cargo test -p masaya-nsh --locked`                                 | Tests de la app (solo macOS)            |
+| `cargo build --release --locked -p masaya-nsh`                      | Binario optimizado en `target/release/` |
 
-## Atajos
-
-| Acción                           | macOS                        | Windows                      |
-| -------------------------------- | ---------------------------- | ---------------------------- |
-| Actualizar lista de dispositivos | ⌘R                           | Ctrl+R                       |
-| Captura de pantalla              | ⌘⇧4                          | Ctrl+Shift+4                 |
-| Grabar / detener                 | ⌘⇧5                          | Ctrl+Shift+5                 |
-| Conectar por Wi-Fi               | ⌘⇧W                          | Ctrl+Shift+W                 |
-| Ajustes del espejo               | ⌘,                           | Ctrl+,                       |
-| Abrir espejo                     | Doble clic en el dispositivo | Doble clic en el dispositivo |
-
-En la ventana del espejo, el teclado y el mouse se envían al dispositivo.
+La `.app` firmada y notarizada llega en la fase F5; ver [docs/RELEASING.md](docs/RELEASING.md).
 
 ## Cómo está organizado
 
 ```
-src/
-  main/       Proceso principal de Electron: adb, sesiones scrcpy, ventanas, menú, IPC
-  preload/    Puente seguro: expone a cada ventana solo las llamadas que necesita
-  renderer/   Interfaz React + Tailwind: lista de dispositivos y ventana del espejo
-  shared/     Tipos y contratos IPC compartidos entre procesos
-docs/         Sitio web (inicio y privacidad), arquitectura, decisiones (ADR) y publicación
+crates/
+  masaya-core/   adb y protocolo scrcpy, sin dependencias de interfaz (compila en cualquier sistema)
+  masaya-nsh/    la app de macOS: pantallas NSH, vista nativa del espejo y entrada de mouse y teclado
+resources/       scrcpy-server.jar que se copia al teléfono
+scripts/         setup-scrcpy.sh
+docs/            sitio web (inicio y privacidad), arquitectura, decisiones (ADR), planes y publicación
 ```
 
-Para el detalle de flujos y decisiones, lee [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-
-## Seguridad
-
-Las ventanas usan `sandbox`, `contextIsolation` y una política CSP; no pueden abrir ventanas ni
-navegar fuera de la app. Todo mensaje IPC se valida en el proceso principal y solo la ventana dueña
-de un dispositivo puede controlarlo.
+Para el detalle, lee [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Solución de problemas
 
-- **«ADB no encontrado»:** instala platform-tools o define `ADB_PATH` con la ruta del ejecutable.
-- **El código QR no encuentra el teléfono:** el teléfono y el equipo deben estar en la misma red Wi-Fi y la
-  red debe permitir mDNS (algunas redes de oficina lo bloquean). Prueba con otra red o conéctalo por USB.
-- **El dispositivo aparece «Sin autorizar»:** acepta el diálogo de depuración USB en el teléfono.
-- **La imagen va con retraso:** baja la calidad a «Equilibrada»; el decodificador descarta cuadros
-  antiguos cuando no da abasto.
-- **macOS o Windows avisan al abrir la app:** los instaladores aún no están firmados; ver
-  [docs/RELEASING.md](docs/RELEASING.md).
+- **«No encontramos adb»:** instala platform-tools o define `ADB_PATH` con la ruta del ejecutable y pulsa
+  Reintentar.
+- **El dispositivo aparece «Sin autorizar»:** desbloquea el teléfono y acepta el diálogo de depuración USB.
+- **«Falta scrcpy-server»:** ejecuta `./scripts/setup-scrcpy.sh`.
