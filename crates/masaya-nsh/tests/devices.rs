@@ -9,8 +9,11 @@ use std::time::Duration;
 use masaya_core::ErrorCode;
 use masaya_core::adb::{AndroidDevice, DeviceStatus};
 use masaya_nsh::i18n::{Key, t};
+use masaya_nsh::settings::SettingsHub;
 use masaya_nsh::source::{DeviceSource, DevicesFuture, DevicesResult, LoadError, MirrorFuture};
-use masaya_nsh::windows::{MirrorRequest, OpenMirrors, WindowHost};
+use masaya_nsh::windows::{MirrorRequest, OpenMirrors, WindowEvent, WindowHost};
+use nsh_core::Command;
+use nsh_core::desktop::{DesktopCommand, WindowLevel};
 use nsh_core::prelude::*;
 use nsh_engine::{EngineConfig, Root};
 use nsh_testing::Headless;
@@ -140,6 +143,24 @@ fn TestMirror() -> impl IntoElement {
         next.script,
         "A1".to_owned(),
         "Pixel 8".to_owned(),
+        None,
+        move || mirrors.close_window("A1", 1),
+    )
+}
+
+/// [`TestMirror`], hearing its window's events as a real window's screen does.
+#[component]
+fn TestMirrorWindow() -> impl IntoElement {
+    let next = NEXT.lock().expect("next").take();
+    let next = next.expect("the test sets a source");
+    let mirrors = next.mirrors;
+    mirrors.open_or_focus("A1", "Pixel 8");
+    let events = mirrors.listen("A1", 1);
+    masaya_nsh::screens::mirror::mirror_screen(
+        next.script,
+        "A1".to_owned(),
+        "Pixel 8".to_owned(),
+        Some(events),
         move || mirrors.close_window("A1", 1),
     )
 }
@@ -473,4 +494,59 @@ fn a_mirror_that_cannot_start_says_why_and_retries() {
         *started.script.mirrors.lock().expect("mirrors"),
         ["A1", "A1"]
     );
+}
+
+fn sent_level(app: &Headless, level: WindowLevel) -> bool {
+    app.screen()
+        .sent(&Command::Desktop(Box::new(DesktopCommand::SetLevel(level))))
+}
+
+#[test]
+fn full_screen_shows_only_the_phone() {
+    let mut started = start_root(
+        Script::new(|_, _| Ok(vec![pixel()])),
+        Root::of::<TestMirrorWindow>(),
+        Key::MirrorStarting,
+    );
+    let app = &mut started.app;
+    let toolbar = format!("label:{}", t(Key::ToolbarLabel));
+    let navigation = format!("label:{}", t(Key::NavigationLabel));
+    assert!(app.screen().matches(&toolbar).unwrap());
+    assert!(app.screen().matches(&navigation).unwrap());
+
+    assert!(started.mirrors.send("A1", 1, WindowEvent::FullScreen(true)));
+    app.wait_for_gone(&toolbar, Duration::from_secs(5)).unwrap();
+    assert!(!app.screen().matches(&navigation).unwrap());
+
+    assert!(
+        started
+            .mirrors
+            .send("A1", 1, WindowEvent::FullScreen(false))
+    );
+    app.wait_for(&toolbar).unwrap();
+    assert!(app.screen().matches(&navigation).unwrap());
+}
+
+#[test]
+fn the_window_floats_while_always_on_top_is_on() {
+    let mut started = start_root(
+        Script::new(|_, _| Ok(vec![pixel()])),
+        Root::of::<TestMirrorWindow>(),
+        Key::MirrorStarting,
+    );
+    let app = &mut started.app;
+    app.idle(Duration::from_millis(50)).unwrap();
+    assert!(sent_level(app, WindowLevel::Normal));
+    assert!(!sent_level(app, WindowLevel::Floating));
+
+    // The menu (or another window) turns it on: this window follows.
+    SettingsHub::global().update(|settings| settings.always_on_top = true);
+    for _ in 0..100 {
+        if sent_level(app, WindowLevel::Floating) {
+            break;
+        }
+        app.idle(Duration::from_millis(20)).unwrap();
+    }
+    SettingsHub::global().update(|settings| settings.always_on_top = false);
+    assert!(sent_level(app, WindowLevel::Floating));
 }

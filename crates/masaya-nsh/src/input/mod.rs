@@ -2,6 +2,7 @@
 //! types, so each rule is unit tested.
 
 pub mod events;
+pub mod indicators;
 pub mod keys;
 pub mod mapping;
 pub mod scroll;

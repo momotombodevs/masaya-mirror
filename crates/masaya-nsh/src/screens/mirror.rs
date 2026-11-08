@@ -8,8 +8,11 @@ use std::sync::Arc;
 
 use masaya_core::scrcpy::ScrcpySession;
 use nsh_base::{button, theme};
+use nsh_core::desktop::WindowLevel;
+use nsh_core::element::desktop::{set_level, toggle_full_screen};
 use nsh_core::prelude::*;
 use serde_json::json;
+use tokio::sync::mpsc::UnboundedReceiver;
 use tokio::task::AbortHandle;
 
 use crate::copy;
@@ -21,7 +24,7 @@ use crate::settings::SettingsHub;
 use crate::source::{AdbSource, DeviceSource};
 use crate::state::{MirrorKind, MirrorView};
 use crate::status::{STATUS_TIMEOUT, StatusMessage};
-use crate::windows::OpenMirrors;
+use crate::windows::{OpenMirrors, WindowEvent};
 use crate::{bench, metrics};
 
 /// The phone a mirror window shows.
@@ -44,11 +47,13 @@ pub fn MirrorWindow(props: MirrorWindowProps) -> impl IntoElement {
         label,
         generation,
     } = props;
+    let mirrors = OpenMirrors::global();
+    let events = mirrors.listen(&serial, generation);
     let on_close = {
         let serial = serial.clone();
-        move || OpenMirrors::global().close_window(&serial, generation)
+        move || mirrors.close_window(&serial, generation)
     };
-    mirror_screen(source, serial, label, on_close)
+    mirror_screen(source, serial, label, Some(events), on_close)
 }
 
 /// The native view that shows the video (registered by `main.rs` on macOS).
@@ -165,11 +170,13 @@ impl<S: Session> Drop for Running<S> {
 
 /// The mirror of `serial` (`label` names it to the screen reader). While the video shows, Escape
 /// goes to the phone as Back; without video (connecting, failed, ended) Escape and the Close
-/// button call `on_close`. The window's close button and `⌘W` close it too.
+/// button call `on_close`. The window's close button and `⌘W` close it too. `events` are what
+/// the window's host tells the screen (full screen).
 pub fn mirror_screen(
     source: Arc<dyn DeviceSource>,
     serial: String,
     label: String,
+    events: Option<UnboundedReceiver<WindowEvent>>,
     on_close: impl Fn() + 'static,
 ) -> impl IntoElement {
     let state = signal(MirrorView::Starting);
@@ -300,6 +307,27 @@ pub fn mirror_screen(
     }
 
     let settings = live_settings(SettingsHub::global());
+    // In full screen only the phone shows: no toolbar, no navigation bar (as Electron's).
+    let full_screen = signal(false);
+    if let Some(mut events) = events {
+        spawn(async move {
+            while let Some(event) = events.recv().await {
+                match event {
+                    WindowEvent::FullScreen(on) => full_screen.set(on),
+                }
+            }
+        });
+    }
+    // Always on top floats this window above the others; every window follows the setting.
+    let always_on_top = computed(move || settings.with(|settings| settings.always_on_top));
+    effect(move || {
+        set_level(if always_on_top.get() {
+            WindowLevel::Floating
+        } else {
+            WindowLevel::Normal
+        });
+    });
+    let show_clicks = computed(move || settings.with(|settings| settings.show_clicks));
     let running_now = computed(move || kind.get() == MirrorKind::Running);
     let status = signal(StatusMessage::default());
     // A passing message in the toolbar, gone after a while unless another replaced it.
@@ -327,18 +355,27 @@ pub fn mirror_screen(
                 show_status(t(Key::MirrorNotSent));
             }
         }
-        ToolbarAction::FullScreen => nsh_core::element::desktop::toggle_full_screen(),
+        ToolbarAction::FullScreen => toggle_full_screen(),
     });
 
     view()
         .flex_1()
         .bg(move || theme().background)
-        .child(mirror_toolbar(
-            label.clone(),
-            move || status.with(StatusMessage::text),
-            running_now,
-            on_action.clone(),
-        ))
+        .child({
+            let on_action = on_action.clone();
+            let label = label.clone();
+            when(
+                move || !full_screen.get(),
+                move || {
+                    mirror_toolbar(
+                        label.clone(),
+                        move || status.with(StatusMessage::text),
+                        running_now,
+                        on_action.clone(),
+                    )
+                },
+            )
+        })
         .child(view().flex_1().child(dynamic(move || {
             match kind.get() {
                 MirrorKind::Starting => centered()
@@ -376,6 +413,8 @@ pub fn mirror_screen(
                     let on_attached = on_attached.clone();
                     native(MIRROR_COMPONENT)
                         .prop("session", move || json!(state.with(MirrorView::key)))
+                        .prop("showClicks", move || json!(show_clicks.get()))
+                        .prop("reduceMotion", move || json!(reduce_motion()))
                         .on_native_event(move |event: &NativeEvent| {
                             if &*event.name == "attached"
                                 && let Some(key) = event.data["session"].as_str()
@@ -393,7 +432,7 @@ pub fn mirror_screen(
             }
         })))
         .child(when(
-            move || settings.with(|settings| settings.navigation_bar),
+            move || !full_screen.get() && settings.with(|settings| settings.navigation_bar),
             move || navigation_bar(running_now, on_action.clone()),
         ))
 }

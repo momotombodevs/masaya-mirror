@@ -564,8 +564,12 @@ impl NativeComponent for MirrorView {
     }
 
     fn set_prop(&mut self, name: &str, value: Option<&Value>) {
-        if name != "session" {
-            return;
+        let on = || value.and_then(Value::as_bool).unwrap_or(false);
+        match name {
+            "showClicks" => return self.view.set_show_clicks(on()),
+            "reduceMotion" => return self.view.set_reduce_motion(on()),
+            "session" => {}
+            _ => return,
         }
         let session = value.and_then(Value::as_str).map(str::to_owned);
         if session == self.session {

@@ -26,7 +26,7 @@ use objc2_foundation::{
 use crate::layout::{self, Orientation, WindowLayout, WindowNow};
 use crate::screens::mirror::{MirrorWindow, MirrorWindowProps};
 use crate::settings::SettingsHub;
-use crate::windows::{MirrorRequest, OpenMirrors, WindowHost};
+use crate::windows::{MirrorRequest, OpenMirrors, WindowEvent, WindowHost};
 
 /// The window's first content size, in points, until the first video sizes it to the phone
 /// ([`fit_to_video`]).
@@ -147,6 +147,16 @@ define_class!(
             let DelegateIvars { serial, generation } = self.ivars();
             close(serial, *generation);
         }
+
+        #[unsafe(method(windowDidEnterFullScreen:))]
+        fn window_did_enter_full_screen(&self, _notification: &NSNotification) {
+            self.tell(WindowEvent::FullScreen(true));
+        }
+
+        #[unsafe(method(windowDidExitFullScreen:))]
+        fn window_did_exit_full_screen(&self, _notification: &NSNotification) {
+            self.tell(WindowEvent::FullScreen(false));
+        }
     }
 );
 
@@ -155,6 +165,22 @@ impl WindowDelegate {
         let this = Self::alloc(mtm).set_ivars(DelegateIvars { serial, generation });
         // SAFETY: NSObject's designated initializer.
         unsafe { msg_send![super(this), init] }
+    }
+
+    /// Tells this window's screen about `event`.
+    fn tell(&self, event: WindowEvent) {
+        let DelegateIvars { serial, generation } = self.ivars();
+        let mirrors = WINDOWS.with(|windows| {
+            windows
+                .borrow()
+                .get(serial)
+                .filter(|open| open.generation == *generation)
+                .map(|open| open.mirrors.clone())
+        });
+        if let Some(mirrors) = mirrors {
+            log::debug!("mirror window of {serial}: {event:?}");
+            mirrors.send(serial, *generation, event);
+        }
     }
 }
 
