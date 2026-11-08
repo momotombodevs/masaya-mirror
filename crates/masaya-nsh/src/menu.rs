@@ -53,11 +53,12 @@ pub enum Command {
     Copy,
     Paste,
     SelectAll,
-    FullScreen,
     Minimize,
     Close,
     BringAllToFront,
     // The app's.
+    /// Enters or leaves full screen; its title says which (AppKit would rename it in English).
+    FullScreen,
     /// Loads the device list again.
     Refresh,
     /// Acts on the phone of the key mirror window.
@@ -84,10 +85,37 @@ pub struct Shortcut {
     pub control: bool,
 }
 
-/// AppKit's `NSUpArrowFunctionKey`, `NSDownArrowFunctionKey` and `NSRightArrowFunctionKey`.
+/// AppKit's `NSUpArrowFunctionKey`, `NSDownArrowFunctionKey`, `NSLeftArrowFunctionKey` and
+/// `NSRightArrowFunctionKey`.
 pub const UP_ARROW: char = '\u{F700}';
 pub const DOWN_ARROW: char = '\u{F701}';
+pub const LEFT_ARROW: char = '\u{F702}';
 pub const RIGHT_ARROW: char = '\u{F703}';
+
+impl Shortcut {
+    /// How macOS writes it: the modifiers in their order (⌃⌥⇧⌘), then the key ("⇧⌘P").
+    pub fn label(self) -> String {
+        let mut label = String::new();
+        for (on, symbol) in [
+            (self.control, '⌃'),
+            (self.option, '⌥'),
+            (self.shift, '⇧'),
+            (true, '⌘'),
+        ] {
+            if on {
+                label.push(symbol);
+            }
+        }
+        match self.key {
+            UP_ARROW => label.push('↑'),
+            DOWN_ARROW => label.push('↓'),
+            LEFT_ARROW => label.push('←'),
+            RIGHT_ARROW => label.push('→'),
+            key => label.extend(key.to_uppercase()),
+        }
+        label
+    }
+}
 
 const fn cmd(key: char) -> Option<Shortcut> {
     Some(Shortcut {
@@ -131,6 +159,12 @@ pub enum Entry {
         title: Key,
         command: Command,
         shortcut: Option<Shortcut>,
+    },
+    /// A shortcut with no item of its own (a second key for an item's command): built as a
+    /// hidden item whose key equivalent still works.
+    Hidden {
+        command: Command,
+        shortcut: Shortcut,
     },
     Separator,
 }
@@ -196,9 +230,20 @@ pub fn menu_bar() -> Vec<Menu> {
                 item(Key::MenuRefresh, Command::Refresh, cmd('r')),
                 Separator,
                 phone(Key::MenuRotate, PhoneAction::Rotate, cmd(RIGHT_ARROW)),
+                // scrcpy has one rotate (it turns the screen 90°): ⌘← does the same as ⌘→.
+                Entry::Hidden {
+                    command: Command::Phone(PhoneAction::Rotate),
+                    shortcut: Shortcut {
+                        key: LEFT_ARROW,
+                        shift: false,
+                        option: false,
+                        control: false,
+                    },
+                },
                 device_key(Key::MenuVolumeUp, DeviceKey::VolumeUp, cmd(UP_ARROW)),
                 device_key(Key::MenuVolumeDown, DeviceKey::VolumeDown, cmd(DOWN_ARROW)),
-                device_key(Key::MenuPower, DeviceKey::Power, cmd('p')),
+                // ⇧⌘P: ⌘P is printing in every Mac app.
+                device_key(Key::MenuPower, DeviceKey::Power, cmd_shift('p')),
                 Separator,
                 // Escape is Back on the video; Home and Recents have the navigation bar.
                 device_key(Key::MenuBack, DeviceKey::Back, None),
@@ -258,9 +303,34 @@ pub fn items() -> Vec<(Key, Command, Option<Shortcut>)> {
                 command,
                 shortcut,
             } => Some((title, command, shortcut)),
-            Entry::Separator => None,
+            Entry::Hidden { .. } | Entry::Separator => None,
         })
         .collect()
+}
+
+/// Every shortcut of the bar, the hidden ones too, with what it does.
+pub fn shortcuts() -> Vec<(Shortcut, Command)> {
+    menu_bar()
+        .into_iter()
+        .flat_map(|menu| menu.entries)
+        .filter_map(|entry| match entry {
+            Entry::Item {
+                command,
+                shortcut: Some(shortcut),
+                ..
+            }
+            | Entry::Hidden { command, shortcut } => Some((shortcut, command)),
+            _ => None,
+        })
+        .collect()
+}
+
+/// The shortcut of the item that does `command` (the toolbar's tooltips show it).
+pub fn shortcut_of(command: Command) -> Option<Shortcut> {
+    items()
+        .into_iter()
+        .find(|(_, found, _)| *found == command)
+        .and_then(|(_, _, shortcut)| shortcut)
 }
 
 #[cfg(test)]
@@ -268,13 +338,6 @@ mod tests {
     use std::collections::HashSet;
 
     use super::*;
-
-    fn shortcut_of(command: Command) -> Option<Shortcut> {
-        items()
-            .into_iter()
-            .find(|(_, found, _)| *found == command)
-            .and_then(|(_, _, shortcut)| shortcut)
-    }
 
     /// The video takes every key: what the toolbar does must be reachable with a shortcut.
     #[test]
@@ -301,11 +364,40 @@ mod tests {
     #[test]
     fn no_two_items_share_a_shortcut_or_a_title() {
         let items = items();
-        let shortcuts: Vec<Shortcut> = items.iter().filter_map(|(_, _, s)| *s).collect();
+        let shortcuts: Vec<Shortcut> = shortcuts().into_iter().map(|(s, _)| s).collect();
         let unique: HashSet<Shortcut> = shortcuts.iter().copied().collect();
         assert_eq!(unique.len(), shortcuts.len());
         let titles: HashSet<Key> = items.iter().map(|(title, _, _)| *title).collect();
         assert_eq!(titles.len(), items.len());
+    }
+
+    #[test]
+    fn shortcuts_read_as_macos_writes_them() {
+        assert_eq!(shortcut_of(Command::Refresh).unwrap().label(), "⌘R");
+        assert_eq!(
+            shortcut_of(Command::Phone(PhoneAction::Key(DeviceKey::Power)))
+                .unwrap()
+                .label(),
+            "⇧⌘P"
+        );
+        assert_eq!(shortcut_of(Command::FullScreen).unwrap().label(), "⌃⌘F");
+        assert_eq!(shortcut_of(Command::HideOthers).unwrap().label(), "⌥⌘H");
+        assert_eq!(
+            shortcut_of(Command::Phone(PhoneAction::Rotate))
+                .unwrap()
+                .label(),
+            "⌘→"
+        );
+    }
+
+    #[test]
+    fn rotate_answers_both_arrows() {
+        let rotate: Vec<String> = shortcuts()
+            .into_iter()
+            .filter(|(_, command)| *command == Command::Phone(PhoneAction::Rotate))
+            .map(|(shortcut, _)| shortcut.label())
+            .collect();
+        assert_eq!(rotate, ["⌘→", "⌘←"]);
     }
 
     #[test]

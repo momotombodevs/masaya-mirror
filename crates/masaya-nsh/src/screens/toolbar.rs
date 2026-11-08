@@ -13,6 +13,7 @@ use nsh_core::prelude::*;
 
 use crate::i18n::{Key, t};
 use crate::layout::{NAVIGATION_BAR_HEIGHT, TOOLBAR_HEIGHT};
+use crate::menu::{Command, shortcut_of};
 use crate::mirror::actions::{DeviceKey, PhoneAction};
 
 /// What a button of the bars asks for.
@@ -51,31 +52,56 @@ fn icon(shapes: &'static str) -> impl IntoElement {
         .text_color(move || theme().foreground)
 }
 
-/// An icon button: its label is what screen readers say and what its tooltip shows. Disabled
-/// while `enabled` is false (no phone to send to).
+/// Below this width the toolbar leaves the phone's name out: the window's title shows it.
+const NAME_MIN_WIDTH: f32 = 340.0;
+
+/// What the menu item of `action` is, for its shortcut.
+fn command_of(action: ToolbarAction) -> Command {
+    match action {
+        ToolbarAction::Phone(action) => Command::Phone(action),
+        ToolbarAction::FullScreen => Command::FullScreen,
+    }
+}
+
+/// A button's tooltip: its label, and its menu shortcut when it has one ("Subir volumen  ⌘↑").
+pub fn tooltip_text(label: &str, action: ToolbarAction) -> String {
+    match shortcut_of(command_of(action)) {
+        Some(shortcut) => format!("{label}  {}", shortcut.label()),
+        None => label.to_owned(),
+    }
+}
+
+/// A tooltip bubble saying `words`.
+fn bubble(words: String) -> AnyElement {
+    view()
+        .px_2()
+        .py_1()
+        .rounded(px(6.0))
+        .bg(move || theme().popover)
+        .border_1()
+        .border_color(move || theme().border)
+        .child(
+            text(words)
+                .text_size(px(12.0))
+                .text_color(move || theme().popover_foreground),
+        )
+        .into_element()
+}
+
+/// An icon button asking for `action`: its label is what screen readers say, and its tooltip
+/// adds the menu's shortcut. Disabled while `enabled` is false (no phone to send to).
 fn icon_button(
     label: Key,
     shapes: &'static str,
     enabled: Memo<bool>,
-    on_press: impl Fn() + 'static,
+    action: ToolbarAction,
+    on_action: Rc<dyn Fn(ToolbarAction)>,
 ) -> impl IntoElement {
     let label = t(label);
+    let on_press = move || on_action(action);
     view()
-        .tooltip(
-            view()
-                .px_2()
-                .py_1()
-                .rounded(px(6.0))
-                .bg(move || theme().popover)
-                .border_1()
-                .border_color(move || theme().border)
-                .child(
-                    text(label)
-                        .text_size(px(12.0))
-                        .text_color(move || theme().popover_foreground),
-                )
-                .into_element(),
-        )
+        .flex_shrink_0()
+        .tooltip(bubble(tooltip_text(label, action)))
         .child(
             button()
                 .accessibility_label(label)
@@ -109,11 +135,8 @@ pub fn mirror_toolbar(
     enabled: Memo<bool>,
     on_action: Rc<dyn Fn(ToolbarAction)>,
 ) -> impl IntoElement {
-    let press = move |action: ToolbarAction| {
-        let on_action = on_action.clone();
-        move || on_action(action)
-    };
     let key = |key: DeviceKey| ToolbarAction::Phone(PhoneAction::Key(key));
+    let name = label.clone();
     view()
         .role(AccessibilityRole::Toolbar)
         .label(t(Key::ToolbarLabel))
@@ -133,16 +156,28 @@ pub fn mirror_toolbar(
                 .items_center()
                 .gap_2()
                 .min_w(px(0.0))
-                .child(
-                    text(label)
-                        .truncate()
-                        .font_weight(FontWeight::MEDIUM)
-                        .text_color(move || theme().foreground),
-                )
+                // At the narrowest windows the buttons keep their room and the name goes.
+                .child(when(
+                    move || window().width.0 >= NAME_MIN_WIDTH,
+                    move || {
+                        view()
+                            .flex_shrink(1.0)
+                            .min_w(px(0.0))
+                            .tooltip(bubble(name.clone()))
+                            .child(
+                                text(name.clone())
+                                    .truncate()
+                                    .font_weight(FontWeight::MEDIUM)
+                                    .text_color(move || theme().foreground),
+                            )
+                    },
+                ))
                 .child(
                     text(status)
                         .role(AccessibilityRole::Text)
-                        .number_of_lines(1u32)
+                        .truncate()
+                        .flex_shrink(1.0)
+                        .min_w(px(0.0))
                         .text_size(px(12.0))
                         .text_color(move || theme().muted_foreground),
                 ),
@@ -150,38 +185,44 @@ pub fn mirror_toolbar(
         .child(
             view()
                 .flex_row()
+                .flex_shrink_0()
                 .items_center()
                 .gap_1()
                 .child(icon_button(
                     Key::ToolbarVolumeUp,
                     icons::VOLUME_UP,
                     enabled,
-                    press(key(DeviceKey::VolumeUp)),
+                    key(DeviceKey::VolumeUp),
+                    on_action.clone(),
                 ))
                 .child(icon_button(
                     Key::ToolbarVolumeDown,
                     icons::VOLUME_DOWN,
                     enabled,
-                    press(key(DeviceKey::VolumeDown)),
+                    key(DeviceKey::VolumeDown),
+                    on_action.clone(),
                 ))
                 .child(icon_button(
                     Key::ToolbarPower,
                     icons::POWER,
                     enabled,
-                    press(key(DeviceKey::Power)),
+                    key(DeviceKey::Power),
+                    on_action.clone(),
                 ))
                 .child(divider())
                 .child(icon_button(
                     Key::ToolbarRotate,
                     icons::ROTATE,
                     enabled,
-                    press(ToolbarAction::Phone(PhoneAction::Rotate)),
+                    ToolbarAction::Phone(PhoneAction::Rotate),
+                    on_action.clone(),
                 ))
                 .child(icon_button(
                     Key::ToolbarFullScreen,
                     icons::FULL_SCREEN,
                     enabled,
-                    press(ToolbarAction::FullScreen),
+                    ToolbarAction::FullScreen,
+                    on_action.clone(),
                 )),
         )
 }
@@ -191,10 +232,7 @@ pub fn navigation_bar(
     enabled: Memo<bool>,
     on_action: Rc<dyn Fn(ToolbarAction)>,
 ) -> impl IntoElement {
-    let press = move |key: DeviceKey| {
-        let on_action = on_action.clone();
-        move || on_action(ToolbarAction::Phone(PhoneAction::Key(key)))
-    };
+    let key = |key: DeviceKey| ToolbarAction::Phone(PhoneAction::Key(key));
     view()
         .role(AccessibilityRole::Navigation)
         .label(t(Key::NavigationLabel))
@@ -210,25 +248,43 @@ pub fn navigation_bar(
             Key::NavigationBack,
             icons::BACK,
             enabled,
-            press(DeviceKey::Back),
+            key(DeviceKey::Back),
+            on_action.clone(),
         ))
         .child(icon_button(
             Key::NavigationHome,
             icons::HOME,
             enabled,
-            press(DeviceKey::Home),
+            key(DeviceKey::Home),
+            on_action.clone(),
         ))
         .child(icon_button(
             Key::NavigationRecents,
             icons::RECENTS,
             enabled,
-            press(DeviceKey::Recents),
+            key(DeviceKey::Recents),
+            on_action.clone(),
         ))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn tooltips_show_the_menu_shortcut() {
+        let volume = ToolbarAction::Phone(PhoneAction::Key(DeviceKey::VolumeUp));
+        assert_eq!(tooltip_text("Subir volumen", volume), "Subir volumen  ⌘↑");
+        let power = ToolbarAction::Phone(PhoneAction::Key(DeviceKey::Power));
+        assert_eq!(tooltip_text("Botón", power), "Botón  ⇧⌘P");
+        assert_eq!(
+            tooltip_text("Pantalla completa", ToolbarAction::FullScreen),
+            "Pantalla completa  ⌃⌘F"
+        );
+        // No shortcut: just the label.
+        let home = ToolbarAction::Phone(PhoneAction::Key(DeviceKey::Home));
+        assert_eq!(tooltip_text("Inicio", home), "Inicio");
+    }
 
     #[test]
     fn icons_are_whole_svg_documents_drawn_in_the_text_color() {

@@ -14,12 +14,12 @@ use objc2::runtime::{Bool, NSObjectProtocol, Sel};
 use objc2::{MainThreadMarker, MainThreadOnly, define_class, msg_send, sel};
 use objc2_app_kit::{
     NSApplication, NSControlStateValueOff, NSControlStateValueOn, NSEventModifierFlags, NSMenu,
-    NSMenuItem,
+    NSMenuItem, NSWindowStyleMask,
 };
 use objc2_foundation::{NSObject, NSString};
 
 use super::windows;
-use crate::i18n::t;
+use crate::i18n::{Key, t};
 use crate::menu::{APP_NAME, Command, Entry, Shortcut, menu_bar};
 use crate::settings::SettingsHub;
 use crate::windows::{OpenMirrors, WindowEvent};
@@ -65,6 +65,21 @@ fn validate(mtm: MainThreadMarker, item: &NSMenuItem) -> bool {
     let Some(command) = command_of(item) else {
         return true;
     };
+    if command == Command::FullScreen {
+        // Its title says what it does, in the app's language (AppKit renames only its own
+        // `toggleFullScreen:` items, and in English).
+        let key = NSApplication::sharedApplication(mtm).keyWindow();
+        let full = key
+            .as_ref()
+            .is_some_and(|window| window.styleMask().contains(NSWindowStyleMask::FullScreen));
+        let title = t(if full {
+            Key::MenuExitFullScreen
+        } else {
+            Key::MenuFullScreen
+        });
+        item.setTitle(&NSString::from_str(title));
+        return key.is_some();
+    }
     if let Command::Toggle(toggle) = command {
         let on = SettingsHub::global().with_settings(|settings| toggle.is_on(settings));
         item.setState(if on {
@@ -101,6 +116,11 @@ fn run(mtm: MainThreadMarker, command: Command) {
                 log::error!("menu: could not save {toggle:?}: {error}");
             }
         }
+        Command::FullScreen => {
+            if let Some(window) = NSApplication::sharedApplication(mtm).keyWindow() {
+                window.toggleFullScreen(None);
+            }
+        }
         Command::Refresh => OpenMirrors::global().request_refresh(),
         Command::ShowDevices => windows::show_devices(mtm),
         _ => log::warn!("menu: {command:?} has no handler of the app"),
@@ -121,11 +141,14 @@ fn standard_action(command: Command) -> Option<Sel> {
         Command::Copy => sel!(copy:),
         Command::Paste => sel!(paste:),
         Command::SelectAll => sel!(selectAll:),
-        Command::FullScreen => sel!(toggleFullScreen:),
         Command::Minimize => sel!(performMiniaturize:),
         Command::Close => sel!(performClose:),
         Command::BringAllToFront => sel!(arrangeInFront:),
-        Command::Refresh | Command::Phone(_) | Command::Toggle(_) | Command::ShowDevices => {
+        Command::FullScreen
+        | Command::Refresh
+        | Command::Phone(_)
+        | Command::Toggle(_)
+        | Command::ShowDevices => {
             return None;
         }
     })
@@ -163,14 +186,17 @@ pub fn install() {
         // AppKit enables items whose target answers; the app's are validated by the target.
         submenu.setAutoenablesItems(true);
         for entry in menu.entries {
-            let Entry::Item {
-                title,
-                command,
-                shortcut,
-            } = entry
-            else {
-                submenu.addItem(&NSMenuItem::separatorItem(mtm));
-                continue;
+            let (title, command, shortcut, hidden) = match entry {
+                Entry::Item {
+                    title,
+                    command,
+                    shortcut,
+                } => (t(title), command, shortcut, false),
+                Entry::Hidden { command, shortcut } => ("", command, Some(shortcut), true),
+                Entry::Separator => {
+                    submenu.addItem(&NSMenuItem::separatorItem(mtm));
+                    continue;
+                }
             };
             let key = shortcut.map(|shortcut| shortcut.key.to_string());
             let action = standard_action(command).unwrap_or(sel!(menuCommand:));
@@ -179,7 +205,7 @@ pub fn install() {
             let item = unsafe {
                 NSMenuItem::initWithTitle_action_keyEquivalent(
                     NSMenuItem::alloc(mtm),
-                    &NSString::from_str(t(title)),
+                    &NSString::from_str(title),
                     Some(action),
                     &NSString::from_str(key.as_deref().unwrap_or("")),
                 )
@@ -192,6 +218,11 @@ pub fn install() {
                 item.setTag(commands.len() as isize);
                 // SAFETY: the target answers `menuCommand:` and is kept in `TARGET`.
                 unsafe { item.setTarget(Some(&target)) };
+            }
+            if hidden {
+                // Out of sight, but its key equivalent still works (macOS 13+).
+                item.setHidden(true);
+                item.setAllowsKeyEquivalentWhenHidden(true);
             }
             submenu.addItem(&item);
         }
