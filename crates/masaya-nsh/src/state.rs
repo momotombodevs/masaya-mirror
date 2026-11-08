@@ -8,13 +8,6 @@ use crate::copy;
 use crate::i18n::{Key, t};
 use crate::source::{DevicesResult, LoadError};
 
-/// The screen the window shows. The mirror opens in the same window as the list.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Route {
-    Devices,
-    Mirror { id: String, label: String },
-}
-
 /// The mirror screen's state.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MirrorView {
@@ -100,6 +93,16 @@ impl DeviceRow {
     }
 
     /// What a screen reader says for the row.
+    /// What its mirror window is titled: its name, and its serial when the list shows serials
+    /// (two phones of the same model).
+    pub fn window_title(&self) -> String {
+        if self.show_id {
+            copy::mirror_title(&self.label, &self.id)
+        } else {
+            self.label.clone()
+        }
+    }
+
     pub fn accessibility_label(&self) -> String {
         if self.openable() {
             copy::open_label(&self.label)
@@ -307,6 +310,9 @@ mod tests {
         ]);
         let shown: Vec<_> = rows.iter().map(|row| row.show_id).collect();
         assert_eq!(shown, [true, true, false]);
+        // Their windows can be told apart too.
+        let titles: Vec<_> = rows.iter().map(DeviceRow::window_title).collect();
+        assert_eq!(titles, ["Pixel 8 · a", "Pixel 8 · b", "Galaxy S23"]);
     }
 
     #[test]

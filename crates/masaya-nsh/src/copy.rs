@@ -24,3 +24,25 @@ pub fn unavailable_label(name: &str, status: &str, hint: Option<&str>) -> String
 pub fn devices_announcement(count: usize) -> String {
     i18n::devices_announcement(count, locale())
 }
+
+/// The screen reader's label of a phone whose mirror window is open: pressing it shows the
+/// window.
+pub fn mirroring_label(name: &str) -> String {
+    i18n::mirroring_label(name, locale())
+}
+
+/// Announced when a mirror window starts connecting.
+pub fn mirror_connecting_announcement(name: &str) -> String {
+    i18n::mirror_connecting_announcement(name, locale())
+}
+
+/// Announced once the video shows.
+pub fn mirror_live_announcement(name: &str) -> String {
+    i18n::mirror_live_announcement(name, locale())
+}
+
+/// A phone's window title and video name when the list shows ids, so two phones of the same
+/// model can be told apart.
+pub fn mirror_title(label: &str, id: &str) -> String {
+    format!("{label} · {id}")
+}

@@ -12,8 +12,12 @@
 //! time after it, as they do after Chromium's `transferFromImageBitmap` in the Electron app.
 //!
 //! Times come from [`Instant`], which on macOS reads the same clock as `mach_absolute_time`.
+//!
+//! The measurements assume one mirror, as the benchmark runs: with several windows open, packets
+//! and presents add up across them, and the dropped-moves and renderer-failure counters are
+//! those of the window that set them last (each window clears only its own, see [`Owned`]).
 
-use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU8, AtomicU64, Ordering};
 use std::sync::{Mutex, MutexGuard, OnceLock};
 use std::time::{Duration, Instant};
 
@@ -111,8 +115,42 @@ struct State {
     enqueue_us: Vec<u64>,
     last_packet: Option<Instant>,
     trial: Option<Trial>,
-    dropped_moves: Option<Counter>,
-    renderer_failures: Option<Counter>,
+    dropped_moves: Owned,
+    renderer_failures: Owned,
+}
+
+/// A counter and who set it: only that owner clears it, so a window that closes never clears
+/// the counter of another that set its own since.
+#[derive(Default)]
+pub struct Owned(Option<(u64, Counter)>);
+
+impl Owned {
+    pub fn set(&mut self, owner: u64, counter: Counter) {
+        self.0 = Some((owner, counter));
+    }
+
+    /// Clears the counter if `owner` set it; whether it did.
+    pub fn clear(&mut self, owner: u64) -> bool {
+        if self
+            .0
+            .as_ref()
+            .is_some_and(|(current, _)| *current == owner)
+        {
+            self.0 = None;
+            return true;
+        }
+        false
+    }
+
+    pub fn read(&self) -> Option<u64> {
+        self.0.as_ref().map(|(_, count)| count())
+    }
+}
+
+/// A token no other owner of a counter has.
+pub fn new_owner() -> u64 {
+    static NEXT: AtomicU64 = AtomicU64::new(1);
+    NEXT.fetch_add(1, Ordering::Relaxed)
 }
 
 /// A 60 Hz refresh, the display the measurements ran on.
@@ -202,17 +240,32 @@ pub fn since_last_packet() -> Option<Duration> {
     state().last_packet.map(|last| last.elapsed())
 }
 
-/// The core's count of dropped pointer moves, for the per-second line.
-pub fn set_dropped_moves(counter: Option<Counter>) {
+/// The core's count of dropped pointer moves, for the per-second line, set by `owner`
+/// ([`new_owner`]).
+pub fn set_dropped_moves(owner: u64, counter: Counter) {
     if enabled() {
-        state().dropped_moves = counter;
+        state().dropped_moves.set(owner, counter);
     }
 }
 
-/// The view's count of renderer failures, for the per-second line.
-pub fn set_renderer_failures(counter: Option<Counter>) {
+/// Stops reading the dropped moves, if `owner` set the counter that is read.
+pub fn clear_dropped_moves(owner: u64) {
     if enabled() {
-        state().renderer_failures = counter;
+        state().dropped_moves.clear(owner);
+    }
+}
+
+/// The view's count of renderer failures, for the per-second line, set by `owner`.
+pub fn set_renderer_failures(owner: u64, counter: Counter) {
+    if enabled() {
+        state().renderer_failures.set(owner, counter);
+    }
+}
+
+/// Stops reading the renderer failures, if `owner` set the counter that is read.
+pub fn clear_renderer_failures(owner: u64) {
+    if enabled() {
+        state().renderer_failures.clear(owner);
     }
 }
 
@@ -244,8 +297,8 @@ fn take_second(now: Instant) -> Second {
         visible_per_s: state.visible as f64 / elapsed,
         enqueue_p50_us: p.map(|(p50, _)| p50),
         enqueue_p95_us: p.map(|(_, p95)| p95),
-        dropped_moves: state.dropped_moves.as_ref().map(|count| count()),
-        renderer_failures: state.renderer_failures.as_ref().map(|count| count()),
+        dropped_moves: state.dropped_moves.read(),
+        renderer_failures: state.renderer_failures.read(),
     };
     state.packets = 0;
     state.presents = 0;
@@ -349,5 +402,20 @@ mod tests {
             "packets/s=118.0 presented/s=60.0 visible/s=59.0 enqueue_us p50=210 p95=- \
              dropped_moves=0 renderer_failures=-"
         );
+    }
+
+    #[test]
+    fn only_the_owner_of_a_counter_clears_it() {
+        let mut counter = Owned::default();
+        assert_eq!(counter.read(), None);
+        let (first, second) = (new_owner(), new_owner());
+        assert_ne!(first, second);
+        counter.set(first, Box::new(|| 1));
+        // A second window sets its own: the first one closing leaves it.
+        counter.set(second, Box::new(|| 2));
+        assert!(!counter.clear(first));
+        assert_eq!(counter.read(), Some(2));
+        assert!(counter.clear(second));
+        assert_eq!(counter.read(), None);
     }
 }

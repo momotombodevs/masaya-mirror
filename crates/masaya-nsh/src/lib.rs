@@ -14,16 +14,21 @@ pub mod settings;
 pub mod source;
 pub mod state;
 pub mod store;
+pub mod windows;
 
+use std::collections::BTreeSet;
 use std::sync::Arc;
 
 use nsh_base::theme;
 use nsh_core::prelude::*;
 
-use crate::screens::{devices::devices_screen, mirror::mirror_screen};
+use crate::screens::devices::devices_screen;
 use crate::source::AdbSource;
-use crate::state::Route;
 use crate::store::DevicesStore;
+use crate::windows::OpenMirrors;
+
+/// The bundle id (`nsh.json` `"id"`), which every window's engine runs under.
+pub const APP_ID: &str = "dev.momotombo.app.masayamirror";
 
 /// The app's UI set (`nsh.json` `"rust"`).
 #[native_module("masaya/native")]
@@ -38,36 +43,39 @@ fn components(components: &nsh_platform_macos::Components) {
     macos::register(components);
 }
 
-/// The window: the device list, or the mirror of the phone opened from it.
+/// The main window: the device list. Each phone's mirror opens in a window of its own
+/// ([`screens::mirror::MirrorWindow`]).
 #[component]
 pub fn App() -> impl IntoElement {
     let source: Arc<dyn source::DeviceSource> = Arc::new(AdbSource::new(i18n::locale()));
-    shell(source)
+    let mirrors = OpenMirrors::global().clone();
+    // `MASAYA_AUTO_OPEN=<serial>` (benchmarks): that phone's mirror opens at launch.
+    if let Some(serial) = metrics::env_value(metrics::AUTO_OPEN_ENV) {
+        mirrors.open_or_focus(&serial, &serial);
+    }
+    shell(source, mirrors)
 }
 
-/// The app with its device source, so tests can give it a fake one. The list's state and its
-/// refresh live here, above the screens, so coming back from the mirror keeps the list.
-pub fn shell(source: Arc<dyn source::DeviceSource>) -> impl IntoElement {
-    // `MASAYA_AUTO_OPEN=<serial>` (benchmarks): straight to that phone's mirror.
-    let route = signal(match metrics::env_value(metrics::AUTO_OPEN_ENV) {
-        Some(serial) => Route::Mirror {
-            id: serial.clone(),
-            label: serial,
-        },
-        None => Route::Devices,
-    });
-    let devices = DevicesStore::start(source.clone());
+/// The list with its device source and the windows it opens, so tests can give it fakes. The
+/// list's state and its refresh live here.
+pub fn shell(source: Arc<dyn source::DeviceSource>, mirrors: OpenMirrors) -> impl IntoElement {
+    let devices = DevicesStore::start(source);
+    // The phones with a window open, whichever thread their windows run on.
+    // Subscribed before the first read, so a window that opens in between is not missed.
+    let mut serials = mirrors.subscribe();
+    let mirroring = signal(serials.borrow_and_update().clone());
+    {
+        spawn(async move {
+            while serials.changed().await.is_ok() {
+                let open: BTreeSet<String> = serials.borrow_and_update().clone();
+                mirroring.set(open);
+            }
+        });
+    }
     view()
         .flex_1()
         .bg(move || theme().background)
-        .child(dynamic(move || match route.get() {
-            Route::Devices => devices_screen(devices.clone(), move |id, label| {
-                route.set(Route::Mirror { id, label });
-            })
-            .into_element(),
-            Route::Mirror { id, label } => {
-                mirror_screen(source.clone(), id, label, move || route.set(Route::Devices))
-                    .into_element()
-            }
+        .child(devices_screen(devices, mirroring, move |id, label| {
+            mirrors.open_or_focus(&id, &label);
         }))
 }

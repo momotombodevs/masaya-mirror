@@ -3,11 +3,12 @@
 //! channel ([`crate::mirror::control`]).
 //!
 //! - Mouse: left button is the finger (pointer -1); right is Back and middle is Home, as scrcpy.
-//! - Keyboard: the view takes the keyboard on the first click (`makeFirstResponder:`; NSH's root
-//!   is first responder otherwise). Key codes go straight to the phone; anything that types goes
-//!   through the input system (`interpretKeyEvents:` → `NSTextInputClient`'s `insertText:`), so
-//!   accents, dead keys and input methods arrive as the text they compose. Marked (in-progress)
-//!   text is not shown: the phone gets the final text.
+//! - Keyboard: the view takes the keyboard when it shows in its window and on every click
+//!   (`makeFirstResponder:`), and hands it back to NSH's root when it leaves the window (the
+//!   failed or ended screen's buttons and Escape need it). Key codes go straight to the phone;
+//!   anything that types goes through the input system (`interpretKeyEvents:` →
+//!   `NSTextInputClient`'s `insertText:`), so accents, dead keys and input methods arrive as the
+//!   text they compose. Marked (in-progress) text is not shown: the phone gets the final text.
 //! - Losing the keyboard (another view, or the window going to the back) lifts the finger and
 //!   releases every key held on the phone.
 //! - Modifier keys alone send nothing, as in the renderer: each key carries the meta state.
@@ -145,9 +146,36 @@ define_class!(
             accepted
         }
 
+        #[unsafe(method(viewWillMoveToWindow:))]
+        fn view_will_move_to_window(&self, window: Option<&NSWindow>) {
+            // Leaving the window (the video went: the stream failed or ended) while holding the
+            // keyboard: NSH's root (the content view's first subview) takes it back, or no view
+            // would get the keys of the screen that replaces the video.
+            if window.is_none()
+                && let Some(current) = self.window()
+                && current
+                    .firstResponder()
+                    .is_some_and(|responder| std::ptr::eq(&*responder, self.as_responder()))
+            {
+                log::debug!("mirror view: handing the keyboard back to the root");
+                let root = current
+                    .contentView()
+                    .and_then(|content| content.subviews().firstObject());
+                match root {
+                    Some(root) => current.makeFirstResponder(Some(&root)),
+                    None => current.makeFirstResponder(None),
+                };
+            }
+        }
+
         #[unsafe(method(viewDidMoveToWindow))]
         fn view_did_move_to_window(&self) {
             self.observe_window();
+            // The window is this phone's alone: its keys (Escape is Back) go to the phone as soon
+            // as the video shows.
+            if let Some(window) = self.window() {
+                window.makeFirstResponder(Some(self.as_responder()));
+            }
         }
 
         #[unsafe(method(windowDidResignKey:))]

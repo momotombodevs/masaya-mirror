@@ -28,17 +28,21 @@ pub enum Key {
     StatusUnknown,
     HintUnauthorized,
     HintReconnect,
-    Back,
     MirrorStarting,
     MirrorFailed,
     MirrorEnded,
     MirrorNoVideo,
     MirrorReconnect,
+    Mirroring,
+    Close,
+    MirrorEndedHint,
+    MirrorVideoHint,
+    MenuDevices,
 }
 
 impl Key {
     /// Every key, for tests that walk the whole catalog.
-    pub const ALL: [Key; 20] = [
+    pub const ALL: [Key; 24] = [
         Key::DevicesTitle,
         Key::Loading,
         Key::EmptyTitle,
@@ -53,12 +57,16 @@ impl Key {
         Key::StatusUnknown,
         Key::HintUnauthorized,
         Key::HintReconnect,
-        Key::Back,
         Key::MirrorStarting,
         Key::MirrorFailed,
         Key::MirrorEnded,
         Key::MirrorNoVideo,
         Key::MirrorReconnect,
+        Key::Mirroring,
+        Key::Close,
+        Key::MirrorEndedHint,
+        Key::MirrorVideoHint,
+        Key::MenuDevices,
     ];
 }
 
@@ -104,8 +112,6 @@ pub fn text(key: Key, locale: Locale) -> &'static str {
         (Key::HintUnauthorized, En) => "Unlock the phone and tap Allow on the USB debugging prompt",
         (Key::HintReconnect, Es) => "Desconecta y vuelve a conectar el cable USB",
         (Key::HintReconnect, En) => "Unplug the USB cable and plug it back in",
-        (Key::Back, Es) => "Volver",
-        (Key::Back, En) => "Back",
         (Key::MirrorStarting, Es) => "Conectando con el teléfono…",
         (Key::MirrorStarting, En) => "Connecting to the phone…",
         // main.mirrorStartFailed
@@ -117,6 +123,22 @@ pub fn text(key: Key, locale: Locale) -> &'static str {
         (Key::MirrorNoVideo, En) => "Could not show the phone's video.",
         (Key::MirrorReconnect, Es) => "Reconectar",
         (Key::MirrorReconnect, En) => "Reconnect",
+        // The badge of a phone whose mirror window is open (devices.mirroring).
+        (Key::Mirroring, Es) => "Duplicando",
+        (Key::Mirroring, En) => "Mirroring",
+        (Key::Close, Es) => "Cerrar",
+        (Key::Close, En) => "Close",
+        (Key::MirrorEndedHint, Es) => "Revisa el cable USB y pulsa Reconectar.",
+        (Key::MirrorEndedHint, En) => "Check the USB cable and press Reconnect.",
+        (Key::MirrorVideoHint, Es) => {
+            "Las teclas y los clics van al teléfono. Escape es Atrás. Comando W cierra la ventana."
+        }
+        (Key::MirrorVideoHint, En) => {
+            "Keys and clicks go to the phone. Escape is Back. Command W closes the window."
+        }
+        // The Window menu's item that shows the list again.
+        (Key::MenuDevices, Es) => "Dispositivos",
+        (Key::MenuDevices, En) => "Devices",
     }
 }
 
@@ -138,6 +160,31 @@ pub fn open_label(name: &str, locale: Locale) -> String {
     match locale {
         Locale::Es => format!("Abrir {name}"),
         Locale::En => format!("Open {name}"),
+    }
+}
+
+/// The screen reader's label of a phone whose mirror window is open: pressing it shows the
+/// window.
+pub fn mirroring_label(name: &str, locale: Locale) -> String {
+    match locale {
+        Locale::Es => format!("Mostrar ventana de {name}, duplicando"),
+        Locale::En => format!("Show {name}'s window, mirroring"),
+    }
+}
+
+/// Announced when a mirror window starts connecting.
+pub fn mirror_connecting_announcement(name: &str, locale: Locale) -> String {
+    match locale {
+        Locale::Es => format!("Conectando con {name}"),
+        Locale::En => format!("Connecting to {name}"),
+    }
+}
+
+/// Announced once the video shows.
+pub fn mirror_live_announcement(name: &str, locale: Locale) -> String {
+    match locale {
+        Locale::Es => format!("Espejo de {name} activo. Escape es Atrás."),
+        Locale::En => format!("{name}'s mirror is live. Escape is Back."),
     }
 }
 
@@ -282,13 +329,17 @@ mod tests {
             Key::StatusUnauthorized => Key::StatusUnknown,
             Key::StatusUnknown => Key::HintUnauthorized,
             Key::HintUnauthorized => Key::HintReconnect,
-            Key::HintReconnect => Key::Back,
-            Key::Back => Key::MirrorStarting,
+            Key::HintReconnect => Key::MirrorStarting,
             Key::MirrorStarting => Key::MirrorFailed,
             Key::MirrorFailed => Key::MirrorEnded,
             Key::MirrorEnded => Key::MirrorNoVideo,
             Key::MirrorNoVideo => Key::MirrorReconnect,
-            Key::MirrorReconnect => return None,
+            Key::MirrorReconnect => Key::Mirroring,
+            Key::Mirroring => Key::Close,
+            Key::Close => Key::MirrorEndedHint,
+            Key::MirrorEndedHint => Key::MirrorVideoHint,
+            Key::MirrorVideoHint => Key::MenuDevices,
+            Key::MenuDevices => return None,
         })
     }
 
@@ -338,7 +389,8 @@ mod tests {
                 Key::StatusUnauthorized,
                 Key::StatusUnknown,
             ][..],
-            &[Key::Refresh, Key::Retry, Key::Back, Key::MirrorReconnect][..],
+            &[Key::Refresh, Key::Retry, Key::MirrorReconnect, Key::Close][..],
+            &[Key::Mirroring, Key::StatusDevice, Key::StatusOffline][..],
         ];
         for locale in [Locale::Es, Locale::En] {
             for group in groups {
@@ -372,6 +424,22 @@ mod tests {
         assert_eq!(devices_announcement(3, Locale::Es), "3 dispositivos");
         assert_eq!(devices_announcement(1, Locale::En), "1 device");
         assert_eq!(devices_announcement(0, Locale::En), "0 devices");
+        assert_eq!(
+            mirroring_label("Pixel 8", Locale::Es),
+            "Mostrar ventana de Pixel 8, duplicando"
+        );
+        assert_eq!(
+            mirroring_label("Pixel 8", Locale::En),
+            "Show Pixel 8's window, mirroring"
+        );
+        assert_eq!(
+            mirror_connecting_announcement("Pixel 8", Locale::En),
+            "Connecting to Pixel 8"
+        );
+        assert_eq!(
+            mirror_live_announcement("Pixel 8", Locale::Es),
+            "Espejo de Pixel 8 activo. Escape es Atrás."
+        );
     }
 
     #[test]
