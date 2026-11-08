@@ -10,13 +10,13 @@
 use std::cell::RefCell;
 
 use objc2::rc::Retained;
-use objc2::runtime::{Bool, NSObjectProtocol, Sel};
+use objc2::runtime::{AnyObject, Bool, NSObjectProtocol, Sel};
 use objc2::{MainThreadMarker, MainThreadOnly, define_class, msg_send, sel};
 use objc2_app_kit::{
     NSApplication, NSControlStateValueOff, NSControlStateValueOn, NSEventModifierFlags, NSMenu,
     NSMenuItem, NSWindowStyleMask,
 };
-use objc2_foundation::{NSObject, NSString};
+use objc2_foundation::{NSDictionary, NSNumber, NSObject, NSString, NSUserDefaults};
 
 use super::windows;
 use crate::i18n::{Key, t};
@@ -168,6 +168,17 @@ fn modifiers(shortcut: Shortcut) -> NSEventModifierFlags {
     flags
 }
 
+/// AppKit adds its own "Enter Full Screen" (in English) to the Window menu; the View menu has
+/// the app's. Registered, not saved: nothing is written to the user's defaults.
+fn keep_full_screen_in_view_menu() {
+    let key = NSString::from_str("NSFullScreenMenuItemEverywhere");
+    let no = NSNumber::numberWithBool(false);
+    let defaults: Retained<NSDictionary<NSString, AnyObject>> =
+        NSDictionary::from_slices(&[&*key], &[&**no as &AnyObject]);
+    // SAFETY: a dictionary of a string key and a property-list value.
+    unsafe { NSUserDefaults::standardUserDefaults().registerDefaults(&defaults) };
+}
+
 /// Builds the menu bar and makes it the app's; remembers the list's window. Call it on the main
 /// queue once NSH's app runs: `main.rs` queues it before `run_app`, whose menu it replaces.
 pub fn install() {
@@ -176,6 +187,7 @@ pub fn install() {
         return;
     };
     windows::remember_list(mtm);
+    keep_full_screen_in_view_menu();
     let app = NSApplication::sharedApplication(mtm);
     let target: Retained<MenuTarget> = unsafe { msg_send![MenuTarget::alloc(mtm), init] };
     let mut commands = Vec::new();
