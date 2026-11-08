@@ -30,8 +30,9 @@ Masaya ejecuta código fuera de su propio proceso, así que interesa todo lo que
   `shell`. Un argumento que no se escape bien, o un `adb` tomado de una ruta inesperada, es un problema
   de seguridad.
 - **scrcpy-server en el teléfono:** la app copia `scrcpy-server.jar` al dispositivo y lo ejecuta con
-  permisos de shell de adb. El archivo va en el repositorio y se verifica por SHA-256 al instalar
-  (`scripts/setup-scrcpy.sh`).
+  permisos de shell de adb. El archivo va en el repositorio; `scripts/setup-scrcpy.sh` comprueba el
+  SHA-256 fijado cuando lo descarga (o cuando ya existe), pero la app no lo vuelve a verificar al
+  ejecutarse, y `MASAYA_SCRCPY_SERVER` puede apuntar a otro jar.
 - **Conexión por Wi-Fi:** el emparejamiento por código QR y adb por TCP exponen el teléfono en la red
   local mientras están activos.
 - **Datos del teléfono:** el video y los mensajes que llegan del dispositivo se leen sin confiar en ellos;
