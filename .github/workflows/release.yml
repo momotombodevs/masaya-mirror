@@ -33,9 +33,28 @@ jobs:
           echo "version=${version}" >> "$GITHUB_OUTPUT"
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - run: cargo build --release -p masaya-nsh
+      - run: cargo build --release --locked -p masaya-nsh
+      # A tarball keeps the binary's exec bit (upload-artifact alone would drop it). The binary does
+      # not find the jar in this layout by itself: testers set MASAYA_SCRCPY_SERVER, see
+      # docs/RELEASING.md. F5 replaces this with the .app, whose Resources the lookup does cover.
+      - name: Package the binary and scrcpy-server
+        id: package
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          # No AppleDouble (._*) entries for extended attributes.
+          COPYFILE_DISABLE: 1
+        run: |
+          name="masaya-nsh-v${VERSION}-macos-arm64-unsigned"
+          staging="${RUNNER_TEMP}/${name}"
+          mkdir -p "${staging}/resources/scrcpy-server"
+          cp target/release/masaya-nsh "${staging}/masaya-nsh"
+          chmod 755 "${staging}/masaya-nsh"
+          cp resources/scrcpy-server/scrcpy-server.jar "${staging}/resources/scrcpy-server/scrcpy-server.jar"
+          tar -czf "${name}.tar.gz" -C "${staging}" .
+          tar -tvzf "${name}.tar.gz"
+          echo "name=${name}" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@v4
         with:
-          name: masaya-nsh-v${{ steps.version.outputs.version }}-macos-arm64-unsigned
-          path: target/release/masaya-nsh
+          name: ${{ steps.package.outputs.name }}
+          path: ${{ steps.package.outputs.name }}.tar.gz
           if-no-files-found: error

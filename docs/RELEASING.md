@@ -19,13 +19,33 @@ heredan los dos crates.
 ## Build de prueba
 
 El workflow **Release** (`.github/workflows/release.yml`) solo se lanza a mano (Actions → Release → Run
-workflow). Comprueba que el tag de la versión no exista, compila `cargo build --release -p masaya-nsh` en
-macOS 14 y sube el binario **sin firmar** como artefacto del workflow. No crea tag ni release.
+workflow). Comprueba la versión con `scripts/check-version.sh` (desde una rama que no sea `main`, que sea
+mayor que la de `main`; siempre, que el tag no exista), compila `cargo build --release --locked -p masaya-nsh`
+en macOS 15 y sube como artefacto del workflow `masaya-nsh-v<versión>-macos-arm64-unsigned.tar.gz`, **sin
+firmar**. No crea tag ni release.
+
+El tarball no tiene carpeta raíz y contiene:
+
+```text
+masaya-nsh                                  # el binario, ejecutable
+resources/scrcpy-server/scrcpy-server.jar
+```
+
+El binario solo busca el jar en `MASAYA_SCRCPY_SERVER`, en `Contents/Resources/` de la `.app` y en el
+`resources/` del repositorio donde se compiló, así que fuera de esas rutas no lo encuentra solo. Quien lo
+pruebe tiene que indicar la ruta:
+
+```bash
+mkdir masaya-nsh && tar -xzf masaya-nsh-v<versión>-macos-arm64-unsigned.tar.gz -C masaya-nsh
+cd masaya-nsh
+xattr -dr com.apple.quarantine .   # sin firmar: si macOS lo bloquea al abrirlo
+MASAYA_SCRCPY_SERVER="$PWD/resources/scrcpy-server/scrcpy-server.jar" ./masaya-nsh
+```
 
 En local:
 
 ```bash
-cargo build --release -p masaya-nsh   # target/release/masaya-nsh
+cargo build --release --locked -p masaya-nsh   # target/release/masaya-nsh
 ```
 
 El perfil `release` usa LTO, `opt-level = "s"`, `strip` y `panic = "unwind"` (un panic en una tarea no
