@@ -7,10 +7,11 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use masaya_core::adb::{AdbCli, AdbServer, AndroidDevice};
-use masaya_core::scrcpy::{MirrorOptions, ScrcpySession, StartConfig};
+use masaya_core::scrcpy::{MirrorOptions, ScrcpySession, StartConfig, VideoCodec};
 use masaya_core::{AdbError, ErrorCode, Locale, Msg};
 
 use crate::mirror::server;
+use crate::settings::{Settings, SettingsHub};
 
 /// `adb start-server` can take a while the first time; it also tells early when adb is missing.
 const START_SERVER_TIMEOUT: Duration = Duration::from_secs(15);
@@ -63,24 +64,34 @@ pub trait DeviceSource: Send + Sync + 'static {
     fn start_mirror(self: Arc<Self>, serial: String) -> MirrorFuture;
 }
 
-/// What the spike asks scrcpy for: H.264 video only (no audio, no clipboard sync yet).
-fn mirror_options() -> MirrorOptions {
+/// What the app asks scrcpy for: the saved size and bit rate, as H.264 video only. The decoder
+/// only takes H.264 until H.265 lands (F4), so a saved `h265` is ignored here but kept on disk;
+/// audio and clipboard sync are not there yet either.
+fn mirror_options(settings: &Settings) -> MirrorOptions {
     MirrorOptions {
+        video_codec: VideoCodec::H264,
         audio_enabled: false,
         clipboard_sync: false,
-        ..MirrorOptions::default()
+        ..settings.mirror_options()
     }
 }
 
 /// The phones adb sees, through the `adb` executable.
 pub struct AdbSource {
     adb: AdbCli,
+    settings: SettingsHub,
 }
 
 impl AdbSource {
+    /// With the app's settings ([`SettingsHub::global`]).
     pub fn new(locale: Locale) -> Self {
+        Self::with_settings(locale, SettingsHub::global().clone())
+    }
+
+    pub fn with_settings(locale: Locale, settings: SettingsHub) -> Self {
         Self {
             adb: AdbCli::new(locale),
+            settings,
         }
     }
 }
@@ -116,7 +127,8 @@ impl DeviceSource for AdbSource {
                 &AdbServer::default(),
                 &serial,
                 &jar,
-                &mirror_options(),
+                // Read at each start, so a changed setting applies to the next mirror.
+                &mirror_options(&self.settings.get()),
                 StartConfig::default(),
             )
             .await
@@ -136,5 +148,39 @@ mod tests {
         let error = LoadError::from_adb(&AdbError::TimedOut, Locale::Es);
         assert_eq!(error.code, None);
         assert!(!error.detail.is_empty());
+    }
+
+    #[test]
+    fn the_mirror_uses_the_saved_size_and_bit_rate_as_h264_only() {
+        let mut settings = Settings::default();
+        settings.mirror.max_size = 1280;
+        settings.mirror.video_bit_rate = 8_000_000;
+        settings.mirror.video_codec = VideoCodec::H265;
+        settings.audio = true;
+        settings.clipboard_sync = true;
+        assert_eq!(
+            mirror_options(&settings),
+            MirrorOptions {
+                max_size: 1280,
+                video_bit_rate: 8_000_000,
+                video_codec: VideoCodec::H264,
+                audio_enabled: false,
+                clipboard_sync: false,
+            }
+        );
+        // The saved codec itself is left alone.
+        assert_eq!(settings.mirror.video_codec, VideoCodec::H265);
+    }
+
+    #[test]
+    fn defaults_ask_for_what_the_spike_asked_for() {
+        assert_eq!(
+            mirror_options(&Settings::default()),
+            MirrorOptions {
+                audio_enabled: false,
+                clipboard_sync: false,
+                ..MirrorOptions::default()
+            }
+        );
     }
 }

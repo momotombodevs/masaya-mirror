@@ -2,19 +2,21 @@
 
 pub mod bench;
 pub mod copy;
+pub mod i18n;
 pub mod input;
+pub mod logging;
 #[cfg(target_os = "macos")]
 pub mod macos;
 pub mod metrics;
 pub mod mirror;
 pub mod screens;
+pub mod settings;
 pub mod source;
 pub mod state;
 pub mod store;
 
 use std::sync::Arc;
 
-use masaya_core::Locale;
 use nsh_base::theme;
 use nsh_core::prelude::*;
 
@@ -39,7 +41,7 @@ fn components(components: &nsh_platform_macos::Components) {
 /// The window: the device list, or the mirror of the phone opened from it.
 #[component]
 pub fn App() -> impl IntoElement {
-    let source: Arc<dyn source::DeviceSource> = Arc::new(AdbSource::new(Locale::default()));
+    let source: Arc<dyn source::DeviceSource> = Arc::new(AdbSource::new(i18n::locale()));
     shell(source)
 }
 

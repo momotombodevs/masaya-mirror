@@ -5,7 +5,7 @@ use std::time::Duration;
 
 use masaya_core::ErrorCode;
 use masaya_core::adb::{AndroidDevice, DeviceStatus};
-use masaya_nsh::copy;
+use masaya_nsh::i18n::{Key, t};
 use masaya_nsh::source::{DeviceSource, DevicesFuture, DevicesResult, LoadError, MirrorFuture};
 use nsh_core::prelude::*;
 use nsh_engine::{EngineConfig, Root};
@@ -85,7 +85,7 @@ fn start(script: Script) -> (Headless, Arc<Script>) {
     let mut app =
         Headless::start(EngineConfig::new(Root::of::<TestApp>())).expect("the app starts");
     // Every app starts loading: once it shows, the root took the source.
-    app.wait_for(copy::LOADING)
+    app.wait_for(t(Key::Loading))
         .expect("the list starts loading");
     assert!(NEXT.lock().expect("next").is_none());
     (app, script)
@@ -121,9 +121,9 @@ fn shows_loading_then_the_empty_state_and_refreshes_on_demand() {
     let (mut app, source) = start(held);
 
     gate.notify_one();
-    app.wait_for(copy::EMPTY_TITLE).unwrap();
-    assert!(app.screen().shows(copy::EMPTY_HINT));
-    app.press(copy::REFRESH).unwrap();
+    app.wait_for(t(Key::EmptyTitle)).unwrap();
+    assert!(app.screen().shows(t(Key::EmptyHint)));
+    app.press(t(Key::Refresh)).unwrap();
     app.wait_for("Pixel 8").unwrap();
     let calls = source.calls();
     assert!(calls[0], "the first load starts adb");
@@ -142,17 +142,17 @@ fn a_missing_adb_says_how_to_install_it_and_retry_recovers() {
             Ok(vec![pixel()])
         }
     }));
-    app.wait_for(copy::ADB_NOT_FOUND).unwrap();
-    app.press(copy::RETRY).unwrap();
+    app.wait_for(t(Key::AdbNotFound)).unwrap();
+    app.press(t(Key::Retry)).unwrap();
     app.wait_for("Pixel 8").unwrap();
 }
 
 #[test]
 fn other_errors_show_a_header_and_the_detail() {
     let (mut app, _) = start(Script::new(|_, _| Err(LoadError::other("adb no responde"))));
-    app.wait_for(copy::LIST_FAILED).unwrap();
+    app.wait_for(t(Key::ListFailed)).unwrap();
     assert!(app.screen().shows("adb no responde"));
-    assert!(app.screen().shows(copy::RETRY));
+    assert!(app.screen().shows(t(Key::Retry)));
 }
 
 #[test]
@@ -168,7 +168,7 @@ fn the_list_refreshes_every_two_seconds_without_going_back_to_loading() {
     // The real clock runs: the next refresh lands within `wait_for`'s 5 s.
     app.wait_for("Galaxy S23").unwrap();
     assert!(app.screen().shows("Pixel 8"));
-    assert!(!app.screen().shows(copy::LOADING));
+    assert!(!app.screen().shows(t(Key::Loading)));
     let calls = source.calls();
     assert!(
         calls[1..].iter().all(|start_server| !start_server),
@@ -192,7 +192,7 @@ fn a_failed_refresh_keeps_the_list() {
     for _ in 0..100 {
         assert!(app.screen().shows("Pixel 8"), "the row stayed");
         assert!(
-            !app.screen().shows(copy::LIST_FAILED),
+            !app.screen().shows(t(Key::ListFailed)),
             "no error over a list"
         );
         if app.screen().shows("Galaxy S23") {
@@ -212,19 +212,19 @@ fn an_unauthorized_phone_says_what_to_do_and_an_online_one_opens() {
             pixel(),
         ])
     }));
-    app.wait_for(copy::HINT_UNAUTHORIZED).unwrap();
-    assert!(app.screen().shows(copy::STATUS_UNAUTHORIZED));
-    assert!(app.screen().shows(copy::STATUS_DEVICE));
+    app.wait_for(t(Key::HintUnauthorized)).unwrap();
+    assert!(app.screen().shows(t(Key::StatusUnauthorized)));
+    assert!(app.screen().shows(t(Key::StatusDevice)));
     // A phone that is not authorized does not open (pressing a disabled button may be refused).
     let _ = app.press("Moto G");
-    assert!(!app.screen().shows(copy::BACK));
+    assert!(!app.screen().shows(t(Key::Back)));
 
     app.press("Pixel 8").unwrap();
-    app.wait_for(copy::BACK).unwrap();
-    app.press(copy::BACK).unwrap();
+    app.wait_for(t(Key::Back)).unwrap();
+    app.press(t(Key::Back)).unwrap();
     app.wait_for("Moto G").unwrap();
     // Back from the mirror the list is kept: no loading, and adb was started only once.
-    assert!(!app.screen().shows(copy::LOADING));
+    assert!(!app.screen().shows(t(Key::Loading)));
     assert_eq!(source.calls().iter().filter(|start| **start).count(), 1);
 }
 
@@ -233,9 +233,9 @@ fn escape_leaves_the_mirror() {
     let (mut app, _) = start(Script::new(|_, _| Ok(vec![pixel()])));
     app.wait_for("Pixel 8").unwrap();
     app.press("Pixel 8").unwrap();
-    app.wait_for(copy::MIRROR_FAILED).unwrap();
+    app.wait_for(t(Key::MirrorFailed)).unwrap();
     app.press_key("escape").unwrap();
-    app.wait_for_gone(copy::MIRROR_FAILED, Duration::from_secs(5))
+    app.wait_for_gone(t(Key::MirrorFailed), Duration::from_secs(5))
         .unwrap();
     app.wait_for("Pixel 8").unwrap();
 }
@@ -245,10 +245,10 @@ fn a_mirror_that_cannot_start_says_why_and_retries() {
     let (mut app, source) = start(Script::new(|_, _| Ok(vec![pixel()])));
     app.wait_for("Pixel 8").unwrap();
     app.press("Pixel 8").unwrap();
-    app.wait_for(copy::MIRROR_FAILED).unwrap();
+    app.wait_for(t(Key::MirrorFailed)).unwrap();
     assert!(app.screen().shows("Sin teléfono de prueba"));
-    app.press(copy::RETRY).unwrap();
-    app.wait_for(copy::MIRROR_FAILED).unwrap();
+    app.press(t(Key::Retry)).unwrap();
+    app.wait_for(t(Key::MirrorFailed)).unwrap();
     // The retry ran a second start for the same phone.
     for _ in 0..50 {
         if source.mirrors.lock().expect("mirrors").len() >= 2 {
