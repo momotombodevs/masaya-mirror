@@ -6,16 +6,18 @@
 //!   `nsh.1.log` becomes `nsh.2.log`, and the oldest is dropped: three files, about 6 MB at most.
 //! - The user's home folder is written as `~`: it carries their account name.
 //! - A panic is written (message and location) before Rust's own hook prints it.
+//! - The files are private to the user (0600, in a 0700 folder when this creates it).
 //!
 //! The file keeps Masaya's own lines from `info` up and everyone else's from `warn` up, whatever
 //! `RUST_LOG` says. Never log clipboard contents, typed text or anything else the user wrote;
 //! device serials and file paths are fine.
 
-use std::fs::{self, OpenOptions};
+use std::fs::{self, DirBuilder, OpenOptions};
 use std::io::{self, Write as _};
+use std::os::unix::fs::{DirBuilderExt as _, OpenOptionsExt as _, PermissionsExt as _};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, TryLockError};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use log::{Level, LevelFilter, Metadata, Record};
 
@@ -23,6 +25,25 @@ use log::{Level, LevelFilter, Metadata, Record};
 pub const MAX_LOG_BYTES: u64 = 2 * 1024 * 1024;
 /// Rotated files kept besides the current one.
 pub const MAX_OLD_LOG_FILES: usize = 2;
+
+const FILE_MODE: u32 = 0o600;
+const DIRECTORY_MODE: u32 = 0o700;
+
+/// Appends `text` to `path`, creating it (and its folder) private to the user.
+fn append_to(path: &Path, text: &str) -> io::Result<()> {
+    if let Some(directory) = path.parent() {
+        DirBuilder::new()
+            .recursive(true)
+            .mode(DIRECTORY_MODE)
+            .create(directory)?;
+    }
+    OpenOptions::new()
+        .create(true)
+        .append(true)
+        .mode(FILE_MODE)
+        .open(path)?
+        .write_all(text.as_bytes())
+}
 
 /// An append-only log file with a size cap. Writes are synchronous, so the last lines before a
 /// crash reach the disk, and they never fail: a full or read-only disk must not break the app.
@@ -69,11 +90,7 @@ impl RotatingLog {
         if size > 0 && size + bytes > self.max_bytes {
             self.rotate()?;
         }
-        OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(self.file_path())?
-            .write_all(text.as_bytes())?;
+        append_to(&self.file_path(), text)?;
         self.size = Some(self.size.unwrap_or(0) + bytes);
         Ok(())
     }
@@ -90,9 +107,18 @@ impl RotatingLog {
         if let Some(size) = self.size {
             return Ok(size);
         }
-        fs::create_dir_all(&self.directory)?;
+        DirBuilder::new()
+            .recursive(true)
+            .mode(DIRECTORY_MODE)
+            .create(&self.directory)?;
         let size = match fs::metadata(self.file_path()) {
-            Ok(metadata) => metadata.len(),
+            Ok(metadata) => {
+                // A file left by an older version may be readable by others.
+                if metadata.permissions().mode() & 0o777 != FILE_MODE {
+                    fs::set_permissions(self.file_path(), fs::Permissions::from_mode(FILE_MODE))?;
+                }
+                metadata.len()
+            }
             Err(error) if error.kind() == io::ErrorKind::NotFound => 0,
             Err(error) => return Err(error),
         };
@@ -119,12 +145,33 @@ impl RotatingLog {
 }
 
 /// The user's home folder carries their account name; `~` says the same for debugging.
+///
+/// Only the whole folder is replaced: with home `/Users/ana`, `/Users/anabel` is someone else's
+/// and stays. A match ends at `/`, the end of the text, or any character that cannot continue a
+/// macOS account name (they are letters, digits, `_`, `-` and `.`), such as a space or `:`.
 pub fn redact_home(text: &str, home: &str) -> String {
-    if home.len() > 1 {
-        text.replace(home, "~")
-    } else {
-        text.to_owned()
+    let home = home.trim_end_matches('/');
+    if home.is_empty() {
+        return text.to_owned();
     }
+    let mut redacted = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(start) = rest.find(home) {
+        let after = &rest[start + home.len()..];
+        redacted.push_str(&rest[..start]);
+        if after.chars().next().is_none_or(ends_home) {
+            redacted.push('~');
+        } else {
+            redacted.push_str(home);
+        }
+        rest = after;
+    }
+    redacted.push_str(rest);
+    redacted
+}
+
+fn ends_home(next: char) -> bool {
+    !(next.is_alphanumeric() || matches!(next, '_' | '-' | '.'))
 }
 
 /// One entry per line, `2026-11-07T12:00:00.000Z INFO  [target] message`; continuation lines
@@ -225,9 +272,17 @@ pub fn describe_panic(info: &std::panic::PanicHookInfo<'_>) -> String {
     }
 }
 
+/// How many times the panic hook waits for another thread's line to finish.
+const PANIC_LOCK_ATTEMPTS: u32 = 10;
+const PANIC_LOCK_WAIT: Duration = Duration::from_millis(5);
+
 /// Writes every panic to `file`, then runs the hook that was there before (which prints it).
 pub fn install_panic_hook(file: SharedLog, home: String) {
     let previous = std::panic::take_hook();
+    let path = file
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner())
+        .file_path();
     std::panic::set_hook(Box::new(move |info| {
         let line = format_line(
             SystemTime::now(),
@@ -236,14 +291,26 @@ pub fn install_panic_hook(file: SharedLog, home: String) {
             &describe_panic(info),
             &home,
         );
-        // `try_lock`: a panic while this thread is writing a line must not deadlock on it.
-        match file.try_lock() {
-            Ok(mut log) => log.append(&line),
-            Err(TryLockError::Poisoned(poisoned)) => poisoned.into_inner().append(&line),
-            Err(TryLockError::WouldBlock) => {}
-        }
+        write_panic_line(&file, &path, &line);
         previous(info);
     }));
+}
+
+/// Appends a panic's line through the shared log. `try_lock`, because a panic while this thread
+/// is writing a line must not deadlock on it: after a few short waits for another thread's line,
+/// the line is appended to the file directly (O_APPEND keeps whole lines apart).
+fn write_panic_line(file: &SharedLog, path: &Path, line: &str) {
+    for attempt in 0..PANIC_LOCK_ATTEMPTS {
+        match file.try_lock() {
+            Ok(mut log) => return log.append(line),
+            Err(TryLockError::Poisoned(poisoned)) => return poisoned.into_inner().append(line),
+            Err(TryLockError::WouldBlock) if attempt + 1 < PANIC_LOCK_ATTEMPTS => {
+                std::thread::sleep(PANIC_LOCK_WAIT);
+            }
+            Err(TryLockError::WouldBlock) => {}
+        }
+    }
+    let _ = append_to(path, line);
 }
 
 /// `~/Library/Logs/Masaya`. `None` without a `$HOME`.
@@ -327,7 +394,6 @@ pub fn init(metrics: bool) {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
 
     use super::*;
     use crate::settings::test_dir::TempDir;
@@ -438,6 +504,61 @@ mod tests {
     }
 
     #[test]
+    fn redacts_only_the_whole_home_folder() {
+        let home = "/Users/ana";
+        assert_eq!(redact_home("/Users/anabel/x", home), "/Users/anabel/x");
+        assert_eq!(redact_home("/Users/ana.old/x", home), "/Users/ana.old/x");
+        assert_eq!(
+            redact_home("/Users/ana_2 and /Users/ana-b", home),
+            "/Users/ana_2 and /Users/ana-b"
+        );
+        assert_eq!(redact_home("/Users/ana", home), "~");
+        assert_eq!(redact_home("at /Users/ana: denied", home), "at ~: denied");
+        assert_eq!(
+            redact_home("'/Users/ana' and \"/Users/ana/x\"", home),
+            "'~' and \"~/x\""
+        );
+        assert_eq!(
+            redact_home("/Users/anabel then /Users/ana/x", home),
+            "/Users/anabel then ~/x"
+        );
+        // A trailing slash on $HOME changes nothing.
+        assert_eq!(
+            redact_home("/Users/ana/x and /Users/anabel", "/Users/ana/"),
+            "~/x and /Users/anabel"
+        );
+    }
+
+    #[test]
+    fn log_files_are_private_to_the_user() {
+        let dir = TempDir::new("masaya-log");
+        let mut log = create(&dir, 5, 2);
+        log.append("111\n");
+        log.append("222\n");
+        let mode = |path: PathBuf| fs::metadata(path).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode(dir.path().join("logs")), 0o700);
+        assert_eq!(mode(dir.path().join("logs").join("main.log")), 0o600);
+        assert_eq!(mode(dir.path().join("logs").join("main.1.log")), 0o600);
+
+        // A file an older version left readable by others is made private on the first write.
+        let old_file = dir.path().join("logs").join("main.log");
+        fs::set_permissions(&old_file, fs::Permissions::from_mode(0o644)).unwrap();
+        create(&dir, 1_000, 2).append("333\n");
+        assert_eq!(mode(old_file), 0o600);
+    }
+
+    #[test]
+    fn a_panic_waiting_on_a_busy_log_still_reaches_the_file() {
+        let dir = TempDir::new("masaya-log");
+        let file: SharedLog = Arc::new(Mutex::new(create(&dir, 10_000, 2)));
+        let path = file.lock().unwrap().file_path();
+        let busy = file.lock().unwrap();
+        write_panic_line(&file, &path, "panic line\n");
+        drop(busy);
+        assert_eq!(read(dir.path(), "main.log"), "panic line\n");
+    }
+
+    #[test]
     fn replaces_the_home_folder_with_a_tilde() {
         assert_eq!(
             redact_home(
@@ -527,12 +648,17 @@ mod tests {
         assert!(!written.contains(&home));
     }
 
+    /// The process has one panic hook: tests that replace it take turns.
+    static PANIC_HOOK: Mutex<()> = Mutex::new(());
+
     #[test]
     fn a_panic_is_written_with_its_location() {
+        let _hook = PANIC_HOOK
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
         let dir = TempDir::new("masaya-log");
         let file: SharedLog = Arc::new(Mutex::new(create(&dir, 10_000, 2)));
         let home = dir.path().to_string_lossy().into_owned();
-        // Only this test touches the process's panic hook.
         install_panic_hook(file, home.clone());
         let message = format!("boom in {home}/x");
         let result = std::thread::Builder::new()
