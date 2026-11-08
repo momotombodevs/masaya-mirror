@@ -62,10 +62,9 @@ pub struct NotSent;
 /// before it. Never blocks.
 pub fn send(registry: &Registry, key: &str, action: PhoneAction) -> Result<(), NotSent> {
     let input = registry.input(key).ok_or(NotSent)?;
-    for message in action.messages() {
-        input.send(message).map_err(|_| NotSent)?;
-    }
-    Ok(())
+    // One item: nothing the video sends from the main thread can land between a key's down and
+    // up.
+    input.send(action.messages()).map_err(|_| NotSent)
 }
 
 #[cfg(test)]
@@ -73,8 +72,9 @@ mod tests {
     use tokio::sync::mpsc::{UnboundedReceiver, unbounded_channel};
 
     use super::*;
+    use crate::mirror::control::InputBatch;
 
-    fn registry_with_input() -> (Registry, UnboundedReceiver<ControlMessage>) {
+    fn registry_with_input() -> (Registry, UnboundedReceiver<InputBatch>) {
         let registry = Registry::default();
         registry.open("k");
         let (tx, rx) = unbounded_channel();
@@ -82,7 +82,7 @@ mod tests {
         (registry, rx)
     }
 
-    fn drain(rx: &mut UnboundedReceiver<ControlMessage>) -> Vec<ControlMessage> {
+    fn drain(rx: &mut UnboundedReceiver<InputBatch>) -> Vec<InputBatch> {
         std::iter::from_fn(|| rx.try_recv().ok()).collect()
     }
 
@@ -108,9 +108,10 @@ mod tests {
         ] {
             let (registry, mut rx) = registry_with_input();
             send(&registry, "k", PhoneAction::Key(device_key)).unwrap();
+            // One batch: down and up arrive together.
             assert_eq!(
                 drain(&mut rx),
-                [key(0, code), key(1, code)],
+                [vec![key(0, code), key(1, code)]],
                 "{device_key:?}"
             );
         }
@@ -120,16 +121,20 @@ mod tests {
     fn rotate_sends_scrcpys_rotate() {
         let (registry, mut rx) = registry_with_input();
         send(&registry, "k", PhoneAction::Rotate).unwrap();
-        assert_eq!(drain(&mut rx), [ControlMessage::Rotate]);
+        assert_eq!(drain(&mut rx), [vec![ControlMessage::Rotate]]);
     }
 
     #[test]
     fn actions_queue_behind_the_input_already_sent() {
         let (registry, mut rx) = registry_with_input();
         let text = ControlMessage::Text { text: "a".into() };
-        registry.input("k").unwrap().send(text.clone()).unwrap();
+        registry
+            .input("k")
+            .unwrap()
+            .send(vec![text.clone()])
+            .unwrap();
         send(&registry, "k", PhoneAction::Rotate).unwrap();
-        assert_eq!(drain(&mut rx), [text, ControlMessage::Rotate]);
+        assert_eq!(drain(&mut rx), [vec![text], vec![ControlMessage::Rotate]]);
     }
 
     #[test]

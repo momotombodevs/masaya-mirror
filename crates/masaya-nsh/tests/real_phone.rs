@@ -109,9 +109,9 @@ fn a_real_phone_streams_frames_and_follows_a_tap_and_a_swipe() {
         let (w, h) = (f64::from(video.width), f64::from(video.height));
         let mut translator = InputTranslator::default();
         let mut send = |event: InputEvent| {
-            for message in translator.translate(&event, geometry) {
-                sender.send(message).expect("the input task runs");
-            }
+            sender
+                .send(translator.translate(&event, geometry))
+                .expect("the input task runs");
         };
         // A tap on the status bar, then a swipe down from the top (the notification shade).
         send(InputEvent::MouseDown { x: w / 2.0, y: 4.0 });

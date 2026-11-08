@@ -39,6 +39,7 @@ use objc2_quartz_core::{CALayer, CATransaction, CATransform3D};
 use super::mirror_view::unpack_size;
 use crate::input::events::{Geometry, InputEvent, InputTranslator, KeyDown};
 use crate::input::indicators::{Indicators, RELEASE};
+use crate::mirror::control::InputBatch;
 
 /// The click circle's size, in points (the renderer's `h-10 w-10`).
 const INDICATOR_DIAMETER: f64 = 40.0;
@@ -46,7 +47,7 @@ use crate::input::mapping::{VideoSize, ViewSize};
 
 pub struct Ivars {
     translator: RefCell<InputTranslator>,
-    input: RefCell<Option<UnboundedSender<ControlMessage>>>,
+    input: RefCell<Option<UnboundedSender<InputBatch>>>,
     video_size: Arc<AtomicU64>,
     marked: Cell<bool>,
     /// The window whose losing focus releases the keys.
@@ -341,7 +342,7 @@ impl MirrorNSView {
     }
 
     /// Where input goes: the session's channel, or nowhere while there is none.
-    pub fn set_input(&self, input: Option<UnboundedSender<ControlMessage>>) {
+    pub fn set_input(&self, input: Option<UnboundedSender<InputBatch>>) {
         if input.is_none() {
             // The session went: whatever is held on the phone is moot, but the translator
             // must not think a finger or a key is still down.
@@ -493,14 +494,13 @@ impl MirrorNSView {
 
     /// Queues `messages` for the session, in order. Never blocks the main thread.
     fn send(&self, messages: Vec<ControlMessage>) {
+        if messages.is_empty() {
+            return;
+        }
         let input = self.ivars().input.borrow();
         let Some(input) = input.as_ref() else { return };
-        for message in messages {
-            if input.send(message).is_err() {
-                // The session ended; the screen will say so.
-                return;
-            }
-        }
+        // One item per event; an error means the session ended, and the screen will say so.
+        let _ = input.send(messages);
     }
 
     /// Releases the keys when the window this view is in stops being the key window.
