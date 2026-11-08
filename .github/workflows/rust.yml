@@ -4,17 +4,30 @@ on:
   push:
     branches: [main, develop]
   pull_request:
-    paths:
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - 'crates/**'
-      - '.github/workflows/rust.yml'
 
 concurrency:
   group: rust-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  version:
+    name: Version is new
+    if: github.event_name == 'pull_request' && github.base_ref == 'main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bump the workspace version before merging to main
+        run: |
+          version="$(sed -n '/^\[workspace\.package\]/,/^\[/s/^version *= *"\(.*\)"/\1/p' Cargo.toml)"
+          if [ -z "${version}" ]; then
+            echo "Could not read [workspace.package] version from Cargo.toml." >&2
+            exit 1
+          fi
+          if git ls-remote --exit-code --tags origin "refs/tags/v${version}" > /dev/null; then
+            echo "v${version} is already released; bump [workspace.package] version in Cargo.toml." >&2
+            exit 1
+          fi
+
   core:
     name: Core (fmt, clippy, test)
     runs-on: ubuntu-latest
@@ -24,15 +37,14 @@ jobs:
         with:
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
+      # Formatting covers the whole workspace, the app included.
       - run: cargo fmt --all --check
       - run: cargo clippy -p masaya-core --all-targets -- -D warnings
       - run: cargo test -p masaya-core
 
   nsh:
-    name: NSH spike (macOS, optional)
+    name: NSH app (macOS)
     runs-on: macos-15
-    # The spike may break while it is explored; it does not block a merge.
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
