@@ -9,7 +9,7 @@
 use std::ffi::c_void;
 use std::ptr::{self, NonNull};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
-use std::sync::{Arc, Mutex, OnceLock};
+use std::sync::{Arc, Mutex};
 
 use dispatch2::MainThreadBound;
 use nsh_platform_macos::{ComponentContext, NativeComponent};
@@ -116,7 +116,7 @@ pub struct LayerSink {
     /// first): the view maps its input through it, and it changes when the phone rotates.
     video_size: Arc<AtomicU64>,
     /// Told when the size changes: the window fits itself to the video.
-    size_listener: OnceLock<SizeListener>,
+    size_listener: Mutex<Option<SizeListener>>,
 }
 
 /// Reads a size [`LayerSink`] stored.
@@ -136,16 +136,26 @@ impl LayerSink {
                 stats: SinkStats::default(),
             }),
             video_size: Arc::new(AtomicU64::new(0)),
-            size_listener: OnceLock::new(),
+            size_listener: Mutex::new(None),
         }
     }
 
     /// Calls `listener` with the video's size each time a configuration changes it (the first
-    /// one, and each rotation). Set once.
+    /// one, and each rotation), until [`Self::clear_size_listener`].
     pub fn on_size_change(&self, listener: impl Fn(u32, u32) + Send + Sync + 'static) {
-        if self.size_listener.set(Box::new(listener)).is_err() {
-            log::warn!("mirror: the video size already has a listener");
-        }
+        *self.listener() = Some(Box::new(listener));
+    }
+
+    /// Drops the listener, on the caller's thread: the view clears it on the main thread, so
+    /// what the listener holds of the view is never released on the pump's thread.
+    pub fn clear_size_listener(&self) {
+        self.listener().take();
+    }
+
+    fn listener(&self) -> std::sync::MutexGuard<'_, Option<SizeListener>> {
+        self.size_listener
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
     /// The video's size as the stream describes it, shared with the view.
@@ -183,7 +193,7 @@ impl FrameSink for LayerSink {
                     .video_size
                     .swap(width << 32 | height, Ordering::Relaxed);
                 if before != width << 32 | height
-                    && let Some(listener) = self.size_listener.get()
+                    && let Some(listener) = self.listener().as_ref()
                 {
                     listener(width as u32, height as u32);
                 }
@@ -487,6 +497,8 @@ impl Drop for NoNap {
 pub struct MirrorView {
     view: Retained<MirrorNSView>,
     sink: Arc<dyn FrameSink>,
+    /// The same sink, typed: the view clears its size listener as it goes.
+    layer_sink: Arc<LayerSink>,
     context: ComponentContext,
     session: Option<String>,
     _probe: Option<PresentProbe>,
@@ -541,7 +553,8 @@ impl MirrorView {
         view.setWantsLayer(true);
         Self {
             view,
-            sink,
+            sink: sink.clone(),
+            layer_sink: sink,
             context,
             session: None,
             _probe: probe,
@@ -588,6 +601,9 @@ impl NativeComponent for MirrorView {
 impl Drop for MirrorView {
     fn drop(&mut self) {
         self.detach();
+        // The sink may outlive the view on the pump's thread (the registry holds it): the
+        // listener, which holds the view, goes here on the main thread.
+        self.layer_sink.clear_size_listener();
         metrics::clear_renderer_failures(self.metrics_owner);
     }
 }

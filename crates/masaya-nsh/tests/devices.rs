@@ -520,20 +520,34 @@ fn the_window_floats_while_always_on_top_is_on() {
         Key::MirrorStarting,
     );
     let app = &mut started.app;
-    app.idle(Duration::from_millis(50)).unwrap();
-    assert!(sent_level(app, WindowLevel::Normal));
+    assert!(wait_until(app, |app| sent_level(app, WindowLevel::Normal)));
     assert!(!sent_level(app, WindowLevel::Floating));
 
-    // The menu (or another window) turns it on: this window follows.
+    // The menu (or another window) turns it on: this window follows. The guard turns it off
+    // again even if an assertion fails, so other tests see the default.
+    struct Restore;
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            SettingsHub::global().update(|settings| settings.always_on_top = false);
+        }
+    }
+    let _restore = Restore;
     SettingsHub::global().update(|settings| settings.always_on_top = true);
+    assert!(wait_until(app, |app| sent_level(
+        app,
+        WindowLevel::Floating
+    )));
+}
+
+/// Waits up to 2 s for `condition`, letting the app run in between.
+fn wait_until(app: &mut Headless, condition: impl Fn(&Headless) -> bool) -> bool {
     for _ in 0..100 {
-        if sent_level(app, WindowLevel::Floating) {
-            break;
+        if condition(app) {
+            return true;
         }
         app.idle(Duration::from_millis(20)).unwrap();
     }
-    SettingsHub::global().update(|settings| settings.always_on_top = false);
-    assert!(sent_level(app, WindowLevel::Floating));
+    condition(app)
 }
 
 #[test]

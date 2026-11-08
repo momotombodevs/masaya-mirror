@@ -17,7 +17,7 @@ use objc2::rc::Retained;
 use objc2::runtime::ProtocolObject;
 use objc2::{DefinedClass, MainThreadMarker, MainThreadOnly, define_class, msg_send};
 use objc2_app_kit::{
-    NSApplication, NSBackingStoreType, NSWindow, NSWindowDelegate, NSWindowStyleMask,
+    NSApplication, NSBackingStoreType, NSScreen, NSWindow, NSWindowDelegate, NSWindowStyleMask,
 };
 use objc2_foundation::{
     NSNotification, NSObject, NSObjectProtocol, NSPoint, NSRect, NSSize, NSString,
@@ -279,7 +279,12 @@ fn open(mtm: MainThreadMarker, mirrors: OpenMirrors, request: MirrorRequest) {
 /// screen. A window the user made full screen or zoomed keeps its size. Main thread only.
 pub fn fit_to_video(window: &NSWindow, width: u32, height: u32) {
     let content = window.contentRectForFrameRect(window.frame()).size;
-    let Some(area) = window.screen().map(|screen| screen.visibleFrame()) else {
+    // A window off every screen (moved away, a display unplugged) fits the main screen.
+    let screen = window
+        .screen()
+        .or_else(|| NSScreen::mainScreen(MainThreadMarker::from(window)));
+    let Some(area) = screen.map(|screen| screen.visibleFrame()) else {
+        log::warn!("mirror window: no screen to fit the video in");
         return;
     };
     let now = WindowNow {
