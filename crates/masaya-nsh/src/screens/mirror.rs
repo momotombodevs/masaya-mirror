@@ -14,9 +14,13 @@ use tokio::task::AbortHandle;
 
 use crate::copy;
 use crate::i18n::{self, Key, t};
-use crate::mirror::{control, pump, sink};
+use crate::mirror::{actions, control, pump, sink};
+use crate::screens::live_settings;
+use crate::screens::toolbar::{ToolbarAction, mirror_toolbar, navigation_bar};
+use crate::settings::SettingsHub;
 use crate::source::{AdbSource, DeviceSource};
 use crate::state::{MirrorKind, MirrorView};
+use crate::status::{STATUS_TIMEOUT, StatusMessage};
 use crate::windows::OpenMirrors;
 use crate::{bench, metrics};
 
@@ -295,60 +299,103 @@ pub fn mirror_screen(
         });
     }
 
+    let settings = live_settings(SettingsHub::global());
+    let running_now = computed(move || kind.get() == MirrorKind::Running);
+    let status = signal(StatusMessage::default());
+    // A passing message in the toolbar, gone after a while unless another replaced it.
+    let show_status = move |message: &str| {
+        let mut token = 0;
+        status.update(|status| token = status.show(message));
+        owner.run(|| {
+            spawn(async move {
+                timer(STATUS_TIMEOUT).await;
+                status.update(|status| {
+                    status.expire(token);
+                });
+            })
+        });
+    };
+    let on_action: Rc<dyn Fn(ToolbarAction)> = Rc::new(move |action| match action {
+        ToolbarAction::Phone(action) => {
+            // The same ordered channel as the video's input: a press never overtakes a touch.
+            let sent = state
+                .with_untracked(MirrorView::key)
+                .ok_or(actions::NotSent)
+                .and_then(|key| actions::send(sink::registry(), &key, action));
+            if sent.is_err() {
+                log::warn!("mirror: {action:?} not sent, no session");
+                show_status(t(Key::MirrorNotSent));
+            }
+        }
+        ToolbarAction::FullScreen => nsh_core::element::desktop::toggle_full_screen(),
+    });
+
     view()
         .flex_1()
         .bg(move || theme().background)
-        .child(dynamic(move || match kind.get() {
-            MirrorKind::Starting => centered()
-                .child(muted(t(Key::MirrorStarting)))
-                .into_element(),
-            MirrorKind::Failed => {
-                let start = start.clone();
-                problem(
-                    state,
-                    Problem {
-                        title: t(Key::MirrorFailed),
-                        hint: None,
-                        action: t(Key::Retry),
-                    },
-                    move || start(),
-                    on_close.clone(),
-                )
-                .into_element()
-            }
-            MirrorKind::Ended => {
-                let start = start.clone();
-                problem(
-                    state,
-                    Problem {
-                        title: t(Key::MirrorEnded),
-                        hint: Some(t(Key::MirrorEndedHint)),
-                        action: t(Key::MirrorReconnect),
-                    },
-                    move || start(),
-                    on_close.clone(),
-                )
-                .into_element()
-            }
-            MirrorKind::Running => {
-                let on_attached = on_attached.clone();
-                native(MIRROR_COMPONENT)
-                    .prop("session", move || json!(state.with(MirrorView::key)))
-                    .on_native_event(move |event: &NativeEvent| {
-                        if &*event.name == "attached"
-                            && let Some(key) = event.data["session"].as_str()
-                        {
-                            on_attached(key.to_owned());
-                        }
-                    })
-                    .role(AccessibilityRole::Group)
-                    .label(video_label.clone())
-                    .hint(t(Key::MirrorVideoHint))
-                    .flex_1()
-                    .bg(black())
+        .child(mirror_toolbar(
+            label.clone(),
+            move || status.with(StatusMessage::text),
+            running_now,
+            on_action.clone(),
+        ))
+        .child(view().flex_1().child(dynamic(move || {
+            match kind.get() {
+                MirrorKind::Starting => centered()
+                    .child(muted(t(Key::MirrorStarting)))
+                    .into_element(),
+                MirrorKind::Failed => {
+                    let start = start.clone();
+                    problem(
+                        state,
+                        Problem {
+                            title: t(Key::MirrorFailed),
+                            hint: None,
+                            action: t(Key::Retry),
+                        },
+                        move || start(),
+                        on_close.clone(),
+                    )
                     .into_element()
+                }
+                MirrorKind::Ended => {
+                    let start = start.clone();
+                    problem(
+                        state,
+                        Problem {
+                            title: t(Key::MirrorEnded),
+                            hint: Some(t(Key::MirrorEndedHint)),
+                            action: t(Key::MirrorReconnect),
+                        },
+                        move || start(),
+                        on_close.clone(),
+                    )
+                    .into_element()
+                }
+                MirrorKind::Running => {
+                    let on_attached = on_attached.clone();
+                    native(MIRROR_COMPONENT)
+                        .prop("session", move || json!(state.with(MirrorView::key)))
+                        .on_native_event(move |event: &NativeEvent| {
+                            if &*event.name == "attached"
+                                && let Some(key) = event.data["session"].as_str()
+                            {
+                                on_attached(key.to_owned());
+                            }
+                        })
+                        .role(AccessibilityRole::Group)
+                        .label(video_label.clone())
+                        .hint(t(Key::MirrorVideoHint))
+                        .flex_1()
+                        .bg(black())
+                        .into_element()
+                }
             }
-        }))
+        })))
+        .child(when(
+            move || settings.with(|settings| settings.navigation_bar),
+            move || navigation_bar(running_now, on_action.clone()),
+        ))
 }
 
 fn centered() -> View {

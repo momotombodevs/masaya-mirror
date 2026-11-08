@@ -14,6 +14,7 @@ pub mod screens;
 pub mod settings;
 pub mod source;
 pub mod state;
+pub mod status;
 pub mod store;
 pub mod windows;
 

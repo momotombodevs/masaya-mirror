@@ -38,11 +38,22 @@ pub enum Key {
     MirrorEndedHint,
     MirrorVideoHint,
     MenuDevices,
+    ToolbarLabel,
+    ToolbarVolumeUp,
+    ToolbarVolumeDown,
+    ToolbarPower,
+    ToolbarRotate,
+    ToolbarFullScreen,
+    NavigationLabel,
+    NavigationBack,
+    NavigationHome,
+    NavigationRecents,
+    MirrorNotSent,
 }
 
 impl Key {
     /// Every key, for tests that walk the whole catalog.
-    pub const ALL: [Key; 24] = [
+    pub const ALL: [Key; 35] = [
         Key::DevicesTitle,
         Key::Loading,
         Key::EmptyTitle,
@@ -67,6 +78,17 @@ impl Key {
         Key::MirrorEndedHint,
         Key::MirrorVideoHint,
         Key::MenuDevices,
+        Key::ToolbarLabel,
+        Key::ToolbarVolumeUp,
+        Key::ToolbarVolumeDown,
+        Key::ToolbarPower,
+        Key::ToolbarRotate,
+        Key::ToolbarFullScreen,
+        Key::NavigationLabel,
+        Key::NavigationBack,
+        Key::NavigationHome,
+        Key::NavigationRecents,
+        Key::MirrorNotSent,
     ];
 }
 
@@ -139,6 +161,32 @@ pub fn text(key: Key, locale: Locale) -> &'static str {
         // The Window menu's item that shows the list again.
         (Key::MenuDevices, Es) => "Dispositivos",
         (Key::MenuDevices, En) => "Devices",
+        // What the screen reader calls the toolbar.
+        (Key::ToolbarLabel, Es) => "Controles del teléfono",
+        (Key::ToolbarLabel, En) => "Phone controls",
+        // toolbar.*
+        (Key::ToolbarVolumeUp, Es) => "Subir volumen",
+        (Key::ToolbarVolumeUp, En) => "Volume up",
+        (Key::ToolbarVolumeDown, Es) => "Bajar volumen",
+        (Key::ToolbarVolumeDown, En) => "Volume down",
+        (Key::ToolbarPower, Es) => "Encender o apagar pantalla",
+        (Key::ToolbarPower, En) => "Turn screen on or off",
+        (Key::ToolbarRotate, Es) => "Girar pantalla",
+        (Key::ToolbarRotate, En) => "Rotate screen",
+        (Key::ToolbarFullScreen, Es) => "Pantalla completa",
+        (Key::ToolbarFullScreen, En) => "Full screen",
+        // nav.*
+        (Key::NavigationLabel, Es) => "Navegación del dispositivo",
+        (Key::NavigationLabel, En) => "Device navigation",
+        (Key::NavigationBack, Es) => "Atrás",
+        (Key::NavigationBack, En) => "Back",
+        (Key::NavigationHome, Es) => "Inicio",
+        (Key::NavigationHome, En) => "Home",
+        (Key::NavigationRecents, Es) => "Apps recientes",
+        (Key::NavigationRecents, En) => "Recent apps",
+        // The toolbar's status when a press found no session.
+        (Key::MirrorNotSent, Es) => "No llegó al teléfono.",
+        (Key::MirrorNotSent, En) => "It did not reach the phone.",
     }
 }
 
@@ -339,7 +387,18 @@ mod tests {
             Key::Close => Key::MirrorEndedHint,
             Key::MirrorEndedHint => Key::MirrorVideoHint,
             Key::MirrorVideoHint => Key::MenuDevices,
-            Key::MenuDevices => return None,
+            Key::MenuDevices => Key::ToolbarLabel,
+            Key::ToolbarLabel => Key::ToolbarVolumeUp,
+            Key::ToolbarVolumeUp => Key::ToolbarVolumeDown,
+            Key::ToolbarVolumeDown => Key::ToolbarPower,
+            Key::ToolbarPower => Key::ToolbarRotate,
+            Key::ToolbarRotate => Key::ToolbarFullScreen,
+            Key::ToolbarFullScreen => Key::NavigationLabel,
+            Key::NavigationLabel => Key::NavigationBack,
+            Key::NavigationBack => Key::NavigationHome,
+            Key::NavigationHome => Key::NavigationRecents,
+            Key::NavigationRecents => Key::MirrorNotSent,
+            Key::MirrorNotSent => return None,
         })
     }
 
@@ -391,6 +450,18 @@ mod tests {
             ][..],
             &[Key::Refresh, Key::Retry, Key::MirrorReconnect, Key::Close][..],
             &[Key::Mirroring, Key::StatusDevice, Key::StatusOffline][..],
+            // The window's bars, all at once.
+            &[
+                Key::ToolbarVolumeUp,
+                Key::ToolbarVolumeDown,
+                Key::ToolbarPower,
+                Key::ToolbarRotate,
+                Key::ToolbarFullScreen,
+                Key::NavigationBack,
+                Key::NavigationHome,
+                Key::NavigationRecents,
+                Key::Close,
+            ][..],
         ];
         for locale in [Locale::Es, Locale::En] {
             for group in groups {
