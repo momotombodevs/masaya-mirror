@@ -1,6 +1,6 @@
 # ADR-0004: Reescribir Masaya como app nativa en Rust con NSH
 
-**Estado:** Propuesta (borrador). Falta la prueba manual de la ventana con ratón y teclado reales.
+**Estado:** Aceptada (2026-11-07). La prueba manual de la ventana con ratón y teclado reales salió bien.
 **Fecha:** 2026-11-07
 **Reemplaza a:** [ADR-0003](0003-migracion-a-tauri.md)
 
@@ -70,9 +70,9 @@ mantienen en 114–120 fps. Las cifras de arriba son con la corrección.
   (~10–20 fps), así que no compara nada.
 - Wi-Fi, grabación, varias ventanas, Windows y Linux.
 
-## Decisión propuesta
+## Decisión
 
-**GO para la etapa 2**, condicionado a que la prueba manual no muestre problemas de input. Con el
+**GO para la etapa 2.** La prueba manual con ratón, teclado, acentos y Escape reales no mostró problemas. Con el
 mismo stream, NSH iguala la latencia y la fluidez de Electron y usa unas 6 veces menos memoria y unas
 4 veces menos CPU mientras se usa. Electron se mantiene como app publicada hasta terminar la migración.
 
