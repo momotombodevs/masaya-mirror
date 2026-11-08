@@ -15,9 +15,3 @@ logs
 
 # Rust
 /target
-
-# Output of the removed Electron app (v0.3.3 and earlier). Kept ignored so old checkouts stay clean.
-node_modules
-dist
-dist-electron
-release
