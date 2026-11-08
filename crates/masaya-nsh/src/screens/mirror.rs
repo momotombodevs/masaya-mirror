@@ -13,6 +13,7 @@ use serde_json::json;
 use tokio::task::AbortHandle;
 
 use crate::copy;
+use crate::i18n::{Key, t};
 use crate::mirror::{control, pump, sink};
 use crate::source::DeviceSource;
 use crate::state::{MirrorKind, MirrorView};
@@ -135,7 +136,7 @@ pub fn mirror_screen(
                         Err(error) if error.is_cancelled() => None,
                         Err(error) => {
                             log::error!("mirror start task failed: {error}");
-                            Some(MirrorView::Failed(copy::MIRROR_FAILED.to_owned()))
+                            Some(MirrorView::Failed(t(Key::MirrorFailed).to_owned()))
                         }
                     };
                     // The borrow above has ended: setting the state renders, which may stop.
@@ -151,7 +152,7 @@ pub fn mirror_screen(
                     if !attached && current.as_deref() == Some(key.as_str()) {
                         log::warn!("mirror: the video view never attached");
                         running.borrow_mut().stop();
-                        state.set(MirrorView::Failed(copy::MIRROR_NO_VIDEO.to_owned()));
+                        state.set(MirrorView::Failed(t(Key::MirrorNoVideo).to_owned()));
                     }
                 })
             });
@@ -218,18 +219,18 @@ pub fn mirror_screen(
         .child(header(label, on_back))
         .child(dynamic(move || match kind.get() {
             MirrorKind::Starting => centered()
-                .child(muted(copy::MIRROR_STARTING))
+                .child(muted(t(Key::MirrorStarting)))
                 .into_element(),
             MirrorKind::Failed => {
                 let start = start.clone();
-                problem(state, copy::MIRROR_FAILED, copy::RETRY, move || start()).into_element()
+                problem(state, t(Key::MirrorFailed), t(Key::Retry), move || start()).into_element()
             }
             MirrorKind::Ended => {
                 let start = start.clone();
                 problem(
                     state,
-                    copy::MIRROR_ENDED,
-                    copy::MIRROR_RECONNECT,
+                    t(Key::MirrorEnded),
+                    t(Key::MirrorReconnect),
                     move || start(),
                 )
                 .into_element()
@@ -270,7 +271,7 @@ fn header(label: String, on_back: Rc<impl Fn() + 'static>) -> impl IntoElement {
                 .hit_slop(EdgeInsets::all(px(8.0)))
                 .rounded(move || theme().radius)
                 .active(|s| s.opacity(0.6))
-                .child(text(copy::BACK).text_color(move || theme().primary)),
+                .child(text(t(Key::Back)).text_color(move || theme().primary)),
         )
         .child(
             text(label)

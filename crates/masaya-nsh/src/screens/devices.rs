@@ -8,6 +8,7 @@ use nsh_base::{button, theme};
 use nsh_core::prelude::*;
 
 use crate::copy;
+use crate::i18n::{Key, t};
 use crate::state::{DeviceRow, DevicesView, ViewKind};
 use crate::store::DevicesStore;
 
@@ -27,9 +28,9 @@ pub fn devices_screen(
     // The screen reader hears each change of state (not each refresh).
     effect(move || {
         let message = match kind.get() {
-            ViewKind::Loading => copy::LOADING.to_owned(),
-            ViewKind::Empty => copy::EMPTY_TITLE.to_owned(),
-            ViewKind::Error => copy::LIST_FAILED.to_owned(),
+            ViewKind::Loading => t(Key::Loading).to_owned(),
+            ViewKind::Empty => t(Key::EmptyTitle).to_owned(),
+            ViewKind::Error => t(Key::ListFailed).to_owned(),
             ViewKind::Ready => {
                 copy::devices_announcement(state.with_untracked(|view| view.rows().len()))
             }
@@ -42,14 +43,14 @@ pub fn devices_screen(
         .bg(move || theme().background)
         .child(header())
         .child(dynamic(move || match kind.get() {
-            ViewKind::Loading => centered().child(muted(copy::LOADING)).into_element(),
+            ViewKind::Loading => centered().child(muted(t(Key::Loading))).into_element(),
             ViewKind::Empty => centered()
-                .child(title(copy::EMPTY_TITLE))
-                .child(muted(copy::EMPTY_HINT))
-                .child(action(copy::REFRESH, on_retry.clone()))
+                .child(title(t(Key::EmptyTitle)))
+                .child(muted(t(Key::EmptyHint)))
+                .child(action(t(Key::Refresh), on_retry.clone()))
                 .into_element(),
             ViewKind::Error => {
-                error_message(state, action(copy::RETRY, on_retry.clone())).into_element()
+                error_message(state, action(t(Key::Retry), on_retry.clone())).into_element()
             }
             ViewKind::Ready => {
                 let on_open = on_open.clone();
@@ -71,7 +72,7 @@ fn header() -> impl IntoElement {
         .border_b_1()
         .border_b_color(move || theme().border)
         .child(
-            text(copy::DEVICES_TITLE)
+            text(t(Key::DevicesTitle))
                 .role(AccessibilityRole::Header)
                 .font_weight(FontWeight::SEMIBOLD)
                 .text_size(px(18.0))
@@ -113,9 +114,9 @@ fn error_message(state: Signal<DevicesView>, action: AnyElement) -> impl IntoEle
         .child(
             text(move || {
                 if missing_adb() {
-                    copy::ADB_NOT_FOUND
+                    t(Key::AdbNotFound)
                 } else {
-                    copy::LIST_FAILED
+                    t(Key::ListFailed)
                 }
             })
             .text_center()

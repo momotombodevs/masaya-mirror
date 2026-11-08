@@ -4,12 +4,9 @@
 fn main() -> impl std::process::Termination {
     use nsh_platform_macos as platform;
 
-    let mut logger = env_logger::Builder::from_default_env();
-    if masaya_nsh::metrics::enabled() {
-        // The measurements' lines, whatever `RUST_LOG` says.
-        logger.filter_module("masaya::", log::LevelFilter::Info);
-    }
-    logger.init();
+    // The terminal (`RUST_LOG`) and `~/Library/Logs/Masaya/nsh.log`; with metrics on, the
+    // measurements' lines whatever `RUST_LOG` says.
+    masaya_nsh::logging::init(masaya_nsh::metrics::enabled());
     let components = platform::Components::default();
     masaya_nsh::macos::register(&components);
     platform::run_app(
