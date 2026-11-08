@@ -30,7 +30,7 @@ jobs:
 
   nsh:
     name: NSH spike (macOS, optional)
-    runs-on: macos-14
+    runs-on: macos-15
     # The spike may break while it is explored; it does not block a merge.
     continue-on-error: true
     steps:

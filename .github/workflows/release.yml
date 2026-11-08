@@ -57,7 +57,7 @@ jobs:
       matrix:
         include:
           - name: macOS (arm64 + x64)
-            runner: macos-14
+            runner: macos-15
             command: pnpm build:mac --publish never
             artifact: masaya-macos
             files: |
@@ -96,9 +96,9 @@ jobs:
         env:
           # Signed only when the platform's certificate secrets exist; otherwise the installer
           # stays unsigned (see docs/RELEASING.md).
-          CSC_LINK: ${{ matrix.runner == 'windows-latest' && secrets.WIN_CSC_LINK || matrix.runner == 'macos-14' && secrets.MAC_CSC_LINK || '' }}
-          CSC_KEY_PASSWORD: ${{ matrix.runner == 'windows-latest' && secrets.WIN_CSC_KEY_PASSWORD || matrix.runner == 'macos-14' && secrets.MAC_CSC_KEY_PASSWORD || '' }}
-          CSC_IDENTITY_AUTO_DISCOVERY: ${{ (matrix.runner == 'windows-latest' && secrets.WIN_CSC_LINK != '' || matrix.runner == 'macos-14' && secrets.MAC_CSC_LINK != '') && 'true' || 'false' }}
+          CSC_LINK: ${{ matrix.runner == 'windows-latest' && secrets.WIN_CSC_LINK || matrix.runner == 'macos-15' && secrets.MAC_CSC_LINK || '' }}
+          CSC_KEY_PASSWORD: ${{ matrix.runner == 'windows-latest' && secrets.WIN_CSC_KEY_PASSWORD || matrix.runner == 'macos-15' && secrets.MAC_CSC_KEY_PASSWORD || '' }}
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ (matrix.runner == 'windows-latest' && secrets.WIN_CSC_LINK != '' || matrix.runner == 'macos-15' && secrets.MAC_CSC_LINK != '') && 'true' || 'false' }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
