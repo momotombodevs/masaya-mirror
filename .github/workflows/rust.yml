@@ -9,6 +9,9 @@ concurrency:
   group: rust-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   version:
     name: Version is new
@@ -33,8 +36,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       # Formatting covers the whole workspace, the app included.
       - run: cargo fmt --all --check
-      - run: cargo clippy -p masaya-core --all-targets -- -D warnings
-      - run: cargo test -p masaya-core
+      - run: cargo clippy -p masaya-core --all-targets --locked -- -D warnings
+      - run: cargo test -p masaya-core --locked
 
   nsh:
     name: NSH app (macOS)
@@ -45,5 +48,5 @@ jobs:
         with:
           components: clippy
       - uses: Swatinem/rust-cache@v2
-      - run: cargo clippy -p masaya-nsh --all-targets -- -D warnings
-      - run: cargo test -p masaya-nsh
+      - run: cargo clippy -p masaya-nsh --all-targets --locked -- -D warnings
+      - run: cargo test -p masaya-nsh --locked
