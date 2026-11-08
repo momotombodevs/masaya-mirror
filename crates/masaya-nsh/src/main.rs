@@ -12,6 +12,10 @@ fn main() -> impl std::process::Termination {
     logger.init();
     let components = platform::Components::default();
     masaya_nsh::macos::register(&components);
+    // Runs once the app's loop starts, after `run_app` has made the list window and the menu.
+    dispatch2::DispatchQueue::main().exec_async(|| {
+        masaya_nsh::macos::windows::install_devices_menu(masaya_nsh::copy::MENU_DEVICES);
+    });
     let exit = platform::run_app(
         platform::AppSource::Rust(platform::Root::of::<masaya_nsh::App>()),
         platform::AppOptions {

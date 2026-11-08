@@ -71,6 +71,21 @@ impl DeviceSource for Script {
 struct Windows {
     opened: Mutex<Vec<MirrorRequest>>,
     focused: Mutex<Vec<String>>,
+    closed: Mutex<Vec<(String, u64)>>,
+}
+
+impl Windows {
+    /// Waits for the screen to ask for its window to close.
+    fn wait_for_close(&self, app: &mut Headless) -> Vec<(String, u64)> {
+        for _ in 0..100 {
+            let closed = self.closed.lock().expect("closed").clone();
+            if !closed.is_empty() {
+                return closed;
+            }
+            app.idle(Duration::from_millis(20)).unwrap();
+        }
+        Vec::new()
+    }
 }
 
 impl WindowHost for Windows {
@@ -83,6 +98,13 @@ impl WindowHost for Windows {
             .lock()
             .expect("focused")
             .push(serial.to_owned());
+    }
+
+    fn close(&self, serial: &str, generation: u64) {
+        self.closed
+            .lock()
+            .expect("closed")
+            .push((serial.to_owned(), generation));
     }
 }
 
@@ -105,12 +127,19 @@ fn TestApp() -> impl IntoElement {
     masaya_nsh::shell(next.script, next.mirrors)
 }
 
-/// A mirror window's screen for phone `A1`.
+/// A mirror window's screen for phone `A1`, its window opened under generation 1.
 #[component]
 fn TestMirror() -> impl IntoElement {
     let next = NEXT.lock().expect("next").take();
     let next = next.expect("the test sets a source");
-    masaya_nsh::screens::mirror::mirror_screen(next.script, "A1".to_owned(), "Pixel 8".to_owned())
+    let mirrors = next.mirrors;
+    mirrors.open_or_focus("A1", "Pixel 8");
+    masaya_nsh::screens::mirror::mirror_screen(
+        next.script,
+        "A1".to_owned(),
+        "Pixel 8".to_owned(),
+        move || mirrors.close_window("A1", 1),
+    )
 }
 
 struct Started {
@@ -282,8 +311,18 @@ fn an_unauthorized_phone_says_what_to_do_and_an_online_one_opens_its_window() {
     assert!(started.windows.opened.lock().unwrap().is_empty());
 
     app.press("Pixel 8").unwrap();
-    // The phone's row says its window is open; the list stays, it never goes to loading.
+    // The phone's row says its window is open, in place of its status; the list stays, it
+    // never goes to loading.
     app.wait_for(copy::MIRRORING).unwrap();
+    assert_eq!(
+        app.screen()
+            .texts()
+            .iter()
+            .filter(|text| text.trim() == copy::STATUS_DEVICE)
+            .count(),
+        0,
+        "the open phone's status gave way to the badge (the other row is unauthorized)"
+    );
     assert!(app.screen().shows("Moto G"));
     assert!(!app.screen().shows(copy::LOADING));
     assert_eq!(
@@ -349,7 +388,7 @@ fn the_badge_goes_when_the_window_closes() {
 }
 
 #[test]
-fn escape_stays_in_the_mirror() {
+fn escape_without_video_closes_the_window() {
     let mut started = start_root(
         Script::new(|_, _| Ok(vec![pixel()])),
         Root::of::<TestMirror>(),
@@ -357,11 +396,53 @@ fn escape_stays_in_the_mirror() {
     );
     let app = &mut started.app;
     app.wait_for(copy::MIRROR_FAILED).unwrap();
-    // Escape is the phone's Back: it never closes the mirror (the window's close button does).
-    let _ = app.press_key("escape");
-    app.idle(Duration::from_millis(200)).unwrap();
-    assert!(app.screen().shows(copy::MIRROR_FAILED));
-    assert!(!app.screen().shows(copy::BACK));
+    // No video: Escape has nothing to send to the phone, so it closes the window.
+    app.press_key("escape").unwrap();
+    assert_eq!(started.windows.wait_for_close(app), [("A1".to_owned(), 1)]);
+}
+
+#[test]
+fn a_failed_mirror_can_be_closed_from_the_screen() {
+    let mut started = start_root(
+        Script::new(|_, _| Ok(vec![pixel()])),
+        Root::of::<TestMirror>(),
+        copy::MIRROR_STARTING,
+    );
+    let app = &mut started.app;
+    app.wait_for(copy::MIRROR_FAILED).unwrap();
+    assert!(app.screen().shows(copy::RETRY));
+    app.press(copy::CLOSE).unwrap();
+    assert_eq!(started.windows.wait_for_close(app), [("A1".to_owned(), 1)]);
+}
+
+#[test]
+fn an_open_phone_that_went_offline_still_shows_its_window() {
+    let mut started = start_root(
+        Script::new(|index, _| {
+            let status = if index == 0 {
+                DeviceStatus::Device
+            } else {
+                DeviceStatus::Offline
+            };
+            Ok(vec![phone("A1", status, "Pixel 8")])
+        }),
+        Root::of::<TestApp>(),
+        copy::LOADING,
+    );
+    let app = &mut started.app;
+    app.wait_for("Pixel 8").unwrap();
+    app.press("Pixel 8").unwrap();
+    app.wait_for(copy::MIRRORING).unwrap();
+    // The 2 s refresh finds it offline: its row says what to do, and still opens its window.
+    app.wait_for(copy::HINT_RECONNECT).unwrap();
+    app.press("Pixel 8").unwrap();
+    for _ in 0..50 {
+        if !started.windows.focused.lock().unwrap().is_empty() {
+            break;
+        }
+        app.idle(Duration::from_millis(20)).unwrap();
+    }
+    assert_eq!(*started.windows.focused.lock().unwrap(), ["A1"]);
 }
 
 #[test]

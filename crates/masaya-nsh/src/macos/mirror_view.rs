@@ -470,6 +470,8 @@ pub struct MirrorView {
     session: Option<String>,
     _probe: Option<PresentProbe>,
     _no_nap: NoNap,
+    /// This view's token for the renderer-failures counter of the metrics.
+    metrics_owner: u64,
 }
 
 impl MirrorView {
@@ -486,11 +488,13 @@ impl MirrorView {
         .then(|| PresentProbe::start(renderer.clone()))
         .flatten();
         let sink = Arc::new(LayerSink::new(renderer));
+        let metrics_owner = metrics::new_owner();
         if metrics::enabled() {
             let counted = sink.clone();
-            metrics::set_renderer_failures(Some(Box::new(move || {
-                counted.stats().renderer_failures
-            })));
+            metrics::set_renderer_failures(
+                metrics_owner,
+                Box::new(move || counted.stats().renderer_failures),
+            );
         }
         let view = MirrorNSView::new(mtm, sink.video_size());
         // A layer-hosting view: the layer is set first, then wanted, so AppKit keeps its frame
@@ -504,6 +508,7 @@ impl MirrorView {
             session: None,
             _probe: probe,
             _no_nap: NoNap::begin(),
+            metrics_owner,
         }
     }
 
@@ -541,6 +546,7 @@ impl NativeComponent for MirrorView {
 impl Drop for MirrorView {
     fn drop(&mut self) {
         self.detach();
+        metrics::clear_renderer_failures(self.metrics_owner);
     }
 }
 

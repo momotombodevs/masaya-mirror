@@ -159,20 +159,23 @@ fn device_row(
 ) -> impl IntoElement {
     let openable = move || row.with(DeviceRow::openable);
     let open = move || row.with(|row| mirroring.with(|open| open.contains(&row.id)));
+    // A phone whose window is open stays reachable even if it went offline: pressing it shows
+    // the window.
+    let pressable = move || openable() || open();
     button()
-        .disabled(move || !openable())
+        .disabled(move || !pressable())
         .accessibility_label(move || {
-            let label = row.with(DeviceRow::accessibility_label);
             Some(SharedString::from(if open() {
-                copy::mirroring_label(&label)
+                row.with(|row| copy::mirroring_label(&row.label))
             } else {
-                label
+                row.with(DeviceRow::accessibility_label)
             }))
         })
         .on_press(move || {
-            let row = row.get_untracked();
-            if row.openable() {
-                on_open(row.id, row.label);
+            if pressable() {
+                let row = row.get_untracked();
+                let title = row.window_title();
+                on_open(row.id, title);
             }
         })
         .p_3()
@@ -180,7 +183,13 @@ fn device_row(
         .rounded(move || theme().radius)
         .border_1()
         .border_color(move || theme().border)
-        .opacity(move || if openable() { 1.0 } else { UNAVAILABLE_OPACITY })
+        .opacity(move || {
+            if pressable() {
+                1.0
+            } else {
+                UNAVAILABLE_OPACITY
+            }
+        })
         .active(|s| s.bg(move || theme().muted))
         .child(
             view()
@@ -201,12 +210,16 @@ fn device_row(
                             }
                         }),
                 )
+                // An open window's badge takes the status's place.
                 .child(when(open, mirroring_badge))
-                .child(
-                    text(move || row.with(DeviceRow::status_text))
-                        .text_size(px(12.0))
-                        .text_color(move || theme().muted_foreground),
-                ),
+                .child(when(
+                    move || !open(),
+                    move || {
+                        text(move || row.with(DeviceRow::status_text))
+                            .text_size(px(12.0))
+                            .text_color(move || theme().muted_foreground)
+                    },
+                )),
         )
         .child(when(
             move || row.with(|row| row.show_id),
@@ -227,17 +240,31 @@ fn device_row(
         ))
 }
 
-/// Says a phone's mirror window is open.
+/// Says a phone's mirror window is open: a live dot and the word, on a muted fill.
 fn mirroring_badge() -> impl IntoElement {
     view()
+        .flex_row()
+        .items_center()
+        .gap_1()
+        .flex_shrink_0()
         .px_2()
         .py(px(2.0))
-        .rounded(move || theme().radius)
-        .bg(move || theme().primary)
+        .rounded_full()
+        .bg(move || theme().muted)
+        .child(
+            view()
+                .size(px(6.0))
+                .rounded_full()
+                // nsh-base has no success token: an app theme may name one, else chart 2.
+                .bg(move || {
+                    let theme = theme();
+                    theme.color("success").unwrap_or(theme.chart_2)
+                }),
+        )
         .child(
             text(copy::MIRRORING)
                 .text_size(px(11.0))
                 .font_weight(FontWeight::MEDIUM)
-                .text_color(move || theme().primary_foreground),
+                .text_color(move || theme().foreground),
         )
 }

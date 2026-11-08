@@ -17,6 +17,7 @@ use crate::copy;
 use crate::mirror::{control, pump, sink};
 use crate::source::{AdbSource, DeviceSource};
 use crate::state::{MirrorKind, MirrorView};
+use crate::windows::OpenMirrors;
 use crate::{bench, metrics};
 
 /// The phone a mirror window shows.
@@ -25,13 +26,25 @@ pub struct MirrorWindowProps {
     pub serial: String,
     /// The phone's name, which titles the window.
     pub label: String,
+    /// The window's generation ([`crate::windows::MirrorRequest`]), so closing it from the
+    /// screen never closes a newer window of the same phone.
+    pub generation: u64,
 }
 
 /// A mirror window's root: the phone of `serial`, through adb.
 #[component]
 pub fn MirrorWindow(props: MirrorWindowProps) -> impl IntoElement {
     let source: Arc<dyn DeviceSource> = Arc::new(AdbSource::new(Locale::default()));
-    mirror_screen(source, props.serial, props.label)
+    let MirrorWindowProps {
+        serial,
+        label,
+        generation,
+    } = props;
+    let on_close = {
+        let serial = serial.clone();
+        move || OpenMirrors::global().close_window(&serial, generation)
+    };
+    mirror_screen(source, serial, label, on_close)
 }
 
 /// The native view that shows the video (registered by `main.rs` on macOS).
@@ -40,12 +53,23 @@ pub const MIRROR_COMPONENT: &str = "masaya.mirror";
 /// How long the native view may take to attach before the screen gives up on it.
 const ATTACH_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
 
+/// What [`Running`] closes: the scrcpy session, or a fake in tests.
+trait Session {
+    /// Closes the sockets, which stops the server on the phone.
+    fn close(self);
+}
+
+impl Session for ScrcpySession {
+    fn close(self) {
+        ScrcpySession::close(self);
+    }
+}
+
 /// What the screen owns while it shows: closed and aborted when it goes or starts again.
-#[derive(Default)]
-struct Running {
-    /// The start in progress: Back or Escape while connecting cancels it.
+struct Running<S: Session = ScrcpySession> {
+    /// The start in progress: starting again or closing the window cancels it.
     starting: Option<AbortHandle>,
-    session: Option<ScrcpySession>,
+    session: Option<S>,
     pump: Option<AbortHandle>,
     /// The task that sends the view's input to the phone, in order.
     input: Option<AbortHandle>,
@@ -54,9 +78,27 @@ struct Running {
     attached: bool,
     /// Bumped by every stop: a task started for an earlier attempt sees it and does nothing.
     generation: u64,
+    /// Where the video and the input of the session meet the view.
+    registry: &'static sink::Registry,
+    /// This screen's token for the dropped-moves counter of the metrics.
+    metrics_owner: u64,
 }
 
-impl Running {
+impl<S: Session> Running<S> {
+    fn new(registry: &'static sink::Registry) -> Self {
+        Self {
+            starting: None,
+            session: None,
+            pump: None,
+            input: None,
+            key: None,
+            attached: false,
+            generation: 0,
+            registry,
+            metrics_owner: metrics::new_owner(),
+        }
+    }
+
     fn stop(&mut self) {
         self.generation = self.generation.wrapping_add(1);
         self.attached = false;
@@ -67,25 +109,29 @@ impl Running {
             task.abort();
         }
         if let Some(session) = self.session.take() {
-            // Closes the sockets, which stops the server on the phone.
             session.close();
         }
         if let Some(key) = self.key.take() {
-            sink::registry().close(&key);
-            metrics::set_dropped_moves(None);
+            self.registry.close(&key);
+            metrics::clear_dropped_moves(self.metrics_owner);
         }
     }
+}
 
+impl Running<ScrcpySession> {
     /// Keeps a started session: its input channel and task, and its key in the registry.
     fn begin(&mut self, key: &str, session: ScrcpySession) {
         // One channel and one task for the input: the phone gets every message in the order
         // the view sent it.
         let (sender, messages) = tokio::sync::mpsc::unbounded_channel();
-        sink::registry().open(key);
-        sink::registry().set_input(key, sender);
+        self.registry.open(key);
+        self.registry.set_input(key, sender);
         let control_handle = session.control();
         let counted = control_handle.clone();
-        metrics::set_dropped_moves(Some(Box::new(move || counted.dropped_moves())));
+        metrics::set_dropped_moves(
+            self.metrics_owner,
+            Box::new(move || counted.dropped_moves()),
+        );
         let input = background(control::forward_in_order(messages, move |message| {
             let control_handle = control_handle.clone();
             async move {
@@ -105,7 +151,7 @@ impl Running {
     }
 }
 
-impl Drop for Running {
+impl<S: Session> Drop for Running<S> {
     /// A window's engine tears down without running cleanups: the last owner of the state
     /// (the screen, or a task the teardown cancels) closes the session as it goes.
     fn drop(&mut self) {
@@ -113,18 +159,20 @@ impl Drop for Running {
     }
 }
 
-/// The mirror of `serial` (`label` names it to the screen reader). Escape goes to the phone as
-/// Back; the window's close button and `⌘W` close it.
+/// The mirror of `serial` (`label` names it to the screen reader). While the video shows, Escape
+/// goes to the phone as Back; without video (connecting, failed, ended) Escape and the Close
+/// button call `on_close`. The window's close button and `⌘W` close it too.
 pub fn mirror_screen(
     source: Arc<dyn DeviceSource>,
     serial: String,
     label: String,
+    on_close: impl Fn() + 'static,
 ) -> impl IntoElement {
     let state = signal(MirrorView::Starting);
     // Tasks are started from buttons and events whose branch goes when the state changes: they
     // run under the screen's owner, so they live as long as the screen.
     let owner = Owner::current();
-    let running = Rc::new(RefCell::new(Running::default()));
+    let running = Rc::new(RefCell::new(Running::new(sink::registry())));
     {
         let running = running.clone();
         cleanup(move || running.borrow_mut().stop());
@@ -132,10 +180,13 @@ pub fn mirror_screen(
 
     let start = {
         let running = running.clone();
+        let connecting = copy::mirror_connecting_announcement(&label);
         Rc::new(move || {
             running.borrow_mut().stop();
             let generation = running.borrow().generation;
             state.set(MirrorView::Starting);
+            log::debug!("mirror: connecting to {serial}");
+            announce_for_accessibility(connecting.clone());
             let (source, serial, running) = (source.clone(), serial.clone(), running.clone());
             owner.run(|| {
                 spawn(async move {
@@ -188,6 +239,7 @@ pub fn mirror_screen(
     // configuration (the stream's first packet) always finds it.
     let on_attached = {
         let running = running.clone();
+        let live = copy::mirror_live_announcement(&label);
         move |key: String| {
             let (reader, generation) = {
                 let mut running = running.borrow_mut();
@@ -199,6 +251,7 @@ pub fn mirror_screen(
                 (reader, running.generation)
             };
             let Some(reader) = reader else { return };
+            announce_for_accessibility(live.clone());
             if let MirrorView::Running { width, height, .. } = state.get_untracked() {
                 bench::start_from_env(&key, width, height);
             }
@@ -230,6 +283,17 @@ pub fn mirror_screen(
     let kind = computed(move || state.with(MirrorView::kind));
     let on_attached = Rc::new(on_attached);
     let video_label = copy::mirror_label(&label);
+    let on_close: Rc<dyn Fn()> = Rc::new(on_close);
+    {
+        // With the video showing, its view has the keyboard and Escape goes to the phone; the
+        // check keeps Escape from closing the window if NSH's root has it then.
+        let on_close = on_close.clone();
+        on_key("escape", move |_| {
+            if kind.get_untracked() != MirrorKind::Running {
+                on_close();
+            }
+        });
+    }
 
     view()
         .flex_1()
@@ -240,15 +304,29 @@ pub fn mirror_screen(
                 .into_element(),
             MirrorKind::Failed => {
                 let start = start.clone();
-                problem(state, copy::MIRROR_FAILED, copy::RETRY, move || start()).into_element()
+                problem(
+                    state,
+                    Problem {
+                        title: copy::MIRROR_FAILED,
+                        hint: None,
+                        action: copy::RETRY,
+                    },
+                    move || start(),
+                    on_close.clone(),
+                )
+                .into_element()
             }
             MirrorKind::Ended => {
                 let start = start.clone();
                 problem(
                     state,
-                    copy::MIRROR_ENDED,
-                    copy::MIRROR_RECONNECT,
+                    Problem {
+                        title: copy::MIRROR_ENDED,
+                        hint: Some(copy::MIRROR_ENDED_HINT),
+                        action: copy::MIRROR_RECONNECT,
+                    },
                     move || start(),
+                    on_close.clone(),
                 )
                 .into_element()
             }
@@ -263,8 +341,9 @@ pub fn mirror_screen(
                             on_attached(key.to_owned());
                         }
                     })
-                    .role(AccessibilityRole::Image)
+                    .role(AccessibilityRole::Group)
                     .label(video_label.clone())
+                    .hint(copy::MIRROR_VIDEO_HINT)
                     .flex_1()
                     .bg(black())
                     .into_element()
@@ -287,13 +366,28 @@ fn muted(copy: &'static str) -> Text {
         .text_color(move || theme().muted_foreground)
 }
 
-/// A failure or an end: what happened, adb's or the stream's detail, and how to try again.
+/// The words of a failure or an end.
+struct Problem {
+    title: &'static str,
+    /// What to do about it, under adb's or the stream's detail.
+    hint: Option<&'static str>,
+    /// The main action: try again.
+    action: &'static str,
+}
+
+/// A failure or an end: what happened, adb's or the stream's detail, what to do, how to try
+/// again, and a way to close the window.
 fn problem(
     state: Signal<MirrorView>,
-    title: &'static str,
-    action: &'static str,
+    words: Problem,
     on_press: impl Fn() + 'static,
+    on_close: Rc<dyn Fn()>,
 ) -> impl IntoElement {
+    let Problem {
+        title,
+        hint,
+        action,
+    } = words;
     centered()
         .role(AccessibilityRole::Alert)
         .child(
@@ -310,14 +404,90 @@ fn problem(
                     .text_color(move || theme().muted_foreground)
             },
         ))
+        .child(when(
+            move || hint.is_some(),
+            move || muted(hint.unwrap_or_default()),
+        ))
         .child(
-            button()
-                .on_press(on_press)
-                .px_4()
-                .py_2()
-                .rounded(move || theme().radius)
-                .bg(move || theme().primary)
-                .active(|s| s.opacity(0.6))
-                .child(text(action).text_color(move || theme().primary_foreground)),
+            view()
+                .flex_row()
+                .gap_2()
+                .child(
+                    button()
+                        .on_press(on_press)
+                        .px_4()
+                        .py_2()
+                        .rounded(move || theme().radius)
+                        .bg(move || theme().primary)
+                        .active(|s| s.opacity(0.6))
+                        .child(text(action).text_color(move || theme().primary_foreground)),
+                )
+                .child(
+                    button()
+                        .on_press(move || on_close())
+                        .px_4()
+                        .py_2()
+                        .rounded(move || theme().radius)
+                        .border_1()
+                        .border_color(move || theme().border)
+                        .active(|s| s.opacity(0.6))
+                        .child(text(copy::CLOSE).text_color(move || theme().foreground)),
+                ),
         )
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    use super::*;
+
+    /// Counts its closes.
+    struct Fake(Arc<AtomicUsize>);
+
+    impl Session for Fake {
+        fn close(self) {
+            self.0.fetch_add(1, Ordering::SeqCst);
+        }
+    }
+
+    fn registry() -> &'static sink::Registry {
+        Box::leak(Box::default())
+    }
+
+    fn running(closes: &Arc<AtomicUsize>, registry: &'static sink::Registry) -> Running<Fake> {
+        let mut running = Running::new(registry);
+        running.session = Some(Fake(closes.clone()));
+        running.key = Some("A1#1".into());
+        registry.open("A1#1");
+        running
+    }
+
+    #[test]
+    fn dropping_the_state_closes_the_session_and_its_key() {
+        let closes = Arc::new(AtomicUsize::new(0));
+        let registry = registry();
+        let running = running(&closes, registry);
+
+        // The engine's teardown drops it without running the screen's cleanup.
+        drop(running);
+        assert_eq!(closes.load(Ordering::SeqCst), 1);
+        assert!(!registry.is_open("A1#1"));
+    }
+
+    #[test]
+    fn a_stop_then_a_drop_closes_each_once() {
+        let closes = Arc::new(AtomicUsize::new(0));
+        let registry = registry();
+        let mut running = running(&closes, registry);
+
+        running.stop();
+        assert_eq!(closes.load(Ordering::SeqCst), 1);
+        assert!(!registry.is_open("A1#1"));
+        // Something opens the key again: the drop that follows must not close it a second time.
+        registry.open("A1#1");
+        drop(running);
+        assert_eq!(closes.load(Ordering::SeqCst), 1);
+        assert!(registry.is_open("A1#1"));
+    }
 }

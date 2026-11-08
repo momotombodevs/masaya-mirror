@@ -22,7 +22,6 @@ pub const HINT_UNAUTHORIZED: &str =
     "Desbloquea el teléfono y toca Permitir en el aviso de depuración USB";
 pub const HINT_RECONNECT: &str = "Desconecta y vuelve a conectar el cable USB";
 
-pub const BACK: &str = "Volver";
 pub const MIRROR_STARTING: &str = "Conectando con el teléfono…";
 pub const MIRROR_FAILED: &str = "No se pudo iniciar el espejo.";
 pub const MIRROR_ENDED: &str = "La transmisión terminó.";
@@ -54,10 +53,39 @@ pub fn devices_announcement(count: usize) -> String {
     }
 }
 
-/// The badge of a phone whose mirror window is open (English: "Mirroring").
-pub const MIRRORING: &str = "Reflejando";
+// --- Mirror windows (slice 1.3). English in each comment, for the i18n module. ---
 
-/// The screen reader's label of a phone whose mirror window is open: pressing it focuses it.
+/// The badge of a phone whose mirror window is open, in place of its status (en: "Mirroring").
+pub const MIRRORING: &str = "Duplicando";
+/// The secondary action of a mirror that failed or ended (en: "Close").
+pub const CLOSE: &str = "Cerrar";
+/// What to do when the stream ends (en: "Check the USB cable and press Reconnect.").
+pub const MIRROR_ENDED_HINT: &str = "Revisa el cable USB y pulsa Reconectar.";
+/// The video's screen reader hint (en: "Keys and clicks go to the phone. Escape is Back.
+/// Command W closes the window.").
+pub const MIRROR_VIDEO_HINT: &str =
+    "Las teclas y los clics van al teléfono. Escape es Atrás. Comando W cierra la ventana.";
+/// The Window menu's item that shows the list again (en: "Devices").
+pub const MENU_DEVICES: &str = "Dispositivos";
+
+/// The screen reader's label of a phone whose mirror window is open: pressing it shows the
+/// window (en: "Show {name}'s window, mirroring").
 pub fn mirroring_label(name: &str) -> String {
-    format!("{name}, {MIRRORING}")
+    format!("Mostrar ventana de {name}, duplicando")
+}
+
+/// Announced when a mirror window starts connecting (en: "Connecting to {name}").
+pub fn mirror_connecting_announcement(name: &str) -> String {
+    format!("Conectando con {name}")
+}
+
+/// Announced once the video shows (en: "{name}'s mirror is live. Escape is Back.").
+pub fn mirror_live_announcement(name: &str) -> String {
+    format!("Espejo de {name} activo. Escape es Atrás.")
+}
+
+/// A phone's window title and video name when the list shows ids, so two phones of the same
+/// model can be told apart (en: same).
+pub fn mirror_title(label: &str, id: &str) -> String {
+    format!("{label} · {id}")
 }

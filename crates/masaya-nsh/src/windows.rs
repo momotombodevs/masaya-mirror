@@ -29,6 +29,9 @@ pub trait WindowHost: Send + Sync {
     fn open(&self, mirrors: OpenMirrors, request: MirrorRequest);
     /// Brings the window of `serial` to the front.
     fn focus(&self, serial: &str);
+    /// Closes the window of `serial` made under `generation`, as its close button does (a newer
+    /// window of the same phone stays).
+    fn close(&self, serial: &str, generation: u64);
 }
 
 /// What [`OpenMirrors::open_or_focus`] did.
@@ -83,6 +86,9 @@ impl OpenMirrors {
     pub fn open_or_focus(&self, serial: &str, label: &str) -> Opened {
         let opened = {
             let mut state = self.state();
+            // A click while the phone's window is closing (its close not reported yet) focuses
+            // nothing: the window is going. The close arrives right after, and the next click
+            // opens a new one.
             if state.open.contains_key(serial) {
                 Opened::Focused
             } else {
@@ -120,6 +126,17 @@ impl OpenMirrors {
         state.open.remove(serial);
         self.publish(&state);
         true
+    }
+
+    /// Asks the host to close the window of `serial` made under `generation` (the screen's
+    /// Close button, or Escape without video). Its close then reports [`Self::closed`].
+    pub fn close_window(&self, serial: &str, generation: u64) {
+        if self.state().open.get(serial) != Some(&generation) {
+            return;
+        }
+        if let Some(host) = &self.host {
+            host.close(serial, generation);
+        }
     }
 
     pub fn is_open(&self, serial: &str) -> bool {
@@ -160,6 +177,7 @@ mod tests {
     struct Recorder {
         opened: Mutex<Vec<MirrorRequest>>,
         focused: Mutex<Vec<String>>,
+        closed: Mutex<Vec<(String, u64)>>,
     }
 
     impl WindowHost for Recorder {
@@ -169,6 +187,13 @@ mod tests {
 
         fn focus(&self, serial: &str) {
             self.focused.lock().unwrap().push(serial.to_owned());
+        }
+
+        fn close(&self, serial: &str, generation: u64) {
+            self.closed
+                .lock()
+                .unwrap()
+                .push((serial.to_owned(), generation));
         }
     }
 
@@ -263,5 +288,17 @@ mod tests {
             Opened::New { generation: 1 }
         );
         assert!(mirrors.is_open("A1"));
+    }
+
+    #[test]
+    fn closing_from_the_screen_targets_only_its_own_window() {
+        let (mirrors, host) = with_recorder();
+        mirrors.open_or_focus("A1", "Pixel 8");
+        mirrors.closed("A1", 1);
+        mirrors.open_or_focus("A1", "Pixel 8");
+        // The first window's screen asks late: the newer window stays.
+        mirrors.close_window("A1", 1);
+        mirrors.close_window("A1", 2);
+        assert_eq!(*host.closed.lock().unwrap(), [("A1".to_owned(), 2)]);
     }
 }

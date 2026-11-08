@@ -91,6 +91,11 @@ impl Registry {
         self.slots().get(key).and_then(|slot| slot.input.clone())
     }
 
+    /// Whether the session of `key` is open.
+    pub fn is_open(&self, key: &str) -> bool {
+        self.slots().contains_key(key)
+    }
+
     /// The session ended: forget it.
     pub fn close(&self, key: &str) {
         self.slots().remove(key);

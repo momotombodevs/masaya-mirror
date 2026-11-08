@@ -59,9 +59,10 @@ pub fn App() -> impl IntoElement {
 pub fn shell(source: Arc<dyn source::DeviceSource>, mirrors: OpenMirrors) -> impl IntoElement {
     let devices = DevicesStore::start(source);
     // The phones with a window open, whichever thread their windows run on.
-    let mirroring = signal(mirrors.serials());
+    // Subscribed before the first read, so a window that opens in between is not missed.
+    let mut serials = mirrors.subscribe();
+    let mirroring = signal(serials.borrow_and_update().clone());
     {
-        let mut serials = mirrors.subscribe();
         spawn(async move {
             while serials.changed().await.is_ok() {
                 let open: BTreeSet<String> = serials.borrow_and_update().clone();
