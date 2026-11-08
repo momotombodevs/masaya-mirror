@@ -5,8 +5,8 @@
 //! Closing a window (its close button or `⌘W`) stops its view: the engine's teardown drops the
 //! screen's state, which closes the scrcpy session. Quitting closes them all ([`close_all`]).
 //!
-//! The list's window is NSH's; [`install_devices_menu`] remembers it, puts the first mirror
-//! window beside it and adds Window > Dispositivos (`⌘0`) to bring it back once it was closed.
+//! The list's window is NSH's; [`remember_list`] remembers it, so the first mirror window goes
+//! beside it and Window > Dispositivos (`⌘0`, [`show_devices`]) brings it back once it was closed.
 
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
@@ -14,22 +14,23 @@ use std::rc::Rc;
 
 use nsh_platform_macos::{App, AppOptions, AppView, Components, Root};
 use objc2::rc::Retained;
-use objc2::runtime::{AnyObject, ProtocolObject};
-use objc2::{DefinedClass, MainThreadMarker, MainThreadOnly, define_class, msg_send, sel};
+use objc2::runtime::ProtocolObject;
+use objc2::{DefinedClass, MainThreadMarker, MainThreadOnly, define_class, msg_send};
 use objc2_app_kit::{
-    NSApplication, NSBackingStoreType, NSMenuItem, NSWindow, NSWindowDelegate, NSWindowStyleMask,
+    NSApplication, NSBackingStoreType, NSScreen, NSWindow, NSWindowDelegate, NSWindowStyleMask,
 };
 use objc2_foundation::{
     NSNotification, NSObject, NSObjectProtocol, NSPoint, NSRect, NSSize, NSString,
 };
 
+use crate::layout::{self, Orientation, WindowLayout, WindowNow};
 use crate::screens::mirror::{MirrorWindow, MirrorWindowProps};
-use crate::windows::{MirrorRequest, OpenMirrors, WindowHost};
+use crate::settings::SettingsHub;
+use crate::windows::{MirrorRequest, OpenMirrors, WindowEvent, WindowHost};
 
-/// The window's first content size, in points (slice 1.4 sizes it to the phone).
+/// The window's first content size, in points, until the first video sizes it to the phone
+/// ([`fit_to_video`]).
 const INITIAL_SIZE: (f64, f64) = (420.0, 860.0);
-/// The smallest content size the window can be resized to.
-const MIN_SIZE: (f64, f64) = (280.0, 480.0);
 /// The gap between the list's window and the first mirror window beside it.
 const GAP: f64 = 12.0;
 
@@ -95,6 +96,8 @@ struct Open {
     _delegate: Retained<WindowDelegate>,
     generation: u64,
     mirrors: OpenMirrors,
+    /// Sized to the first video, then turned with the phone; kept across reconnects.
+    layout: WindowLayout,
 }
 
 impl Open {
@@ -117,10 +120,8 @@ thread_local! {
     /// Where the next window's top left goes, so new windows cascade instead of stacking.
     /// `None` while no mirror window is open: the next one goes beside the list.
     static CASCADE: Cell<Option<NSPoint>> = const { Cell::new(None) };
-    /// The list's window (NSH's), once [`install_devices_menu`] found it.
+    /// The list's window (NSH's), once [`remember_list`] found it.
     static LIST: RefCell<Option<Retained<NSWindow>>> = const { RefCell::new(None) };
-    /// The Window menu item's target, kept: a menu item holds its target weakly.
-    static MENU_TARGET: RefCell<Option<Retained<MenuTarget>>> = const { RefCell::new(None) };
 }
 
 pub struct DelegateIvars {
@@ -144,6 +145,16 @@ define_class!(
             let DelegateIvars { serial, generation } = self.ivars();
             close(serial, *generation);
         }
+
+        #[unsafe(method(windowDidEnterFullScreen:))]
+        fn window_did_enter_full_screen(&self, _notification: &NSNotification) {
+            self.tell(WindowEvent::FullScreen(true));
+        }
+
+        #[unsafe(method(windowDidExitFullScreen:))]
+        fn window_did_exit_full_screen(&self, _notification: &NSNotification) {
+            self.tell(WindowEvent::FullScreen(false));
+        }
     }
 );
 
@@ -152,6 +163,22 @@ impl WindowDelegate {
         let this = Self::alloc(mtm).set_ivars(DelegateIvars { serial, generation });
         // SAFETY: NSObject's designated initializer.
         unsafe { msg_send![super(this), init] }
+    }
+
+    /// Tells this window's screen about `event`.
+    fn tell(&self, event: WindowEvent) {
+        let DelegateIvars { serial, generation } = self.ivars();
+        let mirrors = WINDOWS.with(|windows| {
+            windows
+                .borrow()
+                .get(serial)
+                .filter(|open| open.generation == *generation)
+                .map(|open| open.mirrors.clone())
+        });
+        if let Some(mirrors) = mirrors {
+            log::debug!("mirror window of {serial}: {event:?}");
+            mirrors.send(serial, *generation, event);
+        }
     }
 }
 
@@ -191,7 +218,8 @@ fn open(mtm: MainThreadMarker, mirrors: OpenMirrors, request: MirrorRequest) {
     // SAFETY: the window is kept in `WINDOWS` until it closes, then released after its close.
     unsafe { window.setReleasedWhenClosed(false) };
     window.setTitle(&NSString::from_str(&label));
-    window.setContentMinSize(NSSize::new(MIN_SIZE.0, MIN_SIZE.1));
+    let min = layout::min_content_size(Orientation::Portrait);
+    window.setContentMinSize(NSSize::new(min.width, min.height));
 
     // Each view has its own registry: the mirror's native view is registered on every one.
     let components = Components::default();
@@ -240,9 +268,63 @@ fn open(mtm: MainThreadMarker, mirrors: OpenMirrors, request: MirrorRequest) {
                 _delegate: delegate,
                 generation,
                 mirrors,
+                layout: WindowLayout::default(),
             },
         );
     });
+}
+
+/// The video of the mirror shown in `window` is now `width`×`height` (its first configuration, or
+/// the phone turned): sizes the window to it, keeping its top left corner and keeping it on its
+/// screen. A window the user made full screen or zoomed keeps its size. Main thread only.
+pub fn fit_to_video(window: &NSWindow, width: u32, height: u32) {
+    let content = window.contentRectForFrameRect(window.frame()).size;
+    // A window off every screen (moved away, a display unplugged) fits the main screen.
+    let screen = window
+        .screen()
+        .or_else(|| NSScreen::mainScreen(MainThreadMarker::from(window)));
+    let Some(area) = screen.map(|screen| screen.visibleFrame()) else {
+        log::warn!("mirror window: no screen to fit the video in");
+        return;
+    };
+    let now = WindowNow {
+        content: layout::Size::new(content.width, content.height),
+        work_area: layout::Size::new(area.size.width, area.size.height),
+        navigation_bar: SettingsHub::global().with_settings(|settings| settings.navigation_bar),
+        user_sized: window.styleMask().contains(NSWindowStyleMask::FullScreen) || window.isZoomed(),
+    };
+    let resize = WINDOWS.with(|windows| {
+        let mut windows = windows.borrow_mut();
+        let open = windows
+            .values_mut()
+            .find(|open| std::ptr::eq(&*open.window, window))?;
+        open.layout.video_changed(width, height, now)
+    });
+    let Some(resize) = resize else {
+        log::debug!("mirror window: video {width}×{height}, size kept");
+        return;
+    };
+    window.setContentMinSize(NSSize::new(resize.min.width, resize.min.height));
+    let frame = window.frame();
+    let wanted = window.frameRectForContentRect(NSRect::new(
+        NSPoint::new(0.0, 0.0),
+        NSSize::new(resize.content.width, resize.content.height),
+    ));
+    // The top left corner stays where it was: AppKit's origin is the bottom left.
+    let top = frame.origin.y + frame.size.height;
+    let origin = clamp(
+        NSPoint::new(frame.origin.x, top - wanted.size.height),
+        wanted.size,
+        area,
+    );
+    window.setFrame_display(NSRect::new(origin, wanted.size), true);
+    log::info!(
+        "mirror window: video {width}×{height}, content {:.0}×{:.0} → {:.0}×{:.0}",
+        content.width,
+        content.height,
+        resize.content.width,
+        resize.content.height
+    );
 }
 
 /// The window of `serial` made under `generation` closed.
@@ -306,39 +388,9 @@ fn clamp(origin: NSPoint, size: NSSize, area: NSRect) -> NSPoint {
     )
 }
 
-define_class!(
-    /// Window > Dispositivos: shows the list's window again.
-    #[unsafe(super(NSObject))]
-    #[thread_kind = MainThreadOnly]
-    #[name = "MasayaDevicesMenuTarget"]
-    struct MenuTarget;
-
-    unsafe impl NSObjectProtocol for MenuTarget {}
-
-    impl MenuTarget {
-        #[unsafe(method(showDevices:))]
-        fn show_devices(&self, _sender: Option<&AnyObject>) {
-            let Some(list) = LIST.with(|list| list.borrow().clone()) else {
-                return;
-            };
-            if list.isMiniaturized() {
-                list.deminiaturize(None);
-            }
-            list.makeKeyAndOrderFront(None);
-            NSApplication::sharedApplication(MainThreadMarker::from(self)).activate();
-        }
-    }
-);
-
-/// Remembers the list's window (the one window open now that is not a mirror's) and adds
-/// Window > Dispositivos (`⌘0`). Call it on the main queue once NSH's app runs: `main.rs`
-/// queues it before `run_app`, which has set the menu by the time the queue runs.
-pub fn install_devices_menu(title: &str) {
-    let Some(mtm) = MainThreadMarker::new() else {
-        log::error!("the devices menu must be installed on the main thread");
-        return;
-    };
-    let app = NSApplication::sharedApplication(mtm);
+/// Remembers the list's window: the one window open now that is not a mirror's. Call it on the
+/// main queue once NSH's app runs (`macos::menu::install` does).
+pub fn remember_list(mtm: MainThreadMarker) {
     let mirrors: Vec<Retained<NSWindow>> = WINDOWS.with(|windows| {
         windows
             .borrow()
@@ -346,39 +398,36 @@ pub fn install_devices_menu(title: &str) {
             .map(|open| open.window.clone())
             .collect()
     });
-    let list = app
+    let list = NSApplication::sharedApplication(mtm)
         .windows()
         .iter()
         .find(|window| !mirrors.contains(window));
     LIST.with(|slot| *slot.borrow_mut() = list);
+}
 
-    let Some(menu) = app.mainMenu() else {
+/// Window > Dispositivos: shows the list's window again, even after it was closed.
+pub fn show_devices(mtm: MainThreadMarker) {
+    let Some(list) = LIST.with(|list| list.borrow().clone()) else {
         return;
     };
-    let window_menu = menu
-        .itemArray()
-        .iter()
-        .find(|item| item.title().to_string() == "Window")
-        .and_then(|item| item.submenu());
-    let Some(window_menu) = window_menu else {
-        log::warn!("no Window menu to add {title} to");
-        return;
-    };
-    let target: Retained<MenuTarget> = unsafe { msg_send![MenuTarget::alloc(mtm), init] };
-    // SAFETY: `showDevices:` is a method of the target, which `MENU_TARGET` keeps.
-    let item = unsafe {
-        let item = NSMenuItem::initWithTitle_action_keyEquivalent(
-            NSMenuItem::alloc(mtm),
-            &NSString::from_str(title),
-            Some(sel!(showDevices:)),
-            &NSString::from_str("0"),
-        );
-        item.setTarget(Some(&target));
-        item
-    };
-    window_menu.addItem(&NSMenuItem::separatorItem(mtm));
-    window_menu.addItem(&item);
-    MENU_TARGET.with(|slot| *slot.borrow_mut() = Some(target));
+    if list.isMiniaturized() {
+        list.deminiaturize(None);
+    }
+    list.makeKeyAndOrderFront(None);
+    NSApplication::sharedApplication(mtm).activate();
+}
+
+/// The mirror window that is key now: its phone, its generation and where to tell its screen.
+/// `None` while the list (or no window of the app) is key.
+pub fn key_mirror(mtm: MainThreadMarker) -> Option<(String, u64, OpenMirrors)> {
+    let key = NSApplication::sharedApplication(mtm).keyWindow()?;
+    WINDOWS.with(|windows| {
+        windows
+            .borrow()
+            .iter()
+            .find(|(_, open)| open.window == key)
+            .map(|(serial, open)| (serial.clone(), open.generation, open.mirrors.clone()))
+    })
 }
 
 /// Closes every mirror window and stops its view, which closes its session: the app quits.

@@ -11,9 +11,10 @@ use std::ptr::{self, NonNull};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
+use dispatch2::MainThreadBound;
 use nsh_platform_macos::{ComponentContext, NativeComponent};
 use objc2::MainThreadMarker;
-use objc2::rc::Retained;
+use objc2::rc::{Retained, Weak};
 use objc2::runtime::{NSObjectProtocol, ProtocolObject};
 use objc2_app_kit::NSView;
 use objc2_foundation::{NSActivityOptions, NSProcessInfo, NSString};
@@ -105,12 +106,17 @@ fn worth_logging(count: u64) -> bool {
     count.is_power_of_two()
 }
 
+/// Hears the video's new size (`width`, `height`), on the pump's thread.
+type SizeListener = Box<dyn Fn(u32, u32) + Send + Sync>;
+
 /// Turns scrcpy's packets into sample buffers for the layer.
 pub struct LayerSink {
     decoder: Mutex<Decoder>,
     /// The video's size from the current configuration, `width << 32 | height` (0 before the
     /// first): the view maps its input through it, and it changes when the phone rotates.
     video_size: Arc<AtomicU64>,
+    /// Told when the size changes: the window fits itself to the video.
+    size_listener: Mutex<Option<SizeListener>>,
 }
 
 /// Reads a size [`LayerSink`] stored.
@@ -130,7 +136,26 @@ impl LayerSink {
                 stats: SinkStats::default(),
             }),
             video_size: Arc::new(AtomicU64::new(0)),
+            size_listener: Mutex::new(None),
         }
+    }
+
+    /// Calls `listener` with the video's size each time a configuration changes it (the first
+    /// one, and each rotation), until [`Self::clear_size_listener`].
+    pub fn on_size_change(&self, listener: impl Fn(u32, u32) + Send + Sync + 'static) {
+        *self.listener() = Some(Box::new(listener));
+    }
+
+    /// Drops the listener, on the caller's thread: the view clears it on the main thread, so
+    /// what the listener holds of the view is never released on the pump's thread.
+    pub fn clear_size_listener(&self) {
+        self.listener().take();
+    }
+
+    fn listener(&self) -> std::sync::MutexGuard<'_, Option<SizeListener>> {
+        self.size_listener
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
     }
 
     /// The video's size as the stream describes it, shared with the view.
@@ -164,8 +189,14 @@ impl FrameSink for LayerSink {
                 // SAFETY: a valid H.264 format description.
                 let size = unsafe { CMVideoFormatDescriptionGetDimensions(&format) };
                 let (width, height) = (size.width.max(0) as u64, size.height.max(0) as u64);
-                self.video_size
-                    .store(width << 32 | height, Ordering::Relaxed);
+                let before = self
+                    .video_size
+                    .swap(width << 32 | height, Ordering::Relaxed);
+                if before != width << 32 | height
+                    && let Some(listener) = self.listener().as_ref()
+                {
+                    listener(width as u32, height as u32);
+                }
                 decoder.format = Some(SendFormat(format));
                 decoder.stats.configurations += 1;
                 decoder.waiting_for_keyframe = true;
@@ -466,6 +497,8 @@ impl Drop for NoNap {
 pub struct MirrorView {
     view: Retained<MirrorNSView>,
     sink: Arc<dyn FrameSink>,
+    /// The same sink, typed: the view clears its size listener as it goes.
+    layer_sink: Arc<LayerSink>,
     context: ComponentContext,
     session: Option<String>,
     _probe: Option<PresentProbe>,
@@ -497,13 +530,31 @@ impl MirrorView {
             );
         }
         let view = MirrorNSView::new(mtm, sink.video_size());
+        {
+            // The listener runs on the pump's thread: the window is resized on the main one,
+            // if the view is still in it.
+            let weak = Arc::new(MainThreadBound::new(Weak::from_retained(&view), mtm));
+            sink.on_size_change(move |width, height| {
+                let weak = weak.clone();
+                dispatch2::DispatchQueue::main().exec_async(move || {
+                    let Some(mtm) = MainThreadMarker::new() else {
+                        return;
+                    };
+                    let window = weak.get(mtm).load().and_then(|view| view.window());
+                    if let Some(window) = window {
+                        super::windows::fit_to_video(&window, width, height);
+                    }
+                });
+            });
+        }
         // A layer-hosting view: the layer is set first, then wanted, so AppKit keeps its frame
         // at the view's bounds and never draws into it.
         view.setLayer(Some(&layer));
         view.setWantsLayer(true);
         Self {
             view,
-            sink,
+            sink: sink.clone(),
+            layer_sink: sink,
             context,
             session: None,
             _probe: probe,
@@ -526,8 +577,12 @@ impl NativeComponent for MirrorView {
     }
 
     fn set_prop(&mut self, name: &str, value: Option<&Value>) {
-        if name != "session" {
-            return;
+        let on = || value.and_then(Value::as_bool).unwrap_or(false);
+        match name {
+            "showClicks" => return self.view.set_show_clicks(on()),
+            "reduceMotion" => return self.view.set_reduce_motion(on()),
+            "session" => {}
+            _ => return,
         }
         let session = value.and_then(Value::as_str).map(str::to_owned);
         if session == self.session {
@@ -546,6 +601,9 @@ impl NativeComponent for MirrorView {
 impl Drop for MirrorView {
     fn drop(&mut self) {
         self.detach();
+        // The sink may outlive the view on the pump's thread (the registry holds it): the
+        // listener, which holds the view, goes here on the main thread.
+        self.layer_sink.clear_size_listener();
         metrics::clear_renderer_failures(self.metrics_owner);
     }
 }
@@ -618,6 +676,18 @@ mod tests {
         sink.frame(&annexb(&[IDR]), true);
         assert_eq!(sink.stats().enqueued, 2);
         assert_eq!(sink.stats().configurations, 2);
+    }
+
+    #[test]
+    fn the_listener_hears_each_new_size_once() {
+        let sink = sink();
+        let heard = Arc::new(Mutex::new(Vec::new()));
+        let record = heard.clone();
+        sink.on_size_change(move |width, height| record.lock().unwrap().push((width, height)));
+        sink.configure(&annexb(&[SPS, PPS]));
+        // The same stream again (a keyframe's repeat, a reconnect): no new size.
+        sink.configure(&annexb(&[SPS, PPS]));
+        assert_eq!(*heard.lock().unwrap(), [(64, 64)]);
     }
 
     #[test]

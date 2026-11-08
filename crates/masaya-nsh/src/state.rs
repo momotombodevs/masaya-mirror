@@ -20,8 +20,14 @@ pub enum MirrorView {
         width: u32,
         height: u32,
     },
-    /// The phone stopped sending; why, when it broke rather than closed.
-    Ended(Option<String>),
+    /// The stream dropped without the user asking: trying to bring it back (attempt `attempt`
+    /// of `max`). The video's last frame stays under the message.
+    Reconnecting {
+        attempt: usize,
+        max: usize,
+    },
+    /// The reconnect gave up; why the last attempt failed, when it said.
+    GaveUp(Option<String>),
 }
 
 impl MirrorView {
@@ -30,14 +36,15 @@ impl MirrorView {
             Self::Starting => MirrorKind::Starting,
             Self::Failed(_) => MirrorKind::Failed,
             Self::Running { .. } => MirrorKind::Running,
-            Self::Ended(_) => MirrorKind::Ended,
+            Self::Reconnecting { .. } => MirrorKind::Reconnecting,
+            Self::GaveUp(_) => MirrorKind::GaveUp,
         }
     }
 
     /// The detail under a failure or an end.
     pub fn detail(&self) -> String {
         match self {
-            Self::Failed(detail) | Self::Ended(Some(detail)) => detail.clone(),
+            Self::Failed(detail) | Self::GaveUp(Some(detail)) => detail.clone(),
             _ => String::new(),
         }
     }
@@ -55,7 +62,15 @@ pub enum MirrorKind {
     Starting,
     Failed,
     Running,
-    Ended,
+    Reconnecting,
+    GaveUp,
+}
+
+impl MirrorKind {
+    /// The video's view shows: live, or frozen on its last frame while reconnecting.
+    pub fn shows_video(self) -> bool {
+        matches!(self, Self::Running | Self::Reconnecting)
+    }
 }
 
 /// One phone in the list, ready to show.

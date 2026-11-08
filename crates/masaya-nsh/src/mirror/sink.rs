@@ -11,8 +11,9 @@ use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 
-use masaya_core::scrcpy::ControlMessage;
 use tokio::sync::mpsc::UnboundedSender;
+
+use crate::mirror::control::InputBatch;
 
 /// What shows a mirror's frames. Called from the pump's thread.
 pub trait FrameSink: Send + Sync {
@@ -28,7 +29,7 @@ struct Slot {
     sink: Option<Arc<dyn FrameSink>>,
     config: Option<Vec<u8>>,
     /// Where the view sends its input, in order ([`crate::mirror::control`]).
-    input: Option<UnboundedSender<ControlMessage>>,
+    input: Option<UnboundedSender<InputBatch>>,
 }
 
 /// Mirrors by session key.
@@ -80,14 +81,14 @@ impl Registry {
     }
 
     /// The session of `key` takes input on `sender`.
-    pub fn set_input(&self, key: &str, sender: UnboundedSender<ControlMessage>) {
+    pub fn set_input(&self, key: &str, sender: UnboundedSender<InputBatch>) {
         if let Some(slot) = self.slots().get_mut(key) {
             slot.input = Some(sender);
         }
     }
 
     /// Where the view of `key` sends its input, once the session takes it.
-    pub fn input(&self, key: &str) -> Option<UnboundedSender<ControlMessage>> {
+    pub fn input(&self, key: &str) -> Option<UnboundedSender<InputBatch>> {
         self.slots().get(key).and_then(|slot| slot.input.clone())
     }
 
@@ -139,6 +140,8 @@ pub fn new_key(serial: &str) -> String {
 
 #[cfg(test)]
 mod tests {
+    use masaya_core::scrcpy::ControlMessage;
+
     use super::*;
 
     #[derive(Default)]
@@ -219,8 +222,8 @@ mod tests {
         let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
         registry.set_input("a", tx);
         let input = registry.input("a").unwrap();
-        input.send(ControlMessage::Rotate).unwrap();
-        assert_eq!(rx.try_recv().unwrap(), ControlMessage::Rotate);
+        input.send(vec![ControlMessage::Rotate]).unwrap();
+        assert_eq!(rx.try_recv().unwrap(), [ControlMessage::Rotate]);
         registry.close("a");
         assert!(registry.input("a").is_none());
     }

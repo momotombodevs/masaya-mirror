@@ -30,19 +30,61 @@ pub enum Key {
     HintReconnect,
     MirrorStarting,
     MirrorFailed,
-    MirrorEnded,
+    MirrorReconnectFailed,
     MirrorNoVideo,
-    MirrorReconnect,
+    MirrorReconnecting,
     Mirroring,
     Close,
-    MirrorEndedHint,
+    MirrorGaveUpHint,
     MirrorVideoHint,
     MenuDevices,
+    ToolbarLabel,
+    ToolbarVolumeUp,
+    ToolbarVolumeDown,
+    ToolbarPower,
+    ToolbarRotate,
+    ToolbarFullScreen,
+    NavigationLabel,
+    NavigationBack,
+    NavigationHome,
+    NavigationRecents,
+    MirrorNotSent,
+    MenuAbout,
+    MenuHide,
+    MenuHideOthers,
+    MenuShowAll,
+    MenuQuit,
+    MenuEdit,
+    MenuUndo,
+    MenuRedo,
+    MenuCut,
+    MenuCopy,
+    MenuPaste,
+    MenuSelectAll,
+    MenuDevice,
+    MenuRefresh,
+    MenuRotate,
+    MenuVolumeUp,
+    MenuVolumeDown,
+    MenuPower,
+    MenuBack,
+    MenuHome,
+    MenuRecents,
+    MenuAlwaysOnTop,
+    MenuShowClicks,
+    MenuNavigationBar,
+    MenuView,
+    MenuFullScreen,
+    MenuWindow,
+    MenuMinimize,
+    MenuClose,
+    MenuBringAllToFront,
+    MenuExitFullScreen,
 }
 
 impl Key {
     /// Every key, for tests that walk the whole catalog.
-    pub const ALL: [Key; 24] = [
+    pub const ALL: [Key; 66] = [
         Key::DevicesTitle,
         Key::Loading,
         Key::EmptyTitle,
@@ -59,14 +101,56 @@ impl Key {
         Key::HintReconnect,
         Key::MirrorStarting,
         Key::MirrorFailed,
-        Key::MirrorEnded,
+        Key::MirrorReconnectFailed,
         Key::MirrorNoVideo,
-        Key::MirrorReconnect,
+        Key::MirrorReconnecting,
         Key::Mirroring,
         Key::Close,
-        Key::MirrorEndedHint,
+        Key::MirrorGaveUpHint,
         Key::MirrorVideoHint,
         Key::MenuDevices,
+        Key::ToolbarLabel,
+        Key::ToolbarVolumeUp,
+        Key::ToolbarVolumeDown,
+        Key::ToolbarPower,
+        Key::ToolbarRotate,
+        Key::ToolbarFullScreen,
+        Key::NavigationLabel,
+        Key::NavigationBack,
+        Key::NavigationHome,
+        Key::NavigationRecents,
+        Key::MirrorNotSent,
+        Key::MenuAbout,
+        Key::MenuHide,
+        Key::MenuHideOthers,
+        Key::MenuShowAll,
+        Key::MenuQuit,
+        Key::MenuEdit,
+        Key::MenuUndo,
+        Key::MenuRedo,
+        Key::MenuCut,
+        Key::MenuCopy,
+        Key::MenuPaste,
+        Key::MenuSelectAll,
+        Key::MenuDevice,
+        Key::MenuRefresh,
+        Key::MenuRotate,
+        Key::MenuVolumeUp,
+        Key::MenuVolumeDown,
+        Key::MenuPower,
+        Key::MenuBack,
+        Key::MenuHome,
+        Key::MenuRecents,
+        Key::MenuAlwaysOnTop,
+        Key::MenuShowClicks,
+        Key::MenuNavigationBar,
+        Key::MenuView,
+        Key::MenuFullScreen,
+        Key::MenuWindow,
+        Key::MenuMinimize,
+        Key::MenuClose,
+        Key::MenuBringAllToFront,
+        Key::MenuExitFullScreen,
     ];
 }
 
@@ -117,19 +201,21 @@ pub fn text(key: Key, locale: Locale) -> &'static str {
         // main.mirrorStartFailed
         (Key::MirrorFailed, Es) => "No se pudo iniciar la duplicación.",
         (Key::MirrorFailed, En) => "Could not start mirroring.",
-        (Key::MirrorEnded, Es) => "La transmisión terminó.",
-        (Key::MirrorEnded, En) => "The stream ended.",
+        // mirror.reconnectFailed
+        (Key::MirrorReconnectFailed, Es) => "No se pudo reconectar con el dispositivo.",
+        (Key::MirrorReconnectFailed, En) => "Could not reconnect to the device.",
         (Key::MirrorNoVideo, Es) => "No se pudo mostrar el video del teléfono.",
         (Key::MirrorNoVideo, En) => "Could not show the phone's video.",
-        (Key::MirrorReconnect, Es) => "Reconectar",
-        (Key::MirrorReconnect, En) => "Reconnect",
+        // mirror.reconnecting
+        (Key::MirrorReconnecting, Es) => "Conexión perdida. Reconectando…",
+        (Key::MirrorReconnecting, En) => "Connection lost. Reconnecting…",
         // The badge of a phone whose mirror window is open (devices.mirroring).
         (Key::Mirroring, Es) => "Duplicando",
         (Key::Mirroring, En) => "Mirroring",
         (Key::Close, Es) => "Cerrar",
         (Key::Close, En) => "Close",
-        (Key::MirrorEndedHint, Es) => "Revisa el cable USB y pulsa Reconectar.",
-        (Key::MirrorEndedHint, En) => "Check the USB cable and press Reconnect.",
+        (Key::MirrorGaveUpHint, Es) => "Revisa el cable USB y pulsa Reintentar.",
+        (Key::MirrorGaveUpHint, En) => "Check the USB cable and press Try again.",
         (Key::MirrorVideoHint, Es) => {
             "Las teclas y los clics van al teléfono. Escape es Atrás. Comando W cierra la ventana."
         }
@@ -139,6 +225,96 @@ pub fn text(key: Key, locale: Locale) -> &'static str {
         // The Window menu's item that shows the list again.
         (Key::MenuDevices, Es) => "Dispositivos",
         (Key::MenuDevices, En) => "Devices",
+        // What the screen reader calls the toolbar.
+        (Key::ToolbarLabel, Es) => "Controles del teléfono",
+        (Key::ToolbarLabel, En) => "Phone controls",
+        // toolbar.*
+        (Key::ToolbarVolumeUp, Es) => "Subir volumen",
+        (Key::ToolbarVolumeUp, En) => "Volume up",
+        (Key::ToolbarVolumeDown, Es) => "Bajar volumen",
+        (Key::ToolbarVolumeDown, En) => "Volume down",
+        (Key::ToolbarPower, Es) => "Botón de encendido",
+        (Key::ToolbarPower, En) => "Power button",
+        (Key::ToolbarRotate, Es) => "Girar pantalla",
+        (Key::ToolbarRotate, En) => "Rotate screen",
+        (Key::ToolbarFullScreen, Es) => "Pantalla completa",
+        (Key::ToolbarFullScreen, En) => "Full screen",
+        // nav.*
+        (Key::NavigationLabel, Es) => "Navegación del dispositivo",
+        (Key::NavigationLabel, En) => "Device navigation",
+        (Key::NavigationBack, Es) => "Atrás",
+        (Key::NavigationBack, En) => "Back",
+        (Key::NavigationHome, Es) => "Inicio",
+        (Key::NavigationHome, En) => "Home",
+        (Key::NavigationRecents, Es) => "Apps recientes",
+        (Key::NavigationRecents, En) => "Recent apps",
+        // The toolbar's status when a press found no session.
+        (Key::MirrorNotSent, Es) => "No se envió: el teléfono no está conectado.",
+        (Key::MirrorNotSent, En) => "Not sent: the phone isn't connected.",
+        // The menu bar (menu.*).
+        (Key::MenuAbout, Es) => "Acerca de Masaya",
+        (Key::MenuAbout, En) => "About Masaya",
+        (Key::MenuHide, Es) => "Ocultar Masaya",
+        (Key::MenuHide, En) => "Hide Masaya",
+        (Key::MenuHideOthers, Es) => "Ocultar otros",
+        (Key::MenuHideOthers, En) => "Hide Others",
+        (Key::MenuShowAll, Es) => "Mostrar todo",
+        (Key::MenuShowAll, En) => "Show All",
+        (Key::MenuQuit, Es) => "Salir de Masaya",
+        (Key::MenuQuit, En) => "Quit Masaya",
+        (Key::MenuEdit, Es) => "Edición",
+        (Key::MenuEdit, En) => "Edit",
+        (Key::MenuUndo, Es) => "Deshacer",
+        (Key::MenuUndo, En) => "Undo",
+        (Key::MenuRedo, Es) => "Rehacer",
+        (Key::MenuRedo, En) => "Redo",
+        (Key::MenuCut, Es) => "Cortar",
+        (Key::MenuCut, En) => "Cut",
+        (Key::MenuCopy, Es) => "Copiar",
+        (Key::MenuCopy, En) => "Copy",
+        (Key::MenuPaste, Es) => "Pegar",
+        (Key::MenuPaste, En) => "Paste",
+        (Key::MenuSelectAll, Es) => "Seleccionar todo",
+        (Key::MenuSelectAll, En) => "Select All",
+        (Key::MenuDevice, Es) => "Dispositivo",
+        (Key::MenuDevice, En) => "Device",
+        (Key::MenuRefresh, Es) => "Actualizar lista",
+        (Key::MenuRefresh, En) => "Refresh List",
+        (Key::MenuRotate, Es) => "Girar pantalla",
+        (Key::MenuRotate, En) => "Rotate Screen",
+        (Key::MenuVolumeUp, Es) => "Subir volumen",
+        (Key::MenuVolumeUp, En) => "Volume Up",
+        (Key::MenuVolumeDown, Es) => "Bajar volumen",
+        (Key::MenuVolumeDown, En) => "Volume Down",
+        (Key::MenuPower, Es) => "Botón de encendido",
+        (Key::MenuPower, En) => "Power Button",
+        (Key::MenuBack, Es) => "Atrás",
+        (Key::MenuBack, En) => "Back",
+        (Key::MenuHome, Es) => "Inicio",
+        (Key::MenuHome, En) => "Home",
+        (Key::MenuRecents, Es) => "Apps recientes",
+        (Key::MenuRecents, En) => "Recent Apps",
+        (Key::MenuAlwaysOnTop, Es) => "Mantener encima",
+        (Key::MenuAlwaysOnTop, En) => "Always on Top",
+        (Key::MenuShowClicks, Es) => "Mostrar clics",
+        (Key::MenuShowClicks, En) => "Show Clicks",
+        (Key::MenuNavigationBar, Es) => "Barra de navegación",
+        (Key::MenuNavigationBar, En) => "Navigation Bar",
+        (Key::MenuView, Es) => "Ver",
+        (Key::MenuView, En) => "View",
+        (Key::MenuFullScreen, Es) => "Entrar en pantalla completa",
+        (Key::MenuFullScreen, En) => "Enter Full Screen",
+        (Key::MenuWindow, Es) => "Ventana",
+        (Key::MenuWindow, En) => "Window",
+        (Key::MenuMinimize, Es) => "Minimizar",
+        (Key::MenuMinimize, En) => "Minimize",
+        (Key::MenuClose, Es) => "Cerrar",
+        (Key::MenuClose, En) => "Close",
+        (Key::MenuBringAllToFront, Es) => "Traer todo al frente",
+        (Key::MenuBringAllToFront, En) => "Bring All to Front",
+        // The View item while the key window is in full screen.
+        (Key::MenuExitFullScreen, Es) => "Salir de pantalla completa",
+        (Key::MenuExitFullScreen, En) => "Exit Full Screen",
     }
 }
 
@@ -152,6 +328,30 @@ pub fn mirror_label(name: &str, locale: Locale) -> String {
     match locale {
         Locale::Es => format!("Pantalla de {name}"),
         Locale::En => format!("{name} screen"),
+    }
+}
+
+/// Announced when the stream of `name` drops and the reconnect starts.
+pub fn reconnecting_announcement(name: &str, locale: Locale) -> String {
+    match locale {
+        Locale::Es => format!("Se perdió la conexión con {name}. Reconectando…"),
+        Locale::En => format!("Lost connection to {name}. Reconnecting…"),
+    }
+}
+
+/// Announced when the reconnect to `name` gives up.
+pub fn gave_up_announcement(name: &str, locale: Locale) -> String {
+    match locale {
+        Locale::Es => format!("No se pudo reconectar con {name}."),
+        Locale::En => format!("Could not reconnect to {name}."),
+    }
+}
+
+/// Which reconnect attempt runs (`mirror.reconnectAttempt`).
+pub fn reconnect_attempt(attempt: usize, max: usize, locale: Locale) -> String {
+    match locale {
+        Locale::Es => format!("Intento {attempt} de {max}"),
+        Locale::En => format!("Attempt {attempt} of {max}"),
     }
 }
 
@@ -331,15 +531,57 @@ mod tests {
             Key::HintUnauthorized => Key::HintReconnect,
             Key::HintReconnect => Key::MirrorStarting,
             Key::MirrorStarting => Key::MirrorFailed,
-            Key::MirrorFailed => Key::MirrorEnded,
-            Key::MirrorEnded => Key::MirrorNoVideo,
-            Key::MirrorNoVideo => Key::MirrorReconnect,
-            Key::MirrorReconnect => Key::Mirroring,
+            Key::MirrorFailed => Key::MirrorReconnectFailed,
+            Key::MirrorReconnectFailed => Key::MirrorNoVideo,
+            Key::MirrorNoVideo => Key::MirrorReconnecting,
+            Key::MirrorReconnecting => Key::Mirroring,
             Key::Mirroring => Key::Close,
-            Key::Close => Key::MirrorEndedHint,
-            Key::MirrorEndedHint => Key::MirrorVideoHint,
+            Key::Close => Key::MirrorGaveUpHint,
+            Key::MirrorGaveUpHint => Key::MirrorVideoHint,
             Key::MirrorVideoHint => Key::MenuDevices,
-            Key::MenuDevices => return None,
+            Key::MenuDevices => Key::ToolbarLabel,
+            Key::ToolbarLabel => Key::ToolbarVolumeUp,
+            Key::ToolbarVolumeUp => Key::ToolbarVolumeDown,
+            Key::ToolbarVolumeDown => Key::ToolbarPower,
+            Key::ToolbarPower => Key::ToolbarRotate,
+            Key::ToolbarRotate => Key::ToolbarFullScreen,
+            Key::ToolbarFullScreen => Key::NavigationLabel,
+            Key::NavigationLabel => Key::NavigationBack,
+            Key::NavigationBack => Key::NavigationHome,
+            Key::NavigationHome => Key::NavigationRecents,
+            Key::NavigationRecents => Key::MirrorNotSent,
+            Key::MirrorNotSent => Key::MenuAbout,
+            Key::MenuAbout => Key::MenuHide,
+            Key::MenuHide => Key::MenuHideOthers,
+            Key::MenuHideOthers => Key::MenuShowAll,
+            Key::MenuShowAll => Key::MenuQuit,
+            Key::MenuQuit => Key::MenuEdit,
+            Key::MenuEdit => Key::MenuUndo,
+            Key::MenuUndo => Key::MenuRedo,
+            Key::MenuRedo => Key::MenuCut,
+            Key::MenuCut => Key::MenuCopy,
+            Key::MenuCopy => Key::MenuPaste,
+            Key::MenuPaste => Key::MenuSelectAll,
+            Key::MenuSelectAll => Key::MenuDevice,
+            Key::MenuDevice => Key::MenuRefresh,
+            Key::MenuRefresh => Key::MenuRotate,
+            Key::MenuRotate => Key::MenuVolumeUp,
+            Key::MenuVolumeUp => Key::MenuVolumeDown,
+            Key::MenuVolumeDown => Key::MenuPower,
+            Key::MenuPower => Key::MenuBack,
+            Key::MenuBack => Key::MenuHome,
+            Key::MenuHome => Key::MenuRecents,
+            Key::MenuRecents => Key::MenuAlwaysOnTop,
+            Key::MenuAlwaysOnTop => Key::MenuShowClicks,
+            Key::MenuShowClicks => Key::MenuNavigationBar,
+            Key::MenuNavigationBar => Key::MenuView,
+            Key::MenuView => Key::MenuFullScreen,
+            Key::MenuFullScreen => Key::MenuWindow,
+            Key::MenuWindow => Key::MenuMinimize,
+            Key::MenuMinimize => Key::MenuClose,
+            Key::MenuClose => Key::MenuBringAllToFront,
+            Key::MenuBringAllToFront => Key::MenuExitFullScreen,
+            Key::MenuExitFullScreen => return None,
         })
     }
 
@@ -389,8 +631,20 @@ mod tests {
                 Key::StatusUnauthorized,
                 Key::StatusUnknown,
             ][..],
-            &[Key::Refresh, Key::Retry, Key::MirrorReconnect, Key::Close][..],
+            &[Key::Refresh, Key::Retry, Key::Close][..],
             &[Key::Mirroring, Key::StatusDevice, Key::StatusOffline][..],
+            // The window's bars, all at once.
+            &[
+                Key::ToolbarVolumeUp,
+                Key::ToolbarVolumeDown,
+                Key::ToolbarPower,
+                Key::ToolbarRotate,
+                Key::ToolbarFullScreen,
+                Key::NavigationBack,
+                Key::NavigationHome,
+                Key::NavigationRecents,
+                Key::Close,
+            ][..],
         ];
         for locale in [Locale::Es, Locale::En] {
             for group in groups {
@@ -411,7 +665,22 @@ mod tests {
     fn the_retry_button_named_in_the_adb_hint_exists() {
         for locale in [Locale::Es, Locale::En] {
             assert!(text(Key::AdbNotFound, locale).contains(text(Key::Retry, locale)));
+            assert!(text(Key::MirrorGaveUpHint, locale).contains(text(Key::Retry, locale)));
         }
+    }
+
+    #[test]
+    fn the_reconnect_announcements_name_the_phone() {
+        for locale in [Locale::Es, Locale::En] {
+            assert!(reconnecting_announcement("Pixel 8", locale).contains("Pixel 8"));
+            assert!(gave_up_announcement("Pixel 8", locale).contains("Pixel 8"));
+        }
+    }
+
+    #[test]
+    fn the_reconnect_attempt_counts_up_to_its_budget() {
+        assert_eq!(reconnect_attempt(3, 12, Locale::Es), "Intento 3 de 12");
+        assert_eq!(reconnect_attempt(3, 12, Locale::En), "Attempt 3 of 12");
     }
 
     #[test]

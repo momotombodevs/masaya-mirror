@@ -251,11 +251,10 @@ fn run(scenario: Scenario, key: &str, width: u32, height: u32) {
         let started = metrics::begin_trial();
         for step in &steps {
             sleep_until(started + step.at);
-            for message in translator.translate(&step.event, geometry) {
-                if input.send(message).is_err() {
-                    log::warn!(target: TARGET, "the session ended");
-                    return;
-                }
+            let messages = translator.translate(&step.event, geometry);
+            if !messages.is_empty() && input.send(messages).is_err() {
+                log::warn!(target: TARGET, "the session ended");
+                return;
             }
         }
         let last = steps.last().map_or(Duration::ZERO, |step| step.at);

@@ -30,17 +30,35 @@ use objc2_foundation::{
 };
 use tokio::sync::mpsc::UnboundedSender;
 
+use dispatch2::{DispatchQueue, DispatchTime, MainThreadBound};
+use objc2::rc::Weak;
+use objc2_core_foundation::{CGPoint, CGRect, CGSize};
+use objc2_core_graphics::CGColor;
+use objc2_quartz_core::{CALayer, CATransaction, CATransform3D};
+
 use super::mirror_view::unpack_size;
 use crate::input::events::{Geometry, InputEvent, InputTranslator, KeyDown};
+use crate::input::indicators::{Indicators, RELEASE};
+use crate::mirror::control::InputBatch;
+
+/// The click circle's size, in points (the renderer's `h-10 w-10`).
+const INDICATOR_DIAMETER: f64 = 40.0;
 use crate::input::mapping::{VideoSize, ViewSize};
 
 pub struct Ivars {
     translator: RefCell<InputTranslator>,
-    input: RefCell<Option<UnboundedSender<ControlMessage>>>,
+    input: RefCell<Option<UnboundedSender<InputBatch>>>,
     video_size: Arc<AtomicU64>,
     marked: Cell<bool>,
     /// The window whose losing focus releases the keys.
     observed: RefCell<Option<Retained<NSWindow>>>,
+    /// Show clicks: the circle under the pointer ([`crate::input::indicators`]).
+    indicators: RefCell<Indicators>,
+    show_clicks: Cell<bool>,
+    /// Reduce Motion is on: the circle only fades, it does not grow.
+    reduce_motion: Cell<bool>,
+    /// The circle's layer, over the video, made on first use.
+    indicator_layer: RefCell<Option<Retained<CALayer>>>,
 }
 
 define_class!(
@@ -72,23 +90,42 @@ define_class!(
             }
             let (x, y) = self.point(event);
             self.handle(&InputEvent::MouseDown { x, y });
+            if self.ivars().show_clicks.get() {
+                self.ivars().indicators.borrow_mut().press(x, y);
+                self.draw_indicator();
+            }
         }
 
         #[unsafe(method(mouseDragged:))]
         fn mouse_dragged(&self, event: &NSEvent) {
             let (x, y) = self.point(event);
             self.handle(&InputEvent::MouseDragged { x, y });
+            if self.ivars().show_clicks.get() {
+                self.ivars().indicators.borrow_mut().drag(x, y);
+                self.draw_indicator();
+            }
         }
 
         #[unsafe(method(mouseUp:))]
         fn mouse_up(&self, event: &NSEvent) {
             let (x, y) = self.point(event);
             self.handle(&InputEvent::MouseUp { x, y });
+            if self.ivars().show_clicks.get() {
+                let token = self.ivars().indicators.borrow_mut().release(x, y);
+                self.draw_indicator();
+                self.expire_indicator_later(token);
+            }
         }
 
         #[unsafe(method(rightMouseDown:))]
-        fn right_mouse_down(&self, _event: &NSEvent) {
+        fn right_mouse_down(&self, event: &NSEvent) {
             self.handle(&InputEvent::RightMouseDown);
+            if self.ivars().show_clicks.get() {
+                let (x, y) = self.point(event);
+                let token = self.ivars().indicators.borrow_mut().tap(x, y);
+                self.draw_indicator();
+                self.expire_indicator_later(token);
+            }
         }
 
         #[unsafe(method(otherMouseDown:))]
@@ -295,19 +332,113 @@ impl MirrorNSView {
             video_size,
             marked: Cell::new(false),
             observed: RefCell::new(None),
+            indicators: RefCell::new(Indicators::default()),
+            show_clicks: Cell::new(false),
+            reduce_motion: Cell::new(false),
+            indicator_layer: RefCell::new(None),
         });
         // SAFETY: NSView's designated initializer.
         unsafe { msg_send![super(this), init] }
     }
 
     /// Where input goes: the session's channel, or nowhere while there is none.
-    pub fn set_input(&self, input: Option<UnboundedSender<ControlMessage>>) {
+    pub fn set_input(&self, input: Option<UnboundedSender<InputBatch>>) {
         if input.is_none() {
             // The session went: whatever is held on the phone is moot, but the translator
             // must not think a finger or a key is still down.
             let _ = self.ivars().translator.borrow_mut().release_all();
         }
         *self.ivars().input.borrow_mut() = input;
+    }
+
+    /// Show clicks on or off (the `showClicks` setting).
+    pub fn set_show_clicks(&self, on: bool) {
+        self.ivars().show_clicks.set(on);
+        if !on {
+            self.ivars().indicators.borrow_mut().clear();
+            self.draw_indicator();
+        }
+    }
+
+    /// Reduce Motion on or off (the system's accessibility setting).
+    pub fn set_reduce_motion(&self, on: bool) {
+        self.ivars().reduce_motion.set(on);
+    }
+
+    /// Draws the circle as the indicators have it: solid where the finger touches; fading out
+    /// (and growing, unless Reduce Motion is on) once it lifts; gone once its release is over.
+    fn draw_indicator(&self) {
+        let current = self.ivars().indicators.borrow().current();
+        let Some(layer) = self.indicator_layer(current.is_some()) else {
+            return;
+        };
+        CATransaction::begin();
+        match current {
+            None => {
+                CATransaction::setDisableActions(true);
+                layer.setHidden(true);
+            }
+            Some(indicator) => {
+                // The circle jumps to the pointer; only the release animates.
+                CATransaction::setDisableActions(indicator.down);
+                CATransaction::setAnimationDuration(0.3);
+                layer.setHidden(false);
+                layer.setPosition(CGPoint::new(indicator.x, indicator.y));
+                let grow = !indicator.down && !self.ivars().reduce_motion.get();
+                let scale = if grow { 1.6 } else { 1.0 };
+                layer.setTransform(CATransform3D::new_scale(scale, scale, 1.0));
+                layer.setOpacity(if indicator.down { 1.0 } else { 0.0 });
+            }
+        }
+        CATransaction::commit();
+    }
+
+    /// The circle's layer, made over the video when `make` and there is none yet.
+    fn indicator_layer(&self, make: bool) -> Option<Retained<CALayer>> {
+        if let Some(layer) = self.ivars().indicator_layer.borrow().as_ref() {
+            return Some(layer.clone());
+        }
+        if !make {
+            return None;
+        }
+        let host = self.layer()?;
+        let layer = CALayer::new();
+        let diameter = INDICATOR_DIAMETER;
+        layer.setBounds(CGRect::new(
+            CGPoint::new(0.0, 0.0),
+            CGSize::new(diameter, diameter),
+        ));
+        layer.setCornerRadius(diameter / 2.0);
+        layer.setBorderWidth(2.0);
+        layer.setBorderColor(Some(&CGColor::new_srgb(1.0, 1.0, 1.0, 1.0)));
+        // The accent at half strength, as the renderer's `bg-accent/50`.
+        layer.setBackgroundColor(Some(&CGColor::new_srgb(0.04, 0.52, 1.0, 0.5)));
+        layer.setShadowOpacity(0.35);
+        layer.setShadowRadius(1.0);
+        layer.setShadowOffset(CGSize::new(0.0, 0.0));
+        layer.setHidden(true);
+        host.addSublayer(&layer);
+        *self.ivars().indicator_layer.borrow_mut() = Some(layer.clone());
+        Some(layer)
+    }
+
+    /// Removes the released circle of `token` once its fade is over, if nothing touched since.
+    fn expire_indicator_later(&self, token: u64) {
+        let Ok(when) = DispatchTime::try_from(RELEASE) else {
+            return;
+        };
+        let mtm = MainThreadMarker::from(self);
+        let weak = MainThreadBound::new(Weak::from_retained(&self.retain()), mtm);
+        let _ = DispatchQueue::main().after(when, move || {
+            let Some(mtm) = MainThreadMarker::new() else {
+                return;
+            };
+            if let Some(view) = weak.get(mtm).load()
+                && view.ivars().indicators.borrow_mut().expire(token)
+            {
+                view.draw_indicator();
+            }
+        });
     }
 
     fn as_responder(&self) -> &NSResponder {
@@ -363,14 +494,13 @@ impl MirrorNSView {
 
     /// Queues `messages` for the session, in order. Never blocks the main thread.
     fn send(&self, messages: Vec<ControlMessage>) {
+        if messages.is_empty() {
+            return;
+        }
         let input = self.ivars().input.borrow();
         let Some(input) = input.as_ref() else { return };
-        for message in messages {
-            if input.send(message).is_err() {
-                // The session ended; the screen will say so.
-                return;
-            }
-        }
+        // One item per event; an error means the session ended, and the screen will say so.
+        let _ = input.send(messages);
     }
 
     /// Releases the keys when the window this view is in stops being the key window.

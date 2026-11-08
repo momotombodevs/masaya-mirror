@@ -117,8 +117,8 @@ fn key(action: u8, key_code: u32, meta_state: u32, repeat: u32) -> ControlMessag
     }
 }
 
-/// A key down and up: the right and middle buttons.
-fn key_press(key_code: u32) -> Vec<ControlMessage> {
+/// A key down and up: the right and middle buttons, and the toolbar's device keys.
+pub fn key_press(key_code: u32) -> Vec<ControlMessage> {
     vec![key(KEY_DOWN, key_code, 0, 0), key(KEY_UP, key_code, 0, 0)]
 }
 

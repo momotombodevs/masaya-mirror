@@ -9,7 +9,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock};
 
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 use tokio::sync::watch;
+
+use crate::mirror::actions::PhoneAction;
 
 /// A mirror window to make.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -43,11 +46,24 @@ pub enum Opened {
     Focused,
 }
 
+/// What a mirror window's host tells its screen, which runs on the window's own engine thread.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum WindowEvent {
+    /// The window entered (`true`) or left full screen.
+    FullScreen(bool),
+    /// The menu asked for this on the window's phone (the window is key).
+    Phone(PhoneAction),
+}
+
 #[derive(Default)]
 struct State {
     /// The generation of each open phone's window.
     open: BTreeMap<String, u64>,
     next_generation: u64,
+    /// Where each open window's screen hears its [`WindowEvent`]s, with the window's generation.
+    listeners: BTreeMap<String, (u64, UnboundedSender<WindowEvent>)>,
+    /// The open windows whose video runs now (the menu enables the phone's items for them).
+    running: BTreeSet<String>,
 }
 
 /// The phones with a mirror window open (see the module docs). Cheap to clone: clones share it.
@@ -55,6 +71,8 @@ struct State {
 pub struct OpenMirrors {
     state: Arc<Mutex<State>>,
     serials: Arc<watch::Sender<BTreeSet<String>>>,
+    /// Bumped by each refresh the menu asks for: the list loads again.
+    refreshes: Arc<watch::Sender<u64>>,
     host: Option<Arc<dyn WindowHost>>,
 }
 
@@ -64,6 +82,7 @@ impl OpenMirrors {
         Self {
             state: Arc::default(),
             serials: Arc::new(watch::Sender::new(BTreeSet::new())),
+            refreshes: Arc::new(watch::Sender::new(0)),
             host,
         }
     }
@@ -124,8 +143,53 @@ impl OpenMirrors {
             return false;
         }
         state.open.remove(serial);
+        state.listeners.remove(serial);
+        state.running.remove(serial);
         self.publish(&state);
         true
+    }
+
+    /// The screen of the window of `serial` made under `generation` hears its events on the
+    /// receiver returned, until the window closes. A newer listen replaces it. A window that is
+    /// not the open one of its phone (it closed, or a newer one opened) hears nothing.
+    pub fn listen(&self, serial: &str, generation: u64) -> UnboundedReceiver<WindowEvent> {
+        let (sender, receiver) = unbounded_channel();
+        let mut state = self.state();
+        if state.open.get(serial) == Some(&generation) {
+            state
+                .listeners
+                .insert(serial.to_owned(), (generation, sender));
+        }
+        receiver
+    }
+
+    /// The video of the window of `serial` made under `generation` runs (`true`) or not.
+    pub fn set_running(&self, serial: &str, generation: u64, running: bool) {
+        let mut state = self.state();
+        if state.open.get(serial) != Some(&generation) {
+            return;
+        }
+        if running {
+            state.running.insert(serial.to_owned());
+        } else {
+            state.running.remove(serial);
+        }
+    }
+
+    /// Whether the video of the window of `serial` made under `generation` runs.
+    pub fn is_running(&self, serial: &str, generation: u64) -> bool {
+        let state = self.state();
+        state.open.get(serial) == Some(&generation) && state.running.contains(serial)
+    }
+
+    /// Tells the screen of the window of `serial` made under `generation` about `event`. Whether
+    /// a screen heard it.
+    pub fn send(&self, serial: &str, generation: u64, event: WindowEvent) -> bool {
+        let state = self.state();
+        match state.listeners.get(serial) {
+            Some((listening, sender)) if *listening == generation => sender.send(event).is_ok(),
+            _ => false,
+        }
     }
 
     /// Asks the host to close the window of `serial` made under `generation` (the screen's
@@ -151,6 +215,17 @@ impl OpenMirrors {
     /// The open phones, each time they change.
     pub fn subscribe(&self) -> watch::Receiver<BTreeSet<String>> {
         self.serials.subscribe()
+    }
+
+    /// Device > Refresh List: the list loads the phones again, whichever window is key.
+    pub fn request_refresh(&self) {
+        self.refreshes
+            .send_modify(|count| *count = count.wrapping_add(1));
+    }
+
+    /// Each refresh asked for from now on.
+    pub fn refresh_requests(&self) -> watch::Receiver<u64> {
+        self.refreshes.subscribe()
     }
 
     fn publish(&self, state: &State) {
@@ -288,6 +363,52 @@ mod tests {
             Opened::New { generation: 1 }
         );
         assert!(mirrors.is_open("A1"));
+    }
+
+    #[test]
+    fn window_events_reach_only_the_screen_of_that_window() {
+        let (mirrors, _) = with_recorder();
+        mirrors.open_or_focus("A1", "Pixel 8");
+        let mut events = mirrors.listen("A1", 1);
+        assert!(mirrors.send("A1", 1, WindowEvent::FullScreen(true)));
+        assert_eq!(events.try_recv().unwrap(), WindowEvent::FullScreen(true));
+        // An older window's event, or another phone's, goes nowhere.
+        assert!(!mirrors.send("A1", 0, WindowEvent::FullScreen(false)));
+        assert!(!mirrors.send("B2", 1, WindowEvent::FullScreen(false)));
+        // Once the window closed, its screen hears nothing more.
+        mirrors.closed("A1", 1);
+        assert!(!mirrors.send("A1", 1, WindowEvent::FullScreen(false)));
+        assert!(events.try_recv().is_err());
+    }
+
+    #[test]
+    fn a_closed_or_older_window_cannot_listen() {
+        let (mirrors, _) = with_recorder();
+        mirrors.open_or_focus("A1", "Pixel 8");
+        let mut stale = mirrors.listen("A1", 0);
+        assert!(!mirrors.send("A1", 0, WindowEvent::FullScreen(true)));
+        assert!(stale.try_recv().is_err());
+        let mut never = mirrors.listen("Z9", 1);
+        assert!(never.try_recv().is_err());
+    }
+
+    #[test]
+    fn the_running_state_belongs_to_the_open_window() {
+        let (mirrors, _) = with_recorder();
+        mirrors.open_or_focus("A1", "Pixel 8");
+        assert!(!mirrors.is_running("A1", 1));
+        mirrors.set_running("A1", 1, true);
+        assert!(mirrors.is_running("A1", 1));
+        // An older window's report changes nothing.
+        mirrors.set_running("A1", 0, false);
+        assert!(mirrors.is_running("A1", 1));
+        mirrors.set_running("A1", 1, false);
+        assert!(!mirrors.is_running("A1", 1));
+        // A closed window forgets it.
+        mirrors.set_running("A1", 1, true);
+        mirrors.closed("A1", 1);
+        mirrors.open_or_focus("A1", "Pixel 8");
+        assert!(!mirrors.is_running("A1", 2));
     }
 
     #[test]

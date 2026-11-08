@@ -9,8 +9,12 @@ use std::time::Duration;
 use masaya_core::ErrorCode;
 use masaya_core::adb::{AndroidDevice, DeviceStatus};
 use masaya_nsh::i18n::{Key, t};
+use masaya_nsh::mirror::actions::PhoneAction;
+use masaya_nsh::settings::SettingsHub;
 use masaya_nsh::source::{DeviceSource, DevicesFuture, DevicesResult, LoadError, MirrorFuture};
-use masaya_nsh::windows::{MirrorRequest, OpenMirrors, WindowHost};
+use masaya_nsh::windows::{MirrorRequest, OpenMirrors, WindowEvent, WindowHost};
+use nsh_core::Command;
+use nsh_core::desktop::{DesktopCommand, WindowLevel};
 use nsh_core::prelude::*;
 use nsh_engine::{EngineConfig, Root};
 use nsh_testing::Headless;
@@ -129,7 +133,8 @@ fn TestApp() -> impl IntoElement {
     masaya_nsh::shell(next.script, next.mirrors)
 }
 
-/// A mirror window's screen for phone `A1`, its window opened under generation 1.
+/// A mirror window's screen for phone `A1`, its window opened under generation 1, hearing its
+/// window's events as a real window's screen does.
 #[component]
 fn TestMirror() -> impl IntoElement {
     let next = NEXT.lock().expect("next").take();
@@ -140,7 +145,8 @@ fn TestMirror() -> impl IntoElement {
         next.script,
         "A1".to_owned(),
         "Pixel 8".to_owned(),
-        move || mirrors.close_window("A1", 1),
+        mirrors,
+        1,
     )
 }
 
@@ -473,4 +479,110 @@ fn a_mirror_that_cannot_start_says_why_and_retries() {
         *started.script.mirrors.lock().expect("mirrors"),
         ["A1", "A1"]
     );
+}
+
+fn sent_level(app: &Headless, level: WindowLevel) -> bool {
+    app.screen()
+        .sent(&Command::Desktop(Box::new(DesktopCommand::SetLevel(level))))
+}
+
+#[test]
+fn full_screen_shows_only_the_phone() {
+    let mut started = start_root(
+        Script::new(|_, _| Ok(vec![pixel()])),
+        Root::of::<TestMirror>(),
+        Key::MirrorStarting,
+    );
+    let app = &mut started.app;
+    let toolbar = format!("label:{}", t(Key::ToolbarLabel));
+    let navigation = format!("label:{}", t(Key::NavigationLabel));
+    assert!(app.screen().matches(&toolbar).unwrap());
+    assert!(app.screen().matches(&navigation).unwrap());
+
+    assert!(started.mirrors.send("A1", 1, WindowEvent::FullScreen(true)));
+    app.wait_for_gone(&toolbar, Duration::from_secs(5)).unwrap();
+    assert!(!app.screen().matches(&navigation).unwrap());
+
+    assert!(
+        started
+            .mirrors
+            .send("A1", 1, WindowEvent::FullScreen(false))
+    );
+    app.wait_for(&toolbar).unwrap();
+    assert!(app.screen().matches(&navigation).unwrap());
+}
+
+#[test]
+fn the_window_floats_while_always_on_top_is_on() {
+    let mut started = start_root(
+        Script::new(|_, _| Ok(vec![pixel()])),
+        Root::of::<TestMirror>(),
+        Key::MirrorStarting,
+    );
+    let app = &mut started.app;
+    assert!(wait_until(app, |app| sent_level(app, WindowLevel::Normal)));
+    assert!(!sent_level(app, WindowLevel::Floating));
+
+    // The menu (or another window) turns it on: this window follows. The guard turns it off
+    // again even if an assertion fails, so other tests see the default.
+    struct Restore;
+    impl Drop for Restore {
+        fn drop(&mut self) {
+            SettingsHub::global().update(|settings| settings.always_on_top = false);
+        }
+    }
+    let _restore = Restore;
+    SettingsHub::global().update(|settings| settings.always_on_top = true);
+    assert!(wait_until(app, |app| sent_level(
+        app,
+        WindowLevel::Floating
+    )));
+}
+
+/// Waits up to 2 s for `condition`, letting the app run in between.
+fn wait_until(app: &mut Headless, condition: impl Fn(&Headless) -> bool) -> bool {
+    for _ in 0..100 {
+        if condition(app) {
+            return true;
+        }
+        app.idle(Duration::from_millis(20)).unwrap();
+    }
+    condition(app)
+}
+
+#[test]
+fn the_menus_refresh_reloads_the_list_starting_adb() {
+    // Only a load that starts adb after the first one finds the phone.
+    let mut started = start_root(
+        Script::new(|index, start_server| {
+            if index > 0 && start_server {
+                Ok(vec![pixel()])
+            } else {
+                Ok(Vec::new())
+            }
+        }),
+        Root::of::<TestApp>(),
+        Key::Loading,
+    );
+    let app = &mut started.app;
+    app.wait_for(t(Key::EmptyTitle)).unwrap();
+    started.mirrors.request_refresh();
+    app.wait_for("Pixel 8").unwrap();
+}
+
+#[test]
+fn a_menu_action_on_a_window_without_a_phone_says_it_did_not_arrive() {
+    let mut started = start_root(
+        Script::new(|_, _| Ok(vec![pixel()])),
+        Root::of::<TestMirror>(),
+        Key::MirrorStarting,
+    );
+    let app = &mut started.app;
+    app.wait_for(t(Key::MirrorFailed)).unwrap();
+    let rotate = WindowEvent::Phone(PhoneAction::Rotate);
+    assert!(started.mirrors.send("A1", 1, rotate));
+    app.wait_for(t(Key::MirrorNotSent)).unwrap();
+    // The toolbar's message passes.
+    app.wait_for_gone(t(Key::MirrorNotSent), Duration::from_secs(5))
+        .unwrap();
 }
