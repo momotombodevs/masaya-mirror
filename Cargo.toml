@@ -1,12 +1,12 @@
 [workspace]
 resolver = "2"
 members = ["crates/masaya-core", "crates/masaya-nsh"]
-# `cargo test` at the root only builds the core, so it works on any OS. `masaya-nsh` is a macOS-only
-# spike: build it with `-p masaya-nsh`.
-default-members = ["crates/masaya-core"]
+# The app (`masaya-nsh`) is macOS-only. On other systems build and test the core alone with
+# `-p masaya-core`, as CI does on Linux.
+default-members = ["crates/masaya-core", "crates/masaya-nsh"]
 
 [workspace.package]
-version = "0.3.3"
+version = "0.4.0"
 edition = "2021"
 license = "UNLICENSED"
 authors = ["Manuel Duarte"]
@@ -22,5 +22,6 @@ thiserror = "2"
 codegen-units = 1
 lto = true
 opt-level = "s"
-panic = "abort"
+# A panic in a background task must not take the whole app down.
+panic = "unwind"
 strip = true
